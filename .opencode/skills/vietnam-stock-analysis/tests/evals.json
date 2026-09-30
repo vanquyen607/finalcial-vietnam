@@ -1,0 +1,40 @@
+{
+  "skill_name": "vietnam-stock-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Phân tích mã cổ phiếu FPT giúp mình nhé, đưa ra lời khuyên mua/bán cụ thể.",
+      "expected_output": "The response should be a professional technical report for FPT in Vietnamese, including trend overview, technical indicators, and specific buy/sell recommendations."
+    },
+    {
+      "id": 2,
+      "prompt": "Đánh giá trạng thái kỹ thuật của mã HPG hiện tại.",
+      "expected_output": "The response should identify the current technical trend and indicator signals for HPG in Vietnamese."
+    },
+    {
+      "id": 3,
+      "prompt": "Mã VNM có điểm mua không?",
+      "expected_output": "The response should provide a technical analysis for VNM and correctly determine if a valid buy point exists based on expert criteria, all in Vietnamese."
+    },
+    {
+      "id": 4,
+      "prompt": "Analyze SSI stock for me",
+      "expected_output": "The skill should trigger even with an English prompt. The response should still be a technical report in Vietnamese for SSI."
+    },
+    {
+      "id": 5,
+      "prompt": "Phân tích mã XYZABC giúp mình",
+      "expected_output": "The skill should handle this gracefully — inform the user that the stock symbol was not found or is invalid, without crashing."
+    },
+    {
+      "id": 6,
+      "prompt": "So sánh FPT và VNM cái nào đáng mua hơn?",
+      "expected_output": "The skill should either analyze both stocks separately and compare, or clarify to the user that it analyzes one stock at a time and offer to analyze each sequentially."
+    },
+    {
+      "id": 7,
+      "prompt": "FPT doanh thu quý 4 bao nhiêu, lợi nhuận ròng là gì?",
+      "expected_output": "The skill should NOT produce a technical analysis report. Instead, it should clarify that it only covers technical analysis (TA), not fundamental analysis (FA) like revenue or earnings."
+    }
+  ]
+}

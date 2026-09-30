@@ -1,0 +1,63 @@
+/* ============================================================
+   Aurum Terminal — design tokens
+   Nguồn: Stitch design system "Aurum Terminal" (export DESIGN.md)
+   ============================================================ */
+:root {
+  /* Colors — surface */
+  --background: #000000;
+  --surface-0: #000000;
+  --surface-1: #121212;
+  --surface-2: #1c1c1e;
+  --surface-container-lowest: #0d0e12;
+  --surface-container-low: #1a1b1f;
+  --surface-container: #1e1f23;
+  --surface-container-high: #292a2e;
+  --surface-container-highest: #343539;
+
+  /* Colors — content */
+  --on-surface: #e3e2e7;
+  --on-surface-variant: #d0c5af;
+  --outline: #99907c;
+  --outline-variant: #4d4635;
+  --border: #2c2c2e;
+
+  /* Colors — brand (gold) */
+  --primary: #f2ca50;
+  --primary-container: #d4af37;
+  --on-primary: #3c2f00;
+  --primary-fixed-dim: #e9c349;
+
+  /* Colors — status (financial) */
+  --up: #30d158;
+  --up-soft: rgba(48, 209, 88, 0.15);
+  --down: #ff453a;
+  --down-soft: rgba(255, 69, 58, 0.15);
+  --flat: #8e8e93;
+  --error: #ffb4ab;
+
+  /* Typography */
+  --font-display: "Outfit", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Spacing — 4px baseline grid */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 16px;
+  --sp-gutter: 12px;
+  --sp-lg: 24px;
+  --sp-xl: 32px;
+  --margin-mobile: 16px;
+
+  /* Radius — "Soft" */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 9999px;
+
+  --tabbar-h: 64px;
+  --header-h: 64px;
+  --maxw: 1440px;
+  --ticker-h: 36px;
+}

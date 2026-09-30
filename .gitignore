@@ -1,0 +1,35 @@
+# Secrets & local config — KHÔNG commit
+opencode.json
+.env
+*.env
+!.env.example
+
+# Dữ liệu runtime
+*.db
+*.db-wal
+*.db-shm
+gold/data/
+backups/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Frontend build & deps
+node_modules/
+gold/frontend/dist/
+dist/
+
+# Ảnh chụp màn hình kiểm chứng
+gold/_shots/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Stitch export (giữ local)
+stitch/
