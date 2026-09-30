@@ -4,7 +4,7 @@ import asyncio
 import json
 import time
 
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 from ..config import settings
@@ -15,6 +15,7 @@ from ..services.broadcast import hub
 from ..services.poller import poller
 from ..services.premium import SJC_CODE, compute_premium
 from ..symbols import GOLD_TYPES, featured_types, resolve
+from .deps import require_token
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -151,7 +152,7 @@ async def list_alerts() -> dict:
     return {"items": db.list_alerts()}
 
 
-@router.post("/alerts", status_code=201)
+@router.post("/alerts", status_code=201, dependencies=[Depends(require_token)])
 async def create_alert(body: AlertIn) -> dict:
     meta = resolve(body.code)
     if meta is None:
@@ -161,14 +162,14 @@ async def create_alert(body: AlertIn) -> dict:
     return row
 
 
-@router.delete("/alerts/{alert_id}")
+@router.delete("/alerts/{alert_id}", dependencies=[Depends(require_token)])
 async def delete_alert(alert_id: int) -> dict:
     if not db.delete_alert(alert_id):
         raise HTTPException(404, "Không tồn tại alert")
     return {"deleted": alert_id}
 
 
-@router.patch("/alerts/{alert_id}")
+@router.patch("/alerts/{alert_id}", dependencies=[Depends(require_token)])
 async def toggle_alert(alert_id: int, active: bool = Query(...)) -> dict:
     if not db.set_alert_active(alert_id, active):
         raise HTTPException(404, "Không tồn tại alert")

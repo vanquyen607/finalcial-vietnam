@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from .api.ratelimit import RateLimitMiddleware
 from .api.routes import router
 from .config import settings
 from .services.poller import poller
@@ -35,10 +36,12 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_origins=settings.cors_origin_list,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+if settings.rate_limit_per_min > 0:
+    app.add_middleware(RateLimitMiddleware)
 
 app.include_router(router)
 

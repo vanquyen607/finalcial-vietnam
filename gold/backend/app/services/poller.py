@@ -78,14 +78,18 @@ class Poller:
                    or prev[r["code"]]["buy"] != r["buy"]
                    or prev[r["code"]]["sell"] != r["sell"]]
 
-        db.insert_quotes(rows)
+        # Dữ liệu mock chỉ để UI không chết — KHÔNG persist vào DB, KHÔNG đánh alert,
+        # để lịch sử/biểu đồ không bao giờ lẫn giá giả.
+        is_mock = source == self.fallback.name
         self.latest = self._snapshot(rows)
+        if not is_mock:
+            db.insert_quotes(rows)
 
         self.status.update(state="live", source=source, last_success=now,
                            polls=self.status["polls"] + 1, clients=hub.count)
 
         events: list[dict] = []
-        if changed:
+        if changed and not is_mock:
             events = alerts_svc.evaluate(self.latest)
         # Push snapshot MỖI tick (kể cả khi giá chưa đổi) → UI luôn có nhịp mới.
         msg = {"type": "quotes", "ts": now, "source": source,

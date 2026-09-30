@@ -68,6 +68,12 @@ class Database:
         self._lock = threading.Lock()
         self._conn = sqlite3.connect(str(path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        # WAL: đọc/ghi đồng thời tốt hơn, chống corrupt khi process chết giữa chừng.
+        try:
+            self._conn.execute("PRAGMA journal_mode=WAL;")
+            self._conn.execute("PRAGMA synchronous=NORMAL;")
+        except sqlite3.Error:
+            pass
         with self._conn:
             self._conn.executescript(_SCHEMA)
 

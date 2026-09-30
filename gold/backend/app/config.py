@@ -33,6 +33,19 @@ class Settings(BaseSettings):
     # Ngưỡng cảnh báo mặc định (% thay đổi trong ngày).
     alert_threshold_pct: float = 1.0
 
+    # Bảo mật production:
+    # - api_token rỗng = mở (dev local); đặt token để yêu cầu header X-Api-Token
+    #   cho mọi API ghi (POST/PATCH/DELETE).
+    api_token: str = ""
+    # - CORS: danh sách origin cách nhau dấu phẩy; rỗng = chỉ cùng origin.
+    cors_origins: str = ""
+    # - Rate limit: số request/phút/IP cho /api/*; 0 = tắt.
+    rate_limit_per_min: int = 120
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     @property
     def ensure_dirs(self) -> Path:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)

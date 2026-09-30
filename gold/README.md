@@ -66,15 +66,19 @@ cd gold\frontend; npm run dev       # -> http://127.0.0.1:5173
 
 | Env | Mặc định | Ý nghĩa |
 | --- | --- | --- |
-| `GOLD_HOST` / `GOLD_PORT` | `127.0.0.1` / `8000` | địa chỉ lắng nghe |
-| `GOLD_DB` | `gold/data/gold.db` | đường dẫn SQLite |
+| `GOLD_HOST` / `GOLD_PORT` | `127.0.0.1` / `8000` | địa chỉ lắng nghe (production: `0.0.0.0`) |
+| `GOLD_DB_PATH` | `gold/data/gold.db` | đường dẫn SQLite |
 | `GOLD_PROVIDER` | `vangtoday` | `mock` để chạy offline/demo |
+| `GOLD_PROVIDER_TIMEOUT` | `12.0` | timeout gọi nguồn (giây) |
 | `GOLD_POLL_INTERVAL` | `30` | giây giữa 2 lần kéo giá |
+| `GOLD_HISTORY_DAYS` | `30` | số ngày lịch sử giữ trong DB |
 | `GOLD_FX_INTERVAL` | `1800` | giây giữa 2 lần làm mới tỷ giá |
 | `GOLD_NEWS_INTERVAL` | `900` | giây giữa 2 lần quét tin RSS |
-| `GOLD_HISTORY_DAYS` | `30` | số ngày lịch sử lưu |
-| `GOLD_CORS_ORIGINS` | `*` | origins được phép |
-| `GOLD_STATIC_DIR` | `gold/frontend/dist` | thư mục SPA (`__STATIC_DIR__` override) |
+| `GOLD_STATIC_DIR` | `gold/frontend/dist` | thư mục SPA đã build |
+| `GOLD_ALERT_THRESHOLD_PCT` | `1.0` | (dự trữ) ngưỡng cảnh báo mặc định |
+| `GOLD_API_TOKEN` | _(rỗng = mở)_ | đặt token để yêu cầu header `X-Api-Token` cho POST/PATCH/DELETE |
+| `GOLD_CORS_ORIGINS` | _(rỗng = cùng origin)_ | origin cross-site, cách nhau dấu phẩy |
+| `GOLD_RATE_LIMIT_PER_MIN` | `120` | request/phút/IP cho `/api/*` (`0` = tắt) |
 
 ## API
 
@@ -110,6 +114,11 @@ Biên độ hoạt động: mua/bán VND/lượng, `XAUUSD` là USD/ounce (`sell
 
 - Giá trong nước do `vang.today` cung cấp, cập nhật ~30 phút/lần; `poll_interval=30s` chỉ là tần suất **đọc**.
 - `XAUUSD` được ghi đè mỗi poll bằng spot realtime (`source=spot`), nên luôn nhảy cùng thị trường.
-- Nguồn lỗi → poller tự thử lại; nếu fail lâu sẽ rơi về `MockProvider` để UI không chết (kiểm tra `GOLD_PROVIDER`).
-- DB prune tự động: `quotes` giữ theo `GOLD_POLL_INTERVAL`, `daily` giữ `GOLD_HISTORY_DAYS`.
+- Nguồn lỗi → poller tự thử lại; nếu fail lâu sẽ rơi về `MockProvider` để UI không chết
+  (header hiện `MOCK`). **Giá mock không bao giờ ghi vào DB và không kích hoạt cảnh báo.**
+- DB prune tự động: `quotes`/`fx` giữ 30/7 ngày, `news` giữ 7 ngày, `daily` giữ `GOLD_HISTORY_DAYS`.
+- Backup DB hàng ngày: `python gold\backend\scripts\backup_db.py` (giữ 7 bản trong `gold\backups\`).
+  Windows: lên lịch bằng Task Scheduler (`schtasks /create /tn AurumBackup /sc daily /st 02:00 …`).
+- Production: đặt `GOLD_API_TOKEN` (sinh bằng `python -c "import secrets; print(secrets.token_hex(32))"`),
+  chạy sau reverse proxy có TLS, `GOLD_HOST=0.0.0.0`, xem `docker-compose.yml`.
 - **Giá vàng chỉ mang tính tham khảo, không phải lời khuyên đầu tư.**

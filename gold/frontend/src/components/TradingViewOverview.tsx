@@ -56,6 +56,21 @@ export default function TradingViewOverview({ symbol, watchlist = [], height = 5
       autosize: true,
     });
     wrap.appendChild(script);
+
+    // Attribution bắt buộc theo điều khoản nhúng widget của TradingView.
+    const credit = document.createElement("div");
+    credit.className = "tradingview-widget-copyright";
+    const link = document.createElement("a");
+    link.href = "https://www.tradingview.com/";
+    link.rel = "noopener nofollow";
+    link.target = "_blank";
+    const span = document.createElement("span");
+    span.className = "blue-text";
+    span.textContent = "Track all markets on TradingView";
+    link.appendChild(span);
+    credit.appendChild(link);
+    wrap.appendChild(credit);
+
     host.appendChild(wrap);
 
     return () => {

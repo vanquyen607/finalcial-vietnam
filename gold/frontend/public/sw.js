@@ -34,12 +34,15 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   // API: network trước, cache làm nền tảng khi offline.
+  // Chỉ cache response OK — không cache 4xx/5xx để khỏi phục vụ lỗi cũ.
   if (url.origin === self.location.origin && url.pathname.startsWith("/api/")) {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const copy = res.clone();
-          caches.open(DATA).then((cache) => cache.put(request, copy)).catch(() => undefined);
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(DATA).then((cache) => cache.put(request, copy)).catch(() => undefined);
+          }
           return res;
         })
         .catch(() => caches.match(request)),
