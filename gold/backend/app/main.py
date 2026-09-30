@@ -20,7 +20,10 @@ log = logging.getLogger("aurum")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await poller.start()
+    if settings.enable_poller:
+        await poller.start()
+    else:
+        log.warning("GOLD_ENABLE_POLLER=0 — worker API-only, đọc DB dùng chung.")
     try:
         yield
     finally:

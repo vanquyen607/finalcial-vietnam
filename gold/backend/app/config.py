@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     # - Rate limit: số request/phút/IP cho /api/*; 0 = tắt.
     rate_limit_per_min: int = 120
 
+    # Telegram báo sự cố nguồn giá (bỏ trống = tắt).
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+    # Chỉ báo khi nguồn chết liên tục quá số giây này; báo lại mỗi lần hồi phục.
+    telegram_alert_after_sec: int = 600
+
+    # Multi-worker: chỉ 1 tiến trình bật poller (ghi DB), các worker còn lại
+    # đặt GOLD_ENABLE_POLLER=0 để phục vụ API/WS từ DB dùng chung (WAL mode).
+    enable_poller: bool = True
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

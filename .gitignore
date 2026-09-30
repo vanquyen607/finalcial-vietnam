@@ -25,6 +25,9 @@ dist/
 # Ảnh chụp màn hình kiểm chứng
 gold/_shots/
 
+# File sinh tự động lúc build
+gold/frontend/public/sw-version.js
+
 # OS / editor
 .DS_Store
 Thumbs.db

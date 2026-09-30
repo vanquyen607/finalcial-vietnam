@@ -14,6 +14,7 @@ from ..providers.fx import fetch_usd_vnd
 from ..symbols import GOLD_TYPES
 from . import alerts as alerts_svc
 from . import news as news_svc
+from . import notify as notify_svc
 from .broadcast import hub
 
 log = logging.getLogger("aurum.poller")
@@ -45,6 +46,16 @@ class Poller:
         self._aux = httpx.AsyncClient(headers=AUX_HEADERS, follow_redirects=True)
         self._last_fx = 0
         self._last_news = 0
+        # Quan sát vận hành cho /api/metrics + báo Telegram.
+        self.metrics: dict[str, Any] = {
+            "poll_errors": 0,
+            "last_poll_ms": None,
+            "provider_errors": {},
+            "fx": {"ok": 0, "err": 0, "last_ok": None, "last_err": None},
+            "news": {"ok": 0, "err": 0, "last_ok": None, "last_err": None},
+            "error_since": None,
+            "error_notified": False,
+        }
 
     # --- helpers ---
     def _to_rows(self, quotes) -> list[dict]:
@@ -66,11 +77,31 @@ class Poller:
         except Exception as exc:  # noqa: BLE001 - provider lỗi là bình thường
             log.warning("provider %s lỗi: %s -> dùng mock", self.provider.name, exc)
             self.status["last_error"] = f"{type(exc).__name__}: {exc}"
+            errs = self.metrics["provider_errors"]
+            errs[self.provider.name] = errs.get(self.provider.name, 0) + 1
             quotes = await self.fallback.fetch_current()
             return self._to_rows(quotes), self.fallback.name
 
+    def _check_error_streak(self, now: int, failed: bool) -> str | None:
+        """Theo dõi nguồn chết liên tục. Trả về 'alert' | 'recovered' | None."""
+        if failed:
+            if self.metrics["error_since"] is None:
+                self.metrics["error_since"] = now
+            if (not self.metrics["error_notified"]
+                    and now - self.metrics["error_since"] >= settings.telegram_alert_after_sec):
+                self.metrics["error_notified"] = True
+                return "alert"
+            return None
+        if self.metrics["error_notified"]:
+            self.metrics["error_since"] = None
+            self.metrics["error_notified"] = False
+            return "recovered"
+        self.metrics["error_since"] = None
+        return None
+
     # --- main loop ---
     async def tick(self) -> dict[str, Any]:
+        started = time.perf_counter()
         rows, source = await self._fetch()
         now = int(time.time())
         prev = self.latest
@@ -87,6 +118,18 @@ class Poller:
 
         self.status.update(state="live", source=source, last_success=now,
                            polls=self.status["polls"] + 1, clients=hub.count)
+        self.metrics["last_poll_ms"] = round((time.perf_counter() - started) * 1000, 1)
+
+        # Nguồn chính chết liên tục -> báo Telegram một lần, báo hồi phục khi sống lại.
+        notice = self._check_error_streak(now, is_mock)
+        if notice == "alert":
+            await notify_svc.send_telegram(
+                self._aux, settings.telegram_bot_token, settings.telegram_chat_id,
+                f"Aurum: nguồn giá <b>{self.provider.name}</b> chết liên tục, đang chạy mock.")
+        elif notice == "recovered":
+            await notify_svc.send_telegram(
+                self._aux, settings.telegram_bot_token, settings.telegram_chat_id,
+                f"Aurum: nguồn giá <b>{self.provider.name}</b> đã hồi phục.")
 
         events: list[dict] = []
         if changed and not is_mock:
@@ -116,13 +159,23 @@ class Poller:
                 got = await fetch_usd_vnd(self._aux)
                 if got:
                     db.insert_fx(got[0], got[1])
+                    self.metrics["fx"]["ok"] += 1
+                    self.metrics["fx"]["last_ok"] = now
+                else:
+                    raise RuntimeError("mọi nguồn tỷ giá đều chết")
             except Exception:  # noqa: BLE001
+                self.metrics["fx"]["err"] += 1
+                self.metrics["fx"]["last_err"] = now
                 log.exception("refresh fx lỗi")
         if now - self._last_news >= settings.news_interval:
             self._last_news = now
             try:
                 await news_svc.refresh_news(self._aux)
+                self.metrics["news"]["ok"] += 1
+                self.metrics["news"]["last_ok"] = now
             except Exception:  # noqa: BLE001
+                self.metrics["news"]["err"] += 1
+                self.metrics["news"]["last_err"] = now
                 log.exception("refresh news lỗi")
 
     async def _loop(self) -> None:
@@ -130,6 +183,7 @@ class Poller:
             try:
                 await self.tick()
             except Exception as exc:  # noqa: BLE001
+                self.metrics["poll_errors"] += 1
                 self.status.update(state="error", last_error=f"{type(exc).__name__}: {exc}")
                 log.exception("tick lỗi")
                 await hub.broadcast({"type": "status", **self.status}, topic="status")

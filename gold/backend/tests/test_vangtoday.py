@@ -111,7 +111,7 @@ def test_fetch_current_rejects_bad_payload():
 
     provider = make_provider(route(current={"success": True, "data": []}))
     try:
-        with pytest.raises(RuntimeError, match="data rỗng"):
+        with pytest.raises(RuntimeError, match="không hợp lệ"):
             asyncio.run(provider.fetch_current())
     finally:
         asyncio.run(provider.aclose())
@@ -128,3 +128,60 @@ def test_fetch_history_sorted_and_skips_empty_days():
     assert rows[1]["buy"] == 145_000_000
     assert rows[1]["day_change_buy"] == 400_000
     assert rows[1]["updates"] == 3
+
+
+def test_fetch_current_skips_malformed_rows():
+    dirty = {
+        "success": True,
+        "current_time": NOW,
+        "data": [
+            {"type_code": "SJL1L10", "buy": "144600000", "sell": None},  # chuỗi OK, None -> 0
+            {"type_code": "XAUUSD", "buy": "Infinity", "sell": 0},     # inf -> bỏ
+            {"type_code": "DOHNL", "buy": "abc"},                        # chữ -> bỏ
+            {"type_code": "", "buy": 1},                                 # code rỗng -> bỏ
+            {"buy": 2},                                                  # thiếu code -> bỏ
+            "chuỗi rác",
+            None,
+            42,
+        ],
+    }
+    provider = make_provider(route(current=dirty, spot={"close": 4173.0, "change_abs": 1.0}))
+    try:
+        quotes = asyncio.run(provider.fetch_current())
+    finally:
+        asyncio.run(provider.aclose())
+
+    by_code = {q.code: q for q in quotes}
+    # XAUUSD bẩn bị loại nên không còn gì để upgrade bằng spot
+    assert set(by_code) == {"SJL1L10"}
+    assert by_code["SJL1L10"].buy == 144_600_000.0
+    assert by_code["SJL1L10"].sell == 0.0
+
+
+def test_fetch_current_rejects_all_invalid():
+    provider = make_provider(route(current={"success": True, "data": [{"a": 1}, None]}))
+    try:
+        with pytest.raises(RuntimeError, match="không hợp lệ"):
+            asyncio.run(provider.fetch_current())
+    finally:
+        asyncio.run(provider.aclose())
+
+
+def test_fetch_history_skips_bad_numbers():
+    history = {
+        "success": True,
+        "history": [
+            {"date": "2026-09-29", "prices": {"SJL1L10": {"buy": "NaN", "sell": 1}}},
+            {"date": "2026-09-28", "prices": {"SJL1L10": {"buy": 144_600_000}}},
+            {"date": "2026-09-27", "prices": {"SJL1L10": "rác"}},
+            "rác",
+        ],
+    }
+    provider = make_provider(route(history=history))
+    try:
+        rows = asyncio.run(provider.fetch_history("SJL1L10", days=30))
+    finally:
+        asyncio.run(provider.aclose())
+
+    assert [r["date"] for r in rows] == ["2026-09-28"]
+    assert rows[0]["sell"] == 0.0

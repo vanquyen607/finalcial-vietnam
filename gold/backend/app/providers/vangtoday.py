@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import time
 
 import httpx
@@ -11,6 +12,38 @@ from .spot import fetch_world_spot
 BASE_URL = "https://vang.today/api/prices"
 # vang.today yêu cầu UA hợp lệ, không thì trả rỗng.
 HEADERS = {"User-Agent": "Mozilla/5.0 (AurumTerminal/1.0)", "Accept": "application/json"}
+
+
+def _num(value: object) -> float | None:
+    """Ép số, trả None khi không phải số hữu hạn (chống payload bẩn)."""
+    try:
+        f = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
+
+
+def clean_rows(rows: object) -> list[dict]:
+    """Lọc hàng giá hợp lệ: type_code chuỗi + buy là số hữu hạn.
+    Các trường phụ thiếu/sai -> 0.0. Hàng không phải dict -> bỏ."""
+    out: list[dict] = []
+    if not isinstance(rows, list):
+        return out
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        code = row.get("type_code")
+        buy = _num(row.get("buy"))
+        if not code or not isinstance(code, str) or buy is None:
+            continue
+        out.append({
+            "type_code": code,
+            "buy": buy,
+            "sell": _num(row.get("sell")) or 0.0,
+            "change_buy": _num(row.get("change_buy")) or 0.0,
+            "change_sell": _num(row.get("change_sell")) or 0.0,
+        })
+    return out
 
 
 class VangTodayProvider(GoldProvider):
@@ -33,8 +66,9 @@ class VangTodayProvider(GoldProvider):
         if not payload.get("success"):
             raise RuntimeError(f"vang.today trả success=false: {payload}")
         rows = payload.get("data") or []
+        rows = clean_rows(rows)
         if not rows:
-            raise RuntimeError("vang.today trả data rỗng")
+            raise RuntimeError("vang.today trả data rỗng hoặc không hợp lệ")
         quotes = raw_snapshot_to_quotes(rows, source=self.name, updated_at=payload.get("current_time"))
         await self._upgrade_world_spot(quotes)
         return quotes
@@ -64,16 +98,21 @@ class VangTodayProvider(GoldProvider):
 
         out: list[dict] = []
         for day in payload.get("history") or []:
+            if not isinstance(day, dict):
+                continue
             entry = (day.get("prices") or {}).get(code)
-            if not entry:
+            if not isinstance(entry, dict):
+                continue
+            buy = _num(entry.get("buy"))
+            if buy is None:
                 continue
             out.append({
                 "date": day.get("date"),
-                "buy": float(entry.get("buy") or 0),
-                "sell": float(entry.get("sell") or 0),
-                "day_change_buy": float(entry.get("day_change_buy") or 0),
-                "day_change_sell": float(entry.get("day_change_sell") or 0),
-                "updates": int(entry.get("updates") or 0),
+                "buy": buy,
+                "sell": _num(entry.get("sell")) or 0.0,
+                "day_change_buy": _num(entry.get("day_change_buy")) or 0.0,
+                "day_change_sell": _num(entry.get("day_change_sell")) or 0.0,
+                "updates": int(_num(entry.get("updates")) or 0),
             })
         out.sort(key=lambda r: r["date"] or "")
         return out

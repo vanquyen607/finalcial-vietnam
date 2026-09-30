@@ -79,6 +79,8 @@ cd gold\frontend; npm run dev       # -> http://127.0.0.1:5173
 | `GOLD_API_TOKEN` | _(rỗng = mở)_ | đặt token để yêu cầu header `X-Api-Token` cho POST/PATCH/DELETE |
 | `GOLD_CORS_ORIGINS` | _(rỗng = cùng origin)_ | origin cross-site, cách nhau dấu phẩy |
 | `GOLD_RATE_LIMIT_PER_MIN` | `120` | request/phút/IP cho `/api/*` (`0` = tắt) |
+| `GOLD_ENABLE_POLLER` | `true` | `false` = worker API-only, đọc DB dùng chung (multi-worker) |
+| `GOLD_TELEGRAM_BOT_TOKEN` / `GOLD_TELEGRAM_CHAT_ID` | _(trống = tắt)_ | báo khi nguồn giá chết liên tục quá `GOLD_TELEGRAM_ALERT_AFTER_SEC` (mặc định 600s) |
 
 ## API
 
@@ -91,6 +93,7 @@ cd gold\frontend; npm run dev       # -> http://127.0.0.1:5173
 | GET | `/api/history/{ref}?days=30` | `{intraday[], daily[], source}` |
 | GET | `/api/premium` | chênh lệch SJC–thế giới: `gap_abs`, `gap_pct`, `world_vnd_luong`, tỷ giá |
 | GET | `/api/news?limit=30` | tin vàng RSS đã lọc/dedupe (`title`, `link`, `source`, `published`, `image`) |
+| GET | `/api/metrics` | nhịp poll, lỗi từng nguồn, trạng thái tỷ giá/tin, streak lỗi |
 | GET | `/api/sparklines?hours=24` | chuỗi điểm cho card ở Home |
 | GET/POST/PATCH/DELETE | `/api/alerts`, `/api/alerts/{id}` | CRUD cảnh báo |
 | WS | `/api/ws?topics=quotes,status` | snapshot ngay khi kết nối + push khi có tick |
@@ -121,4 +124,7 @@ Biên độ hoạt động: mua/bán VND/lượng, `XAUUSD` là USD/ounce (`sell
   Windows: lên lịch bằng Task Scheduler (`schtasks /create /tn AurumBackup /sc daily /st 02:00 …`).
 - Production: đặt `GOLD_API_TOKEN` (sinh bằng `python -c "import secrets; print(secrets.token_hex(32))"`),
   chạy sau reverse proxy có TLS, `GOLD_HOST=0.0.0.0`, xem `docker-compose.yml`.
+- Multi-worker: chạy 1 container poller (`GOLD_ENABLE_POLLER=true`) + N container API
+  (`GOLD_ENABLE_POLLER=false`, chung volume DB). Lưu ý: WebSocket broadcast nằm trong RAM
+  từng worker nên cần sticky session ở proxy, hoặc chấp nhận mỗi client chỉ nhận tick của worker mình nối.
 - **Giá vàng chỉ mang tính tham khảo, không phải lời khuyên đầu tư.**

@@ -17,6 +17,9 @@ HEADERS = {
     "Accept": "application/rss+xml, application/xml, text/xml, */*",
 }
 
+# Điều kiện GET theo feed để tiết kiệm băng thông (giữ RAM, mất khi restart).
+_COND: dict[str, dict[str, str]] = {}
+
 FEEDS: list[tuple[str, str]] = [
     ("VnExpress", "https://vnexpress.net/rss/kinh-doanh.rss"),
     ("CafeF", "https://cafef.vn/thi-truong-chung-khoan.rss"),
@@ -90,8 +93,21 @@ async def fetch_news(client: httpx.AsyncClient) -> list[dict]:
     merged: dict[str, dict] = {}
     for source, url in FEEDS:
         try:
-            resp = await client.get(url, headers=HEADERS, timeout=15.0)
+            headers = dict(HEADERS)
+            cond = _COND.get(url)
+            if cond:
+                if cond.get("etag"):
+                    headers["If-None-Match"] = cond["etag"]
+                if cond.get("modified"):
+                    headers["If-Modified-Since"] = cond["modified"]
+            resp = await client.get(url, headers=headers, timeout=15.0)
+            if resp.status_code == 304:
+                continue  # feed không đổi
             resp.raise_for_status()
+            _COND[url] = {
+                "etag": resp.headers.get("etag", ""),
+                "modified": resp.headers.get("last-modified", ""),
+            }
             rows = parse_feed(resp.text, source)
         except Exception as exc:  # noqa: BLE001 - feed lỗi là bình thường
             log.debug("feed %s lỗi: %s", source, exc)

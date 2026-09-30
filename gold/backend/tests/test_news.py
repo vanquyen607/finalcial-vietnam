@@ -110,3 +110,38 @@ def test_news_db_roundtrip(tmp_path, monkeypatch):
         assert db.list_news(10) == []
     finally:
         db.close()
+
+
+def test_fetch_news_uses_conditional_get():
+    news_svc._COND.clear()
+    calls: list[dict] = []
+
+    async def go():
+        def handler(request: httpx.Request) -> httpx.Response:
+            calls.append(dict(request.headers))
+            if "if-none-match" in request.headers:
+                return httpx.Response(304)
+            return httpx.Response(
+                200, text=SAMPLE_RSS,
+                headers={"ETag": '"abc"',
+                         "Last-Modified": "Wed, 30 Sep 2026 13:00:00 +0700"},
+            )
+
+        client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        try:
+            first = await fetch_news(client)
+            second = await fetch_news(client)
+            return first, second
+        finally:
+            await client.aclose()
+
+    try:
+        first, second = asyncio.run(go())
+        assert len(first) == 1  # 4 feed cùng link -> dedupe còn 1
+        assert second == []  # lần 2 toàn 304
+        assert len(calls) == 8
+        assert calls[4].get("if-none-match") == '"abc"'
+        assert "if-modified-since" in calls[4]
+        assert len(news_svc._COND) == 4
+    finally:
+        news_svc._COND.clear()

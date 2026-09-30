@@ -1,5 +1,10 @@
 /* Aurum Terminal — service worker (PWA offline shell) */
-const VERSION = "aurum-v1";
+try {
+  importScripts("sw-version.js"); // do npm prebuild sinh ra
+} catch {
+  /* dev chưa build: dùng bản mặc định */
+}
+const VERSION = `aurum-${self.AURUM_SW_VERSION || "v1"}`;
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
 

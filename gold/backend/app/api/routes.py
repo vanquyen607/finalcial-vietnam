@@ -32,6 +32,19 @@ async def health() -> dict:
     }
 
 
+@router.get("/metrics")
+async def metrics() -> dict:
+    """Quan sát vận hành: nhịp poll, lỗi từng nguồn, tỷ giá/tin, streak lỗi."""
+    return {
+        "ts": int(time.time()),
+        "metrics": poller.metrics,
+        "source": poller.status.get("source"),
+        "polls": poller.status.get("polls"),
+        "last_success": poller.status.get("last_success"),
+        "last_error": poller.status.get("last_error"),
+    }
+
+
 @router.get("/symbols")
 async def symbols(featured: bool = Query(False)) -> dict:
     items = featured_types() if featured else GOLD_TYPES
