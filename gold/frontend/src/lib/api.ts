@@ -1,4 +1,4 @@
-import type { Alert, GoldType, HistoryPayload, Quote, Status } from "./types";
+import type { Alert, BrandInfo, GoldType, HistoryPayload, Quote, Status } from "./types";
 
 const BASE = "/api";
 
@@ -23,7 +23,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ ok: boolean; status: Status; clients: number }>("/health"),
   symbols: (featured = false) =>
-    request<{ count: number; items: GoldType[] }>(`/symbols?featured=${featured}`),
+    request<{ count: number; items: GoldType[]; brands?: BrandInfo[] }>(
+      `/symbols?featured=${featured}`,
+    ),
   quotes: () => request<{ ts: number; source: string | null; count: number; items: Quote[] }>("/quotes"),
   quote: (ref: string) => request<Quote>(`/quotes/${encodeURIComponent(ref)}`),
   history: (ref: string, days = 30) =>

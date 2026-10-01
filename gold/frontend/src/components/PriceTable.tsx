@@ -8,10 +8,16 @@ import { useMarket } from "../state/Market";
 export default function PriceTable({
   quotes,
   fetchedAt,
+  grouped = false,
 }: {
   quotes: Quote[];
   /** thời điểm backend vừa lấy snapshot (cột "lấy lúc") */
   fetchedAt?: number | null;
+  /**
+   * true = đang nằm trong nhóm nhà bán: hiện tên sản phẩm (SJC, Nhẫn trơn, 9999…)
+   * thay vì lặp lại tên nhà bán ở mỗi dòng.
+   */
+  grouped?: boolean;
 }) {
   const { metaByCode } = useMarket();
   const navigate = useNavigate();
@@ -21,7 +27,7 @@ export default function PriceTable({
       <table className="tbl">
         <thead>
           <tr>
-            <th>Loại vàng</th>
+            <th>{grouped ? "Sản phẩm" : "Loại vàng"}</th>
             <th>Mua vào</th>
             <th>Bán ra</th>
             <th>Chênh mua/bán</th>
@@ -35,13 +41,11 @@ export default function PriceTable({
             const pct = changePct(q.buy, q.change_buy);
             const t = tone(q.change_buy);
             const hasSpread = q.sell > 0;
+            const meta = metaByCode[q.code];
             return (
-              <tr
-                key={q.code}
-                onClick={() => navigate(`/detail/${metaByCode[q.code]?.alias || q.code}`)}
-              >
+              <tr key={q.code} onClick={() => navigate(`/detail/${meta?.alias || q.code}`)}>
                 <td>
-                  <span className="name">{q.name}</span>
+                  <span className="name">{grouped ? meta?.product || q.name : q.name}</span>
                   <span className="sub">
                     {q.code} · {q.per || "lượng"}
                   </span>

@@ -102,3 +102,18 @@ def test_quotes_from_poller_latest(client, monkeypatch):
     r = c.get("/api/quotes")
     assert r.status_code == 200
     assert r.json()["count"] == 1
+
+
+def test_symbols_returns_ordered_brands(client):
+    c, _temp_db = client
+    r = c.get("/api/symbols")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["count"] == len(body["items"])
+    brands = body["brands"]
+    assert [b["order"] for b in brands] == sorted(b["order"] for b in brands)
+    assert brands[0]["label"] == "Vàng thế giới"
+    assert {b["brand"] for b in brands} == {i["brand"] for i in body["items"]}
+    assert sum(b["count"] for b in brands) == body["count"]
+    # mọi item đều có product để bảng giá gộp theo nhà bán hiển thị đúng sản phẩm
+    assert all(i.get("product") for i in body["items"])

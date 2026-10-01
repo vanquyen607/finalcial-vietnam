@@ -553,6 +553,116 @@ select {
 }
 
 /* ============================================================
+   Bảng giá gộp theo nhà bán
+   ============================================================ */
+.bp__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.bp__group + .bp__group {
+  border-top: 1px solid var(--border);
+}
+
+.bp__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 16px;
+  border: 0;
+  background: var(--surface-2);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.bp__head:hover {
+  background: var(--surface-container-high);
+}
+.bp__head:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.bp__chev {
+  font-size: 12px;
+  color: var(--outline);
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+.bp__group--closed .bp__chev {
+  transform: rotate(0deg);
+}
+
+.bp__name {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.bp__count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--outline);
+  white-space: nowrap;
+}
+
+.bp__range {
+  font-size: 13px;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+.bp__moves {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* trong nhóm không cần thanh cuộn riêng — bảng ngắn, cuộn chung trang */
+.bp .tbl-wrap {
+  max-height: none;
+  overflow: visible;
+}
+
+@media (max-width: 760px) {
+  .bp__head {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .bp__moves {
+    margin-left: 0;
+    width: 100%;
+  }
+  .bp__range {
+    font-size: 12.5px;
+  }
+}
+
+/* mobile: rút bớt cột phụ (chênh mua/bán, phần trăm) cho bảng vừa màn hình */
+@media (max-width: 700px) {
+  .bp .tbl th:nth-child(4),
+  .bp .tbl td:nth-child(4),
+  .bp .tbl th:nth-child(6),
+  .bp .tbl td:nth-child(6) {
+    display: none;
+  }
+}
+
+/* ============================================================
    Price cards (featured)
    ============================================================ */
 .price-card {

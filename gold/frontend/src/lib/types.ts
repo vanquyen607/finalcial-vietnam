@@ -2,11 +2,21 @@ export interface GoldType {
   code: string;
   name: string;
   brand: string;
+  /** tên sản phẩm bên trong nhà bán ("SJC", "Nhẫn trơn", "Hà Nội"…) */
+  product: string;
   unit: "VND" | "USD";
   per: string;
   category: string;
   featured: boolean;
   alias: string;
+}
+
+/** Nhóm nhà bán do backend sắp thứ tự (/api/symbols -> brands). */
+export interface BrandInfo {
+  brand: string;
+  label: string;
+  order: number;
+  count: number;
 }
 
 export interface Quote {

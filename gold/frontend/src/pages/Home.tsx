@@ -1,10 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import BrandPanels from "../components/BrandPanels";
 import LivePrice from "../components/LivePrice";
 import PremiumPanel from "../components/PremiumPanel";
 import PriceCard from "../components/PriceCard";
 import PriceChart from "../components/PriceChart";
-import PriceTable from "../components/PriceTable";
 import Sparkline from "../components/Sparkline";
 import { changePct, fmtAgo, fmtPct, fmtPrice, fmtSigned, tone } from "../lib/format";
 import { ageSeconds, useNow } from "../lib/useNow";
@@ -118,21 +118,23 @@ export default function Home() {
 
           {/* Bảng giá + biểu đồ realtime */}
           <div className="dash">
-            <section className="panel">
-              <div className="panel__head">
-                <span className="panel__title">Bảng giá đầy đủ · {quoteList.length} loại</span>
-                <span className="meta">
-                  {connected ? (
-                    <span className="up">
-                      ● REALTIME · {age !== null ? fmtAgo(age).toUpperCase() : "…"}
-                    </span>
-                  ) : (
-                    <span className="down">○ ĐANG KẾT NỐI LẠI</span>
-                  )}
-                </span>
-              </div>
-              <PriceTable quotes={quoteList} fetchedAt={status.last_success} />
-            </section>
+              <section className="panel">
+                <div className="panel__head">
+                  <span className="panel__title">
+                    Bảng giá theo nhà bán · {quoteList.length} loại
+                  </span>
+                  <span className="meta">
+                    {connected ? (
+                      <span className="up">
+                        ● REALTIME · {age !== null ? fmtAgo(age).toUpperCase() : "…"}
+                      </span>
+                    ) : (
+                      <span className="down">○ ĐANG KẾT NỐI LẠI</span>
+                    )}
+                  </span>
+                </div>
+                <BrandPanels fetchedAt={status.last_success} />
+              </section>
 
             <div>
               <section className="panel">

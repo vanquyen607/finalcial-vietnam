@@ -14,7 +14,7 @@ from ..services import news as news_svc
 from ..services.broadcast import hub
 from ..services.poller import poller
 from ..services.premium import SJC_CODE, compute_premium
-from ..symbols import GOLD_TYPES, featured_types, resolve
+from ..symbols import GOLD_TYPES, brand_groups, featured_types, resolve
 from .deps import require_token
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -48,7 +48,9 @@ async def metrics() -> dict:
 @router.get("/symbols")
 async def symbols(featured: bool = Query(False)) -> dict:
     items = featured_types() if featured else GOLD_TYPES
-    return {"count": len(items), "items": items}
+    groups = brand_groups(featured)
+    brands = [{k: g[k] for k in ("brand", "label", "order", "count")} for g in groups]
+    return {"count": len(items), "items": items, "brands": brands}
 
 
 # ---------- quotes ----------

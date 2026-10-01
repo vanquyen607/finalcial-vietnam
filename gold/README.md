@@ -12,7 +12,7 @@ gold/
 │   ├── app/
 │   │   ├── config.py          cấu hình qua env GOLD_*
 │   │   ├── db.py              SQLite: quotes / daily / alerts
-│   │   ├── symbols.py         19 mã vàng + alias (SJC, DOJI, PNJ, Mi Hồng, Phú Quý…)
+│   │   ├── symbols.py         19 mã vàng + BRANDS (thứ tự nhóm nhà bán) + alias
 │   │   ├── providers/         vangtoday.py + simplize.py + ngoctham.py (composite) | mock.py
 │   │   ├── services/          poller.py (đẩy giá 30s) | hub.py (WebSocket) | alerts.py
 │   │   ├── api/routes.py      REST + WS
@@ -20,7 +20,9 @@ gold/
 │   └── run.py                 entry point
 ├── frontend/         React + TypeScript + Vite + lightweight-charts
 │   ├── public/                 manifest.webmanifest, sw.js, icons/
-│   ├── src/pages/              Home, Detail, ChartPage, Alerts, Settings
+│   ├── src/pages/              Home, Detail, ChartPage, News, Alerts, Settings
+│   ├── src/components/         BrandPanels (bảng giá gộp theo nhà bán), PriceChart, TradingView…
+│   ├── src/lib/                groupQuotes.ts (gộp nhóm + thống kê header)
 │   └── dist/                   build output (backend mount tại đây)
 ├── data/gold.db      SQLite (tự tạo khi chạy lần đầu)
 └── README.md
@@ -53,6 +55,21 @@ là ~30 phút (vang.today) — app đã ở mức nhanh nhất có thể, còn r
 Ngọc Thẩm cập nhật nhiều lần trong ngày (đo được 07:20 trong ngày giao dịch); Simplize niêm yết theo ngày.
 19 mã = 12 (vang.today, gồm cả XAUUSD spot realtime) + 5 (Simplize) + 2 (Ngọc Thẩm).
 Không tìm thấy nguồn nội địa free, không key, cập nhật nhanh hơn 30 phút cho nhóm SJC/DOJI/PNJ.
+
+## Bảng giá gộp theo nhà bán
+
+Trang chủ không liệt kê 19 mã phẳng nữa mà **gộp theo từng nhà bán**, đúng thứ tự
+`Vàng thế giới → SJC → DOJI → PNJ → Bảo Tín Minh Châu → VietinBank → Mi Hồng → Phú Quý →
+Bảo Tín Mạnh Hải → Ngọc Thẩm`:
+
+- Mỗi nhà bán 1 khối: header hiện **số loại · khoảng giá (thấp–cao) · số mã tăng/giảm/đứng yên**,
+  bấm header để gộp/mở (trạng thái nhớ trong `localStorage["aurum.collapsed.brands"]`,
+  nút *Gộp tất cả / Mở tất cả* khi có nhiều hơn 3 nhóm).
+- Dòng bên trong hiện **tên sản phẩm** của nhà bán (`SJC`, `Nhẫn trơn`, `Hà Nội`, `9999`…)
+  thay vì lặp lại tên nhà bán; click để vào chi tiết như cũ.
+- Thứ tự & nhãn nhóm do backend sắp (`symbols.py` → `BRANDS`), FE chỉ render
+  (`lib/groupQuotes.ts` + `components/BrandPanels.tsx`) — thêm nhà bán mới chỉ cần khai báo
+  trong `BRANDS` + `GOLD_TYPES`.
 
 ## Chạy
 
@@ -93,8 +110,8 @@ cd gold\frontend; npm run dev       # -> http://127.0.0.1:5173
 | Method | Endpoint | Ghi chú |
 | --- | --- | --- |
 | GET | `/api/health` | `{state, source, polls, clients, last_success, last_error}` |
-| GET | `/api/symbols?featured=true` | danh mục mã (`code`, `alias`, `brand`, `name`, `unit`) |
-| GET | `/api/quotes` | 12 giá hiện tại + `change_buy/sell`, `ts` |
+| GET | `/api/symbols?featured=true` | danh mục mã (`code`, `alias`, `brand`, `product`, `name`, `unit`) + `brands[]` đã xếp thứ tự nhóm nhà bán |
+| GET | `/api/quotes` | 19 giá hiện tại + `change_buy/sell`, `ts` |
 | GET | `/api/quotes/{ref}` | theo code hoặc alias (`sjc`, `xauusd`…) |
 | GET | `/api/history/{ref}?days=30` | `{intraday[], daily[], source}` |
 | GET | `/api/premium` | chênh lệch SJC–thế giới: `gap_abs`, `gap_pct`, `world_vnd_luong`, tỷ giá |

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api, wsUrl } from "../lib/api";
-import type { GoldType, Quote, Status } from "../lib/types";
+import type { BrandInfo, GoldType, Quote, Status } from "../lib/types";
 
 export interface Toast {
   id: number;
@@ -12,6 +12,8 @@ export interface Toast {
 interface MarketValue {
   symbols: GoldType[];
   metaByCode: Record<string, GoldType>;
+  /** thứ tự + tên hiển thị các nhà bán (backend sắp sẵn) */
+  brands: BrandInfo[];
   quotes: Record<string, Quote>;
   quoteList: Quote[];
   status: Status;
@@ -30,6 +32,7 @@ function toArray(v: unknown): Quote[] {
 
 export function MarketProvider({ children }: { children: ReactNode }) {
   const [symbols, setSymbols] = useState<GoldType[]>([]);
+  const [brands, setBrands] = useState<BrandInfo[]>([]);
   const [quotes, setQuotes] = useState<Record<string, Quote>>({});
   const [status, setStatus] = useState<Status>({ state: "starting" });
   const [connected, setConnected] = useState(false);
@@ -61,6 +64,7 @@ export function MarketProvider({ children }: { children: ReactNode }) {
       const [q, s] = await Promise.all([api.quotes(), api.symbols()]);
       setQuotes(Object.fromEntries(q.items.map((x) => [x.code, x])));
       setSymbols(s.items);
+      if (s.brands?.length) setBrands(s.brands);
       setStatus((prev) => ({ ...prev, source: q.source ?? prev.source ?? undefined }));
     } catch (e) {
       setStatus((prev) => ({ ...prev, state: "error", last_error: String(e) }));
@@ -138,6 +142,7 @@ export function MarketProvider({ children }: { children: ReactNode }) {
     return {
       symbols,
       metaByCode: Object.fromEntries(symbols.map((s) => [s.code, s])),
+      brands,
       quotes,
       quoteList: list,
       status,
@@ -147,7 +152,7 @@ export function MarketProvider({ children }: { children: ReactNode }) {
       dismissToast,
       refresh,
     };
-  }, [symbols, quotes, status, connected, loading, toasts, dismissToast, refresh]);
+  }, [symbols, brands, quotes, status, connected, loading, toasts, dismissToast, refresh]);
 
   return <MarketCtx.Provider value={value}>{children}</MarketCtx.Provider>;
 }
