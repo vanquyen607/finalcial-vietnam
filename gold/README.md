@@ -1,8 +1,10 @@
 # Aurum Terminal — Theo dõi giá vàng realtime
 
-Web PWA theo dõi giá vàng realtime (SJC, DOJI, PNJ, vàng thế giới) + biểu đồ + cảnh báo.
-Nguồn: [vang.today](https://vang.today) cho giá trong nước (CORS mở, không cần key) +
-giá spot thế giới lấy realtime từ TradingView/gold-api (xem mục "Nguồn dữ liệu" bên dưới).
+Web PWA theo dõi giá vàng realtime (SJC, DOJI, PNJ, cửa hàng tư nhân: Mi Hồng, Bảo Tín Mạnh Hải,
+Phú Quý, Ngọc Thẩm, vàng thế giới) + biểu đồ + cảnh báo — 19 mã.
+Nguồn: [vang.today](https://vang.today) (12 mã) + Simplize (5 mã) + Ngọc Thẩm chính chủ (2 mã) cho
+giá trong nước (đều CORS/public, không cần key) + giá spot thế giới realtime từ
+TradingView/gold-api (xem mục "Nguồn dữ liệu" bên dưới).
 
 ```
 gold/
@@ -10,8 +12,8 @@ gold/
 │   ├── app/
 │   │   ├── config.py          cấu hình qua env GOLD_*
 │   │   ├── db.py              SQLite: quotes / daily / alerts
-│   │   ├── symbols.py         12 mã vàng + alias (SJC, DOJI, PNJ, XAUUSD…)
-│   │   ├── providers/         vangtoday.py (nguồn thật) | mock.py (offline)
+│   │   ├── symbols.py         19 mã vàng + alias (SJC, DOJI, PNJ, Mi Hồng, Phú Quý…)
+│   │   ├── providers/         vangtoday.py + simplize.py + ngoctham.py (composite) | mock.py
 │   │   ├── services/          poller.py (đẩy giá 30s) | hub.py (WebSocket) | alerts.py
 │   │   ├── api/routes.py      REST + WS
 │   │   └── main.py            FastAPI + CORS + static SPA fallback
@@ -30,7 +32,9 @@ gold/
 
 | Nguồn | Dùng cho | Tần suất thực đo | Kết luận |
 | --- | --- | --- | --- |
-| `vang.today` (= `giavang.now`) `GET /api/prices?action=current` | 12 mã nội địa | `current_time` cũ 14–25 phút giữa hai lần lấy cách nhau 40s; giá nội địa đứng yên hàng giờ | **Đang dùng** — nhanh nhất trong nhóm không cần key |
+| `vang.today` (= `giavang.now`) `GET /api/prices?action=current` | 12 mã nội địa (SJC, DOJI, PNJ, BTMC, Viettin…) | `current_time` cũ 14–25 phút giữa hai lần lấy cách nhau 40s; giá nội địa đứng yên hàng giờ | **Đang dùng** — nhanh nhất trong nhóm không cần key |
+| `simplize.vn/_next/data/{buildId}/gia-vang/{brand}/{slug}.json` | 5 mã cửa hàng tư nhân: Mi Hồng (SJC, 9999), Bảo Tín Mạnh Hải 9999, Phú Quý (SJC, 9999) | JSON Next.js public, `priceBuy/priceSell` theo ngày, cache 15 phút; buildId lấy lại từ HTML khi đổi deploy | **Đang dùng** — Simplize không có API key, catalog lấy từ `sitemap/gold/sitemap_gold.xml` |
+| `ngoctham.com/ajax/proxy_banggia.php` | 2 mã Ngọc Thẩm (9999, SJC) — **nguồn chính chủ** | JSON public, có ETag/304, `date` theo giờ VN; giá niêm yết theo **CHỈ** → app ×10 ra lượng | **Đang dùng** — nhanh nhất nhóm chính chủ (đo 01/10/2026: cập nhật 07:20, giá 140.0/143.5tr SJC) |
 | `scanner.tradingview.com` (OANDA → TVC:GOLD → FX → FOREXCOM → SAXO → PAXG) | XAUUSD | tick realtime `streaming` (đo 30/09/2026: các nguồn forex ~4180.0–4180.6) | **Đang dùng** (cuối cùng `api.gold-api.com/price/XAU`). TradingView **không có** giá vàng miếng SJC/DOJI/PNJ nội địa (đã kiểm tra symbol-search) |
 | `BINANCE:PAXGUSDT` (token vàng, qua scanner TradingView) | XAUUSD dự phòng | realtime **24/7**, kể cả cuối tuần khi forex đóng; giá ≈ spot + vài USD (đo: 4188.01) | nguồn dự phòng cuối chuỗi |
 | `sjc.com.vn` | SJC chính chủ | bảng giá render bằng JS (WebForms), feed cũ `/xml/tygiavang.xml` đã 404 | bỏ — phải render headless |
@@ -46,7 +50,9 @@ gold/
 
 Nguồn giá trong nước ở VN đều chỉ niêm yết lại **1–4 lần/ngày**, nên trần độ tươi của giá nội địa
 là ~30 phút (vang.today) — app đã ở mức nhanh nhất có thể, còn realtime thật chỉ có ở XAUUSD.
-Không tìm thấy nguồn nội địa free, không key, cập nhật nhanh hơn 30 phút.
+Ngọc Thẩm cập nhật nhiều lần trong ngày (đo được 07:20 trong ngày giao dịch); Simplize niêm yết theo ngày.
+19 mã = 12 (vang.today, gồm cả XAUUSD spot realtime) + 5 (Simplize) + 2 (Ngọc Thẩm).
+Không tìm thấy nguồn nội địa free, không key, cập nhật nhanh hơn 30 phút cho nhóm SJC/DOJI/PNJ.
 
 ## Chạy
 

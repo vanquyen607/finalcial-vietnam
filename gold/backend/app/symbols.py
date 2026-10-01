@@ -46,6 +46,22 @@ GOLD_TYPES: list[GoldType] = [
      "category": "other", "featured": False, "alias": "viettin-sjc"},
     {"code": "XAUUSD", "name": "Giá vàng thế giới", "brand": "Spot", "unit": "USD", "per": "ounce",
      "category": "world", "featured": True, "alias": "xauusd"},
+    # Nguồn phụ: Simplize (tổng hợp) — giá niêm yết theo ngày của từng cửa hàng.
+    {"code": "MH_SJC", "name": "Mi Hồng SJC", "brand": "Mi Hồng", "unit": "VND", "per": "lượng",
+     "category": "other", "featured": False, "alias": "mh-sjc"},
+    {"code": "MH_9999", "name": "Mi Hồng 999", "brand": "Mi Hồng", "unit": "VND", "per": "lượng",
+     "category": "other", "featured": False, "alias": "mh-9999"},
+    {"code": "BTMH_9999", "name": "Bảo Tín Mạnh Hải 9999", "brand": "BTMH", "unit": "VND", "per": "lượng",
+     "category": "other", "featured": False, "alias": "btmh-9999"},
+    {"code": "PQ_SJC", "name": "Phú Quý SJC", "brand": "Phú Quý", "unit": "VND", "per": "lượng",
+     "category": "other", "featured": False, "alias": "pq-sjc"},
+    {"code": "PQ_9999", "name": "Phú Quý 9999", "brand": "Phú Quý", "unit": "VND", "per": "lượng",
+     "category": "other", "featured": False, "alias": "pq-9999"},
+    # Nguồn chính chủ: Ngọc Thẩm (ngoctham.com/ajax/proxy_banggia.php).
+    {"code": "NT_9999", "name": "Ngọc Thẩm 9999", "brand": "Ngọc Thẩm", "unit": "VND", "per": "lượng",
+     "category": "other", "featured": False, "alias": "nt-9999"},
+    {"code": "NT_SJC", "name": "Ngọc Thẩm SJC", "brand": "Ngọc Thẩm", "unit": "VND", "per": "lượng",
+     "category": "other", "featured": False, "alias": "nt-sjc"},
 ]
 
 BY_CODE: dict[str, GoldType] = {t["code"]: t for t in GOLD_TYPES}

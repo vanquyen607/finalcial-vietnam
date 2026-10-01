@@ -27,8 +27,10 @@ class MockProvider(GoldProvider):
 
     def __init__(self) -> None:
         self._t = 0
-        self._level = dict(_BASE)
-        self._prev = dict(_BASE)
+        # Mọi mã trong GOLD_TYPES đều có giá nền (mã mới không trong _BASE thì ước lượng).
+        self._level = {t["code"]: _BASE.get(
+            t["code"], 140_000_000.0 if t["unit"] == "VND" else 4000.0) for t in GOLD_TYPES}
+        self._prev = dict(self._level)
 
     def _step(self) -> None:
         self._prev = dict(self._level)

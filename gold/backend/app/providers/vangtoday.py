@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import math
 import time
 
 import httpx
@@ -8,19 +7,11 @@ import httpx
 from ..config import settings
 from .base import GoldProvider, ProviderQuote, raw_snapshot_to_quotes
 from .spot import fetch_world_spot
+from .validate import num as _num
 
 BASE_URL = "https://vang.today/api/prices"
 # vang.today yêu cầu UA hợp lệ, không thì trả rỗng.
 HEADERS = {"User-Agent": "Mozilla/5.0 (AurumTerminal/1.0)", "Accept": "application/json"}
-
-
-def _num(value: object) -> float | None:
-    """Ép số, trả None khi không phải số hữu hạn (chống payload bẩn)."""
-    try:
-        f = float(value)  # type: ignore[arg-type]
-    except (TypeError, ValueError):
-        return None
-    return f if math.isfinite(f) else None
 
 
 def clean_rows(rows: object) -> list[dict]:

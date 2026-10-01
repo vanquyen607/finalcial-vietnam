@@ -3,7 +3,7 @@ import ChartView from "./ChartView";
 import type { ChartPoint } from "./ChartView";
 import { api } from "../lib/api";
 import { changePct, fmtPct, fmtPrice, fmtSigned } from "../lib/format";
-import { mergeLive, useLiveSeries } from "../lib/useLiveSeries";
+import { basePoints, mergeLive, useLiveSeries } from "../lib/useLiveSeries";
 import type { HistoryPayload } from "../lib/types";
 import { useMarket } from "../state/Market";
 
@@ -73,14 +73,7 @@ export default function PriceChart({
 
   const points: ChartPoint[] = useMemo(() => {
     if (!hist) return [];
-    if (range === "24h") {
-      // intraday.ts là mili giây → đổi sang giây cho biểu đồ
-      const base = hist.intraday.map((p) => ({ time: Math.floor(p.ts / 1000), value: p.buy }));
-      return mergeLive(base, live);
-    }
-    const days = range === "7d" ? 7 : 30;
-    const base = hist.daily.slice(-days).map((d) => ({ time: d.date, value: d.buy }));
-    return mergeLive(base, live);
+    return mergeLive(basePoints(hist, range), live);
   }, [hist, range, live]);
 
   const secondary: ChartPoint[] | undefined = useMemo(() => {

@@ -10,6 +10,9 @@ import httpx
 from ..config import settings
 from ..db import db
 from ..providers import GoldProvider, MockProvider, VangTodayProvider
+from ..providers.composite import MergedProvider
+from ..providers.ngoctham import NgocThamProvider
+from ..providers.simplize import SimplizeProvider
 from ..providers.fx import fetch_usd_vnd
 from ..symbols import GOLD_TYPES
 from . import alerts as alerts_svc
@@ -25,7 +28,8 @@ AUX_HEADERS = {"User-Agent": "Mozilla/5.0 (AurumTerminal/1.0)"}
 def build_provider(name: str) -> GoldProvider:
     if name == "mock":
         return MockProvider()
-    return VangTodayProvider()
+    # Chế độ thường: gộp vang.today (12 mã) + Simplize (MH/BTMH/PQ) + Ngọc Thẩm chính chủ.
+    return MergedProvider([VangTodayProvider(), SimplizeProvider(), NgocThamProvider()])
 
 
 class Poller:
@@ -115,6 +119,13 @@ class Poller:
         self.latest = self._snapshot(rows)
         if not is_mock:
             db.insert_quotes(rows)
+            # Snapshot daily từ tick live: mã mới (Simplize/Ngọc Thẩm) chưa có
+            # history từ provider vẫn tích lũy daily từng ngày.
+            today = time.strftime("%Y-%m-%d", time.localtime())
+            db.upsert_daily_snapshot([{
+                "code": r["code"], "date": today, "buy": r["buy"], "sell": r["sell"],
+                "day_change_buy": r["change_buy"], "day_change_sell": r["change_sell"],
+            } for r in rows])
 
         self.status.update(state="live", source=source, last_success=now,
                            polls=self.status["polls"] + 1, clients=hub.count)

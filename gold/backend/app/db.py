@@ -131,6 +131,23 @@ class Database:
             )
             return [dict(r) for r in cur.fetchall()][::-1]
 
+    def upsert_daily_snapshot(self, rows: list[dict]) -> None:
+        """Ghi giá mới nhất trong ngày từ tick live (giữ nguyên bộ đếm updates).
+
+        Dùng để mã mới (không có history từ provider) vẫn có daily tích lũy dần.
+        """
+        if not rows:
+            return
+        with self._lock, self._conn:
+            self._conn.executemany(
+                "INSERT INTO daily(code,date,buy,sell,day_change_buy,day_change_sell,updates)"
+                " VALUES(:code,:date,:buy,:sell,:day_change_buy,:day_change_sell,0)"
+                " ON CONFLICT(code,date) DO UPDATE SET buy=excluded.buy, sell=excluded.sell,"
+                " day_change_buy=excluded.day_change_buy,"
+                " day_change_sell=excluded.day_change_sell",
+                rows,
+            )
+
     # --- alerts ---
     def add_alert(self, code: str, direction: str, threshold: float, note: str) -> dict:
         now = int(time.time())
