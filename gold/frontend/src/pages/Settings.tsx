@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, getApiToken, setApiToken } from "../lib/api";
 import { fmtClock } from "../lib/format";
 import { useMarket } from "../state/Market";
 
@@ -14,6 +14,16 @@ export default function Settings() {
   const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const [notify, setNotify] = useState<string>("—");
   const [installed, setInstalled] = useState(false);
+  const [token, setToken] = useState(() => getApiToken());
+  const [tokenSaved, setTokenSaved] = useState(false);
+
+  const saveToken = () => {
+    const v = token.trim();
+    setApiToken(v);
+    setToken(v);
+    setTokenSaved(true);
+    window.setTimeout(() => setTokenSaved(false), 1500);
+  };
 
   useEffect(() => {
     void api.health().then(setHealth).catch(() => setHealth(null));
@@ -173,10 +183,58 @@ export default function Settings() {
             </div>
           </section>
 
+          <section className="panel">
+            <div className="panel__head">
+              <span className="panel__title">Bảo mật API</span>
+              <span className={`chip ${token ? "chip--up" : "chip--flat"}`}>
+                {token ? "ĐÃ ĐẶT" : "CHƯA ĐẶT"}
+              </span>
+            </div>
+            <div className="panel__body">
+              <p className="meta" style={{ marginTop: 0, lineHeight: 1.7 }}>
+                SERVER ĐẶT <span className="mono">GOLD_API_TOKEN</span> THÌ DÁN VÀO ĐÂY —
+                PHẦN MỀM SẼ GỬI HEADER <span className="mono">X-API-TOKEN</span> KHI
+                TẠO/XÓA/BẬT-TẮT CẢNH BÁO. BỎ TRỐNG NẾU SERVER KHÔNG BẬT.
+              </p>
+              <div className="list-row">
+                <label className="field" style={{ flex: 1, marginBottom: 0 }}>
+                  <span>API token</span>
+                  <input
+                    type="password"
+                    value={token}
+                    autoComplete="off"
+                    spellCheck={false}
+                    placeholder="dán GOLD_API_TOKEN ở đây"
+                    onChange={(e) => setToken(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveToken();
+                    }}
+                  />
+                </label>
+                <div className="row">
+                  <button className="chip chip--up" onClick={saveToken}>
+                    {tokenSaved ? "ĐÃ LƯU" : "LƯU"}
+                  </button>
+                  {token && (
+                    <button
+                      className="chip chip--flat"
+                      onClick={() => {
+                        setApiToken("");
+                        setToken("");
+                      }}
+                    >
+                      XÓA
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
           <p className="meta" style={{ marginTop: 18, lineHeight: 1.8 }}>
             GIÁ VÀNG CHỈ MANG TÍNH THAM KHẢO, KHÔNG PHẢI LỜI KHUYÊN ĐẦU TƯ.
             <br />
-            DỮ LIỆU NGUỒN: VANG.TODAY · CẬP NHẬT ~5 PHÚT/LẦN.
+            DỮ LIỆU: VANG.TODAY · SIMPLIZE · NGỌC THẨM · XAUUSD SPOT.
           </p>
         </div>
       </div>

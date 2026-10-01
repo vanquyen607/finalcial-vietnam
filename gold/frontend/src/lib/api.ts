@@ -2,9 +2,34 @@ import type { Alert, BrandInfo, GoldType, HistoryPayload, Quote, Status } from "
 
 const BASE = "/api";
 
+/** Khóa lưu API token trong localStorage (chỉ người dùng máy này đặt). */
+const TOKEN_KEY = "aurum.api.token";
+
+export function getApiToken(): string {
+  try {
+    return window.localStorage.getItem(TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setApiToken(token: string): void {
+  try {
+    if (token) window.localStorage.setItem(TOKEN_KEY, token);
+    else window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* localStorage bị chặn -> token không nhớ được, bỏ qua */
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getApiToken();
   const res = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { "X-Api-Token": token } : {}),
+      ...(init?.headers || {}),
+    },
     ...init,
   });
   if (!res.ok) {

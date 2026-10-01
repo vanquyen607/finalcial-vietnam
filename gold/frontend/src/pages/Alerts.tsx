@@ -9,6 +9,14 @@ const DIRECTIONS: { key: "up" | "down"; label: string }[] = [
   { key: "down", label: "Giảm ≥" },
 ];
 
+/** 401 = server bật GOLD_API_TOKEN mà mình chưa dán token ở trang Cài đặt. */
+function tokenHint(err: unknown): string {
+  const s = String(err);
+  return s.includes("401")
+    ? "401 — server đang bật GOLD_API_TOKEN. Vào trang Cài đặt, dán token rồi thử lại."
+    : s;
+}
+
 export default function Alerts() {
   const { symbols, quotes } = useMarket();
   const [items, setItems] = useState<Alert[]>([]);
@@ -58,20 +66,28 @@ export default function Alerts() {
       setMsg("Đã tạo cảnh báo.");
       await load();
     } catch (err) {
-      setMsg(String(err));
+      setMsg(tokenHint(err));
     } finally {
       setBusy(false);
     }
   };
 
   const remove = async (id: number) => {
-    await api.deleteAlert(id);
-    await load();
+    try {
+      await api.deleteAlert(id);
+      await load();
+    } catch (err) {
+      setMsg(tokenHint(err));
+    }
   };
 
   const toggle = async (a: Alert) => {
-    await api.toggleAlert(a.id, !a.active);
-    await load();
+    try {
+      await api.toggleAlert(a.id, !a.active);
+      await load();
+    } catch (err) {
+      setMsg(tokenHint(err));
+    }
   };
 
   return (

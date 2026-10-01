@@ -85,6 +85,35 @@ Frontend dev riêng (hot-reload, proxy /api → :8000):
 cd gold\frontend; npm run dev       # -> http://127.0.0.1:5173
 ```
 
+## Deploy bằng Cloudflare Tunnel (không mở port)
+
+App chạy trong máy/laptop, `cloudflared` tạo đường hầm ra ngoài — **không mở port, không cần
+IP tĩnh, có HTTPS tự động**.
+
+```powershell
+# 1) build + chạy app (chạy nền bằng Task Scheduler hoặc 1 cửa sổ riêng)
+cd gold\frontend; npm run build
+cd ..\backend; python run.py               # http://127.0.0.1:8000
+
+# 2) mở tunnel (chọn 1 trong 2)
+# A. Quick tunnel — không cần tài khoản, link đổi mỗi lần chạy:
+cloudflared tunnel --url http://127.0.0.1:8000
+
+# B. Named tunnel — link cố định, cần tài khoản Cloudflare + domain trỏ NS về Cloudflare:
+cloudflared tunnel login
+cloudflared tunnel create aurum
+cloudflared tunnel route dns aurum aurum.example.com
+cloudflared tunnel run --url http://127.0.0.1:8000 aurum
+```
+
+Trước khi chia sẻ link ra ngoài:
+
+1. **Bắt buộc bật token** — `gold/backend/.env` đã có `GOLD_API_TOKEN=…`; dán đúng token đó vào
+   *Cài đặt → Bảo mật API*, nếu không UI sẽ báo 401 khi tạo/xóa cảnh báo.
+2. Rate limit (`GOLD_RATE_LIMIT_PER_MIN=120`) và CORS cùng-origin đã bật sẵn.
+3. Chạy nền cả app lẫn tunnel bằng Task Scheduler để không mất link khi đóng cửa sổ.
+4. Máy tắt = site chết. Muốn 24/7 thì chuyển lên VPS (`docker-compose.yml` đã sẵn).
+
 ## Biến môi trường (backend)
 
 | Env | Mặc định | Ý nghĩa |
@@ -99,7 +128,7 @@ cd gold\frontend; npm run dev       # -> http://127.0.0.1:5173
 | `GOLD_NEWS_INTERVAL` | `900` | giây giữa 2 lần quét tin RSS |
 | `GOLD_STATIC_DIR` | `gold/frontend/dist` | thư mục SPA đã build |
 | `GOLD_ALERT_THRESHOLD_PCT` | `1.0` | (dự trữ) ngưỡng cảnh báo mặc định |
-| `GOLD_API_TOKEN` | _(rỗng = mở)_ | đặt token để yêu cầu header `X-Api-Token` cho POST/PATCH/DELETE |
+| `GOLD_API_TOKEN` | _(rỗng = mở)_ | đặt token để yêu cầu header `X-Api-Token` cho POST/PATCH/DELETE. **Đọc từ `gold/backend/.env`**; khi bật, vào trang *Cài đặt → Bảo mật API* dán token để UI còn tạo/xóa được cảnh báo |
 | `GOLD_CORS_ORIGINS` | _(rỗng = cùng origin)_ | origin cross-site, cách nhau dấu phẩy |
 | `GOLD_RATE_LIMIT_PER_MIN` | `120` | request/phút/IP cho `/api/*` (`0` = tắt) |
 | `GOLD_ENABLE_POLLER` | `true` | `false` = worker API-only, đọc DB dùng chung (multi-worker) |
