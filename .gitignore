@@ -36,3 +36,9 @@ Thumbs.db
 
 # Stitch export (giữ local)
 stitch/
+
+# Log runtime (app/watchdog/tunnel)
+gold/_logs/
+
+# Shortcut Windows (tao rieng tren may)
+*.lnk
