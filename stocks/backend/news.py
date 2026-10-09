@@ -3,8 +3,11 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import requests
+
+_VN = ZoneInfo("Asia/Ho_Chi_Minh")
 
 ROOT = Path(__file__).resolve().parent.parent
 NEWS_DIR = ROOT / "data" / "news"
@@ -18,7 +21,7 @@ UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.3
 def _ms(s: str) -> str:
     try:
         ms = int(s.replace("/Date(", "").replace(")/", ""))
-        return datetime.fromtimestamp(ms / 1000).strftime("%d/%m/%Y")
+        return datetime.fromtimestamp(ms / 1000, _VN).strftime("%d/%m/%Y")
     except Exception:
         return ""
 

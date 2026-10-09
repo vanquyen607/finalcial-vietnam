@@ -7,6 +7,7 @@ import time
 import warnings
 from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
@@ -20,6 +21,13 @@ for _d in (DATA, SYM_DIR, NEWS_DIR):
     _d.mkdir(parents=True, exist_ok=True)
 
 SKILL_DATA = ROOT.parent / ".opencode" / "skills" / "vietnam-stock-analysis" / "stock-data"
+
+_VN = ZoneInfo("Asia/Ho_Chi_Minh")
+
+
+def now_vn() -> datetime:
+    """Gio Viet Nam — may chu (Render) chay UTC nen khong duoc dung datetime.now() thuan."""
+    return datetime.now(_VN)
 
 BASKET = [
     "VCB", "CTG", "BID", "TCB", "MBB", "ACB", "STB", "VPB", "HDB", "LPB",
@@ -239,7 +247,7 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
         "risk_pct": round(risk, 1), "rr": round(rr, 1),
         "narrative": narrative,
         "ohlcv": ohlcv,
-        "updated_at": datetime.now().isoformat(timespec="seconds"),
+        "updated_at": now_vn().isoformat(timespec="seconds"),
     }
 
 
@@ -361,7 +369,7 @@ def _build_overview(refresh: bool = False) -> dict:
             "above_ma20": last > ma20, "above_ma200": last > ma200,
         })
     return {"indices": items, "fetched_at": time.time(),
-            "updated_at": datetime.now().strftime("%H:%M:%S %d/%m/%Y")}
+            "updated_at": now_vn().strftime("%H:%M:%S %d/%m/%Y")}
 
 
 _ov_lock = threading.Lock()
@@ -445,7 +453,7 @@ screen_state = {"status": "idle", "done": 0, "total": 0, "current": "", "results
 
 def _in_session() -> bool:
     """Gio giao dich Viet Nam (T2-T6, T7 chi buoi sang)."""
-    now = datetime.now()
+    now = now_vn()
     hm = int(now.strftime("%H%M"))
     if now.weekday() == 6:
         return False

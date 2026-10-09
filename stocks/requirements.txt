@@ -3,4 +3,5 @@ fastapi
 uvicorn[standard]
 pandas
 requests
+tzdata
 vnstock>=4.0.8

@@ -15,7 +15,7 @@ app = FastAPI(title="Phan Tich Co Phieu VN", version="1.0")
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "time": market.datetime.now().strftime("%H:%M:%S %d/%m/%Y")}
+    return {"ok": True, "time": market.now_vn().strftime("%H:%M:%S %d/%m/%Y")}
 
 
 @app.get("/api/overview")
@@ -40,7 +40,7 @@ def api_screen_stop():
 
 @app.get("/api/session")
 def api_session():
-    return {"in_session": market._in_session(), "now": market.datetime.now().strftime("%H:%M %d/%m")}
+    return {"in_session": market._in_session(), "now": market.now_vn().strftime("%H:%M %d/%m")}
 
 
 @app.get("/api/symbols")
