@@ -42,3 +42,7 @@ gold/_logs/
 
 # Shortcut Windows (tao rieng tren may)
 *.lnk
+
+# cache app phan tich co phieu
+stocks/data/
+stocks/_shots/

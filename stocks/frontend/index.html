@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phân Tích Cổ Phiếu VN</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="icon.ico" />
+  <script>
+    /* chọn theme trước khi paint — tránh nháy màn hình */
+    (function () {
+      try {
+        var t = localStorage.getItem("ck_theme");
+        if (t !== "light" && t !== "dark") {
+          t = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+        }
+        document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">▲</span>
+      <h1>Phân Tích <em>Cổ Phiếu VN</em></h1>
+    </div>
+    <span class="clock" id="clock"></span>
+    <span class="spacer"></span>
+
+    <span class="live-box">
+      <button class="btn live" id="btnLive" title="Tự làm mới 60s trong phiên giao dịch">Live</button>
+      <span class="live-count" id="liveCount">—</span>
+    </span>
+    <button class="btn icon ghost" id="btnTheme" title="Đổi giao diện sáng/tối (T)" aria-label="Đổi giao diện">🌙</button>
+    <button class="btn" id="btnRefreshOverview" title="Cập nhật chỉ số">⟳ Chỉ số</button>
+    <button class="btn primary" id="btnRunScreen">Chạy màn lọc 40 mã</button>
+  </header>
+
+  <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker-track" id="tickerTrack"></div></div>
+
+  <main class="wrap">
+    <section class="cards" id="cards" aria-label="Chỉ số thị trường">
+      <div class="card"><div class="skel" style="height:110px"></div></div>
+      <div class="card"><div class="skel" style="height:110px"></div></div>
+      <div class="card"><div class="skel" style="height:110px"></div></div>
+    </section>
+
+    <div class="notice" id="notice">
+      <span class="n-ico">⚠</span>
+      <span>Thị trường đang ở xu hướng điều chỉnh ngắn hạn (dưới MA20/MA200) và khối ngoại bán ròng liên tục —
+      giải ngân từng phần, luôn đặt cắt Lỗ. Nguồn vnstock giới hạn 20 req/phút nên lần chạy màn lọc đầu tiên mất ~6 phút,
+      các lần sau dùng cache.</span>
+      <button class="n-x" id="noticeClose" title="Ẩn thông báo" aria-label="Ẩn thông báo">×</button>
+    </div>
+
+    <div class="sect-head">
+      <h2>Màn lọc cổ phiếu</h2>
+      <span class="meta" id="screenMeta">chưa có dữ liệu</span>
+      <div class="progress" title="Tiến độ quét"><i id="screenBar"></i></div>
+    </div>
+
+    <div class="toolbar" role="toolbar" aria-label="Sắp xếp và lọc">
+      <div class="grp" id="sortChips">
+        <span class="lbl">Sắp xếp</span>
+        <button class="chip-btn on" data-sort="score">Điểm <span class="arr">▼</span></button>
+        <button class="chip-btn" data-sort="r20">20 phiên <span class="arr">▼</span></button>
+        <button class="chip-btn" data-sort="rsi">RSI <span class="arr">▼</span></button>
+        <button class="chip-btn" data-sort="vol_ratio">Thanh khoản <span class="arr">▼</span></button>
+        <button class="chip-btn" data-sort="close">Giá <span class="arr">▼</span></button>
+      </div>
+      <span class="sep"></span>
+      <div class="grp" id="filterChips">
+        <span class="lbl">Lọc</span>
+        <button class="chip-btn on" data-filter="all">Tất cả</button>
+        <button class="chip-btn" data-filter="good">Mua</button>
+        <button class="chip-btn" data-filter="watch">Theo dõi</button>
+        <button class="chip-btn" data-filter="neutral">Trung tính</button>
+        <button class="chip-btn" data-filter="bad">Tránh</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="panel">
+        <div class="p-head">
+          <h3>Bảng xếp hạng điểm kỹ thuật</h3>
+          <span class="meta" id="rowCount"></span>
+        </div>
+        <div class="tbl-scroll">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>#</th><th>Mã</th><th>Giá</th><th>20 phiên</th><th>RSI</th>
+                <th>KL/20</th><th>Điểm</th><th>Tín hiệu</th>
+              </tr>
+            </thead>
+            <tbody id="screenBody">
+              <tr><td colspan="8"><div class="skel" style="height:320px"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel" id="detailPanel">
+        <div class="p-head">
+          <h3>Phân tích chi tiết</h3>
+          <span class="meta">phím <b>/</b> để tìm mã · bấm 1 dòng trong bảng</span>
+        </div>
+        <div class="search">
+          <div class="field">
+            <input id="symInput" placeholder="Tìm mã cổ phiếu… (VD: HPG)" maxlength="6"
+                   autocomplete="off" spellcheck="false" aria-label="Tìm mã cổ phiếu" />
+            <div class="suggest" id="symSuggest" role="listbox"></div>
+          </div>
+          <button class="btn primary" id="btnAnalyze">Phân tích</button>
+        </div>
+        <div id="detail">
+          <div class="empty">Chưa chọn mã.<br />Bấm một dòng ở bảng bên trái, hoặc nhập mã rồi bấm <b>Phân tích</b>.</div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Nguồn dữ liệu: <b>vnstock (VCI)</b> · Tin tức: <b>CafeF</b> · Cập nhật: chỉ số 30 phút/lần, mã 6h (Live: 60s).<br />
+      Đây là công cụ hỗ trợ phân tích kỹ thuật, <b>không phải tư vấn đầu tư</b>. Cache lưu trong <b>stocks/data/</b>.
+    </footer>
+  </main>
+
+  <div id="toasts" aria-live="polite"></div>
+
+  <script src="vendor/lightweight-charts.standalone.production.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
