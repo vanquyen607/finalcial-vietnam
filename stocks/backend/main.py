@@ -48,7 +48,7 @@ async def guard(request: Request, call_next):  # noqa: ANN001
             _hits.clear()
             _hits_strict.clear()
         ip = _ip(request)
-        strict = request.method == "POST" or request.url.query.get("refresh") == "1"
+        strict = request.method == "POST" or request.query_params.get("refresh") == "1"
         over = not _allow(_hits, ip, _LIMIT_ALL, now) or (
             strict and not _allow(_hits_strict, ip, _LIMIT_STRICT, now))
         if over:
