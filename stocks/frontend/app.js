@@ -3,6 +3,11 @@ const $ = (s) => document.querySelector(s);
 const fmt = (n, d = 2) => (n == null || isNaN(n) ? "—" : Number(n).toLocaleString("vi-VN", { minimumFractionDigits: d, maximumFractionDigits: d }));
 const cls = (n) => (n > 0 ? "up" : n < 0 ? "down" : "flat");
 const sign = (n, d = 2) => (n > 0 ? "+" : "") + fmt(n, d);
+/* "2026-10-08" → "08/10/2026" */
+const fmtDate = (s) => {
+  const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
+};
 
 let selectedSym = null;
 let chart = null;
@@ -11,6 +16,7 @@ let lastPrice = null;
 let screenRows = [];
 let detailBusy = false;
 let lastNewsHTML = "";
+let newsExpanded = false;
 let pollTimers = { overview: null, screen: null, session: null };
 
 /* sort / filter */
@@ -18,6 +24,44 @@ let sortBy = "score";
 let sortDir = -1;
 let filterBy = "all";
 let BASKET = [];
+try {
+  const s = JSON.parse(localStorage.getItem("ck_sort") || "null");
+  if (s && s.key) { sortBy = s.key; sortDir = s.dir === 1 ? 1 : -1; }
+  const f = localStorage.getItem("ck_filter");
+  if (f) filterBy = f;
+} catch (e) {}
+function saveSortState() {
+  try { localStorage.setItem("ck_sort", JSON.stringify({ key: sortBy, dir: sortDir })); } catch (e) {}
+}
+function saveFilterState() {
+  try { localStorage.setItem("ck_filter", filterBy); } catch (e) {}
+}
+
+/* watchlist ⭐ — "Của tôi" */
+let watchList = [];
+try {
+  watchList = JSON.parse(localStorage.getItem("ck_watch") || "[]")
+    .filter((s) => typeof s === "string" && /^[A-Z]{2,6}$/.test(s));
+} catch (e) {}
+const inWatch = (sym) => watchList.includes(sym);
+function toggleWatch(sym) {
+  if (inWatch(sym)) {
+    watchList = watchList.filter((s) => s !== sym);
+    toast(`Đã bỏ ${sym} khỏi ⭐ Của tôi`);
+  } else {
+    watchList.push(sym);
+    toast(`Đã thêm ${sym} vào ⭐ Của tôi`, "ok");
+  }
+  try { localStorage.setItem("ck_watch", JSON.stringify(watchList)); } catch (e) {}
+}
+
+/* so sánh 2 mã */
+let compareMode = false;
+let compareSym = null;
+let lastStale = false;
+
+/* báo giá — mỗi cảnh báo 1 lần / phiên */
+const firedAlerts = new Set();
 
 /* ---------------- clock ---------------- */
 function tickClock() {
@@ -27,9 +71,16 @@ function tickClock() {
 setInterval(tickClock, 1000);
 tickClock();
 
+const HTTP_MSG = {
+  429: "Quá nhiều yêu cầu — đợi ít phút rồi thử lại",
+  500: "Máy chủ đang bận — thử lại sau",
+  503: "Máy chủ đang khởi động — thử lại sau",
+};
 async function api(path, opts) {
-  const r = await fetch(path, opts);
-  if (!r.ok) throw new Error("HTTP " + r.status);
+  let r;
+  try { r = await fetch(path, opts); }
+  catch (e) { throw new Error("Mất kết nối máy chủ"); }
+  if (!r.ok) throw new Error(HTTP_MSG[r.status] || `Lỗi máy chủ (HTTP ${r.status})`);
   return r.json();
 }
 
@@ -93,7 +144,7 @@ function renderCards(st) {
     const el = document.createElement("div");
     el.className = "card";
     el.innerHTML = `
-      <div class="label">${ix.label} · phiên ${ix.date}</div>
+      <div class="label">${ix.label} · phiên ${fmtDate(ix.date)}</div>
       <div class="big ${cls(ix.chg_pct)}">${fmt(ix.close, 2)}</div>
       <div class="chg ${cls(ix.chg_pct)}">${sign(ix.chg, 2)} điểm (${sign(ix.chg_pct, 2)}%)</div>
       <div class="row">
@@ -114,6 +165,16 @@ function renderCards(st) {
     <div class="trend">${st.stale ? "⚠️ Dữ liệu cũ hơn 30 phút — bấm ⟳ Chỉ số" : "Tự làm mới theo Live (60s trong phiên)"}</div>
     <div class="trend">vnstock/VCI · cache 30 phút</div>`;
   box.appendChild(meta);
+  updateNotice(st);
+}
+
+/* notice: câu đầu tự lấy từ dữ liệu chỉ số, không còn hardcoded */
+function updateNotice(st) {
+  const el = document.getElementById("noticeText");
+  const ix = (st.indices || [])[0];
+  if (!el || !ix) return;
+  el.textContent = `Thị trường ${ix.label}: ${ix.trend}${ix.above_ma200 ? "" : " · ⚠️ dưới MA200"} —`
+    + " giải ngân từng phần, luôn đặt cắt Lỗ.";
 }
 
 /* ---------------- screen ---------------- */
@@ -166,14 +227,24 @@ function renderTicker() {
   el.innerHTML = html + html;
 }
 
+/* dòng đang hiển thị = filter + sort (dùng cho render, ↑↓, CSV) */
+function visibleRows() {
+  return screenRows
+    .filter((r) =>
+      filterBy === "all" ? true :
+      filterBy === "mine" ? inWatch(r.symbol) :
+      r.tone === filterBy)
+    .slice()
+    .sort((a, b) => {
+      const x = a[sortBy] ?? -Infinity, y = b[sortBy] ?? -Infinity;
+      return (x < y ? -1 : x > y ? 1 : 0) * sortDir;
+    });
+}
+
 function renderScreen(rows) {
   screenRows = rows || [];
   renderTicker();
-  const filtered = screenRows.filter((r) => filterBy === "all" || r.tone === filterBy);
-  const rows2 = filtered.slice().sort((a, b) => {
-    const x = a[sortBy] ?? -Infinity, y = b[sortBy] ?? -Infinity;
-    return (x < y ? -1 : x > y ? 1 : 0) * sortDir;
-  });
+  const rows2 = visibleRows();
 
   const body = $("#screenBody");
   $("#rowCount").textContent = rows2.length !== screenRows.length
@@ -187,9 +258,10 @@ function renderScreen(rows) {
   body.innerHTML = rows2
     .map((r, i) => {
       const tone = r.tone || "neutral";
-      return `<tr data-sym="${r.symbol}" tabindex="0" class="${r.symbol === selectedSym ? "sel" : ""}">
+      return `<tr data-sym="${r.symbol}" tabindex="0" class="${r.symbol === selectedSym ? "sel" : ""}"
+        aria-selected="${r.symbol === selectedSym}">
         <td class="rank">${i + 1}</td>
-        <td><span class="sym">${r.symbol}</span></td>
+        <td><span class="sym">${inWatch(r.symbol) ? '<span class="star-inline" title="Trong ⭐ Của tôi">★</span>' : ""}${r.symbol}</span></td>
         <td>${fmt(r.close, r.close < 50 ? 1 : 0)}</td>
         <td class="${cls(r.r20)}">${sign(r.r20, 1)}%</td>
         <td class="${r.rsi > 70 ? "down" : r.rsi < 30 ? "up" : ""}">${fmt(r.rsi, 0)}</td>
@@ -224,23 +296,30 @@ async function runScreen() {
 async function openSymbol(sym, refresh = false) {
   sym = (sym || "").toUpperCase().trim();
   if (!/^[A-Z]{2,6}$/.test(sym)) {
+    if (compareMode) { toast("Nhập mã hợp lệ để so sánh (2–6 chữ cái)", "warn"); return; }
     $("#detail").innerHTML = `<div class="err">Mã không hợp lệ (2–6 chữ cái, VD: HPG)</div>`;
     return;
   }
+  if (compareMode && !refresh) { runCompare(sym); return; }   /* đang so sánh → mã nhập là mã thứ 2 */
   selectedSym = sym;
   detailBusy = true;
   document.querySelectorAll("#screenBody tr").forEach((tr) => {
     tr.classList.toggle("sel", tr.dataset.sym === sym);
+    tr.setAttribute("aria-selected", String(tr.dataset.sym === sym));
   });
   $("#symInput").value = sym;
   hideSuggest();
   if (!refresh) {
     lastNewsHTML = "";
+    newsExpanded = false;
     lastPrice = null;
+    lastDetail = null;                 /* base của nút So sánh bị reset khi đổi mã */
+    $("#btnCompare").disabled = true;
     $("#detail").innerHTML = `<div class="loading-line"><span class="spinner"></span> Đang phân tích <b>${sym}</b> — chờ lượt gọi dữ liệu (~10–20 giây)…</div>`;
   }
   try {
     const st = await api(`/api/symbol/${sym}` + (refresh ? "?refresh=1" : ""));
+    if (sym !== selectedSym) return;   /* người dùng đã chọn mã khác — bỏ request cũ */
     detailBusy = false;
     if (st.status !== "ready") {
       if (!refresh) $("#detail").innerHTML = `<div class="err">${st.message || "Không có dữ liệu"}</div>`;
@@ -248,8 +327,13 @@ async function openSymbol(sym, refresh = false) {
       return;
     }
     renderDetail(st.data, st.stale);
-    if (!refresh) loadNews(sym);
+    if (!refresh) {
+      $("#detail").scrollTop = 0;          /* về đầu khi mở mã mới */
+      if (location.hash.slice(1).toUpperCase() !== sym) location.hash = sym;
+      loadNews(sym);
+    }
   } catch (e) {
+    if (sym !== selectedSym) return;
     detailBusy = false;
     if (!refresh) $("#detail").innerHTML = `<div class="err">Lỗi: ${e.message}</div>`;
   }
@@ -258,19 +342,23 @@ async function openSymbol(sym, refresh = false) {
 function renderDetail(d, stale) {
   const tone = d.tone || "neutral";
   lastDetail = d;
+  lastStale = !!stale;
   const priceFlash = lastPrice != null && lastPrice !== d.close
     ? (d.close > lastPrice ? " flash-up" : " flash-down")
     : "";
   const prevPrice = lastPrice;
   lastPrice = d.close;
+  const watched = inWatch(d.symbol);
 
   $("#detail").innerHTML = `
     <div class="detail">
       <div class="d-head">
         <span class="name">${d.symbol}</span>
+        <button class="star${watched ? " on" : ""}" data-star type="button"
+                aria-pressed="${watched}" title="Thêm/bỏ ${d.symbol} vào ⭐ Của tôi">${watched ? "★" : "☆"}</button>
         <span class="price${priceFlash}">${fmt(d.close, d.close < 50 ? 1 : 0)}</span>
         <span class="dchg ${cls(d.r5)}">5 phiên: ${sign(d.r5, 1)}%</span>
-        <span class="date">phiên ${d.date}${stale ? " · cache cũ" : ""}</span>
+        <span class="date">phiên ${fmtDate(d.date)}${stale ? " · cache cũ" : ""}</span>
       </div>
       <div class="verdict-line">
         <span class="big-tag ${tone}">${d.verdict}</span>
@@ -319,8 +407,111 @@ function renderDetail(d, stale) {
     </div>`;
 
   const newsBox = document.getElementById("news");
-  if (newsBox && lastNewsHTML) newsBox.innerHTML = lastNewsHTML;
+  if (newsBox && lastNewsHTML) { newsBox.innerHTML = lastNewsHTML; syncNewsState(); }
   drawChart(d.ohlcv);
+  syncCompareUI();
+  checkAlerts(d);
+}
+
+/* ---------------- báo giá ---------------- */
+function checkAlerts(d) {
+  if (!d || !d.close || !d.stop) return;
+  const p = d.close;
+  const hits = [];
+  if (p <= d.stop) hits.push({ k: "stop", kind: "err", msg: `${d.symbol} ⚠️ chạm vùng cắt lỗ ${fmt(d.stop, 1)} (giá ${fmt(p, 1)}) — xem xét thoát lệnh` });
+  else if (p >= d.entry[0] && p <= d.entry[1]) hits.push({ k: "entry", kind: "ok", msg: `${d.symbol} 💰 đang trong vùng vào lệnh ${fmt(d.entry[0], 1)}–${fmt(d.entry[1], 1)}` });
+  if (p >= d.t2) hits.push({ k: "t2", kind: "ok", msg: `${d.symbol} 🎯 đã đạt T2 ${fmt(d.t2, 1)} — chốt lời` });
+  else if (p >= d.t1) hits.push({ k: "t1", kind: "ok", msg: `${d.symbol} 🎯 đã đạt T1 ${fmt(d.t1, 1)} — cân nhắc chốt lời` });
+
+  hits.forEach((h) => {
+    const id = `${d.symbol}:${h.k}`;
+    if (firedAlerts.has(id)) return;
+    firedAlerts.add(id);
+    toast(h.msg, h.kind);
+    if (window.Notification && Notification.permission === "granted") {
+      try { new Notification("Báo giá " + d.symbol, { body: h.msg }); } catch (e) {}
+    }
+  });
+}
+
+/* ---------------- so sánh 2 mã ---------------- */
+function syncCompareUI() {
+  const btn = $("#btnCompare");
+  btn.classList.toggle("on", compareMode);
+  btn.textContent = compareMode ? "✕ Hủy so sánh" : "⊕ So sánh";
+  btn.disabled = !lastDetail && !compareMode;
+  $("#symInput").placeholder = compareMode && lastDetail
+    ? `Nhập mã thứ 2 để so sánh với ${lastDetail.symbol}…`
+    : "Tìm mã cổ phiếu… (VD: HPG)";
+}
+
+async function runCompare(symB) {
+  const base = lastDetail;
+  if (!base) { compareMode = false; syncCompareUI(); toast("Chưa có mã thứ nhất để so sánh", "warn"); return; }
+  if (symB === base.symbol) { toast("Hãy chọn mã khác mã đang xem", "warn"); return; }
+  compareSym = symB;
+  hideSuggest();
+  $("#detail").innerHTML = `<div class="loading-line"><span class="spinner"></span> Đang tải <b>${symB}</b> để so sánh với <b>${base.symbol}</b>…</div>`;
+  $("#detail").scrollTop = 0;
+  try {
+    const st = await api(`/api/symbol/${symB}`);
+    if (!compareMode || compareSym !== symB) return;
+    if (st.status !== "ready") throw new Error(st.message || "Không có dữ liệu");
+    renderCompare(base, st.data);
+  } catch (e) {
+    if (!compareMode) return;
+    toast("Không so sánh được: " + e.message, "err");
+    exitCompare();
+  }
+}
+
+function renderCompare(A, B) {
+  const tagOf = (d) => `<span class="tag ${d.tone || "neutral"}">${d.verdict}</span>`;
+  const scoreOf = (d) => `<span class="score ${d.tone || "neutral"}">${d.score}</span>`;
+  const rows = [
+    ["Giá đóng cửa", fmt(A.close, 1), fmt(B.close, 1)],
+    ["5 phiên", sign(A.r5, 1) + "%", sign(B.r5, 1) + "%"],
+    ["RSI 14", fmt(A.rsi, 1), fmt(B.rsi, 1)],
+    ["MA20", fmt(A.ma20, 1), fmt(B.ma20, 1)],
+    ["MA50", fmt(A.ma50, 1), fmt(B.ma50, 1)],
+    ["MA200", fmt(A.ma200, 1), fmt(B.ma200, 1)],
+    ["20 phiên", sign(A.r20, 1) + "%", sign(B.r20, 1) + "%"],
+    ["KL / TB20", fmt(A.vol_ratio, 2) + "×", fmt(B.vol_ratio, 2) + "×"],
+    ["MACD hist", fmt(A.macd_hist, 3), fmt(B.macd_hist, 3)],
+    ["Hỗ trợ", fmt(A.sup, 1), fmt(B.sup, 1)],
+    ["Kháng cự", fmt(A.res, 1), fmt(B.res, 1)],
+    ["Vùng vào lệnh", `${fmt(A.entry[0], 1)} – ${fmt(A.entry[1], 1)}`, `${fmt(B.entry[0], 1)} – ${fmt(B.entry[1], 1)}`],
+    ["Cắt lỗ", fmt(A.stop, 1), fmt(B.stop, 1)],
+    ["Chốt lời T1 / T2", `${fmt(A.t1, 1)} / ${fmt(A.t2, 1)}`, `${fmt(B.t1, 1)} / ${fmt(B.t2, 1)}`],
+    ["Tín hiệu", tagOf(A), tagOf(B)],
+    ["Điểm", `${scoreOf(A)} / ${A.max_score}`, `${scoreOf(B)} / ${B.max_score}`],
+    ["Xu hướng", A.trend || "—", B.trend || "—"],
+  ];
+  $("#detail").innerHTML = `
+    <div class="detail cmp">
+      <div class="d-head">
+        <span class="name">${A.symbol}</span>
+        <span class="vs">vs</span>
+        <span class="name">${B.symbol}</span>
+        <span class="date">phiên ${fmtDate(A.date)} · ${fmtDate(B.date)}</span>
+      </div>
+      <div class="cmp-bar">
+        <span class="cmp-note">💡 Nhập mã khác + Enter để đổi đối thủ, Esc hoặc bấm nút để thoát.</span>
+        <button class="btn" id="btnCmpClose" type="button">✕ Hủy so sánh</button>
+      </div>
+      <table class="cmp-tbl">
+        <thead><tr><th>Tiêu chí</th><th>${A.symbol}</th><th>${B.symbol}</th></tr></thead>
+        <tbody>${rows.map(([k, a, b]) => `<tr><td>${k}</td><td>${a}</td><td>${b}</td></tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+  $("#detail").scrollTop = 0;
+}
+
+function exitCompare() {
+  compareMode = false;
+  compareSym = null;
+  syncCompareUI();
+  if (lastDetail) renderDetail(lastDetail, lastStale);
 }
 
 /* ---------------- chart ---------------- */
@@ -377,11 +568,24 @@ function drawChart(ohlcv) {
 }
 
 /* ---------------- news ---------------- */
+const NEWS_PREVIEW = 5;
+
+function syncNewsState() {
+  const box = document.getElementById("news");
+  if (!box) return;
+  const btn = box.querySelector(".news-more");
+  if (!btn) return;
+  box.classList.toggle("expanded", newsExpanded);
+  btn.setAttribute("aria-expanded", String(newsExpanded));
+  btn.textContent = newsExpanded ? "Thu gọn ▴" : `Xem ${box.querySelectorAll("li").length} tin ▾`;
+}
+
 async function loadNews(sym) {
   const box = document.getElementById("news");
   if (!box) return;
   try {
     const st = await api(`/api/symbol/${sym}/news`);
+    if (sym !== selectedSym) return;
     const items = st.items || [];
     if (!items.length) {
       box.innerHTML = `<h4>Tin tức ${sym}</h4><div class="empty">Chưa có tin.</div>`;
@@ -389,15 +593,18 @@ async function loadNews(sym) {
       return;
     }
     box.innerHTML =
-      `<h4>Tin tức ${sym} <span style="text-transform:none;font-weight:400">(CafeF)</span></h4><ul>` +
-      items.map((n) => `<li>
+      `<h4>Tin tức ${sym} · ${items.length} tin <span style="text-transform:none;font-weight:400">(CafeF)</span></h4><ul>` +
+      items.map((n, i) => `<li${i >= NEWS_PREVIEW ? ' class="extra"' : ""}>
             <span class="n-date">${n.date}</span>
             <a class="n-title" href="${n.url}" target="_blank" rel="noopener">${n.title}</a>
             ${n.sub ? `<div class="n-sub">${n.sub}</div>` : ""}
           </li>`).join("") +
-      `</ul>`;
+      `</ul>` +
+      (items.length > NEWS_PREVIEW ? `<button class="news-more" type="button"></button>` : "");
+    syncNewsState();
     lastNewsHTML = box.innerHTML;
   } catch (e) {
+    if (sym !== selectedSym) return;
     box.innerHTML = `<h4>Tin tức ${sym}</h4><div class="empty">Không tải được tin (${e.message}).</div>`;
   }
 }
@@ -456,7 +663,7 @@ function liveTick() {
 
 function doLive() {
   loadOverview(true, true);
-  if (selectedSym && !detailBusy) openSymbol(selectedSym, true);
+  if (selectedSym && !detailBusy && !compareMode) openSymbol(selectedSym, true);
 }
 
 /* ---------------- events ---------------- */
@@ -467,6 +674,74 @@ $("#btnRefreshOverview").addEventListener("click", () => {
 });
 $("#btnAnalyze").addEventListener("click", () => openSymbol($("#symInput").value));
 $("#btnTheme").addEventListener("click", toggleTheme);
+
+/* news: mở rộng / thu gọn (delegation — #detail chỉ bị thay innerHTML nên listener không mất) */
+$("#detail").addEventListener("click", (e) => {
+  if (e.target.closest(".news-more")) {
+    newsExpanded = !newsExpanded;
+    syncNewsState();
+    const box = document.getElementById("news");
+    if (box) lastNewsHTML = box.innerHTML;
+    return;
+  }
+  /* ⭐ thêm/bỏ theo dõi */
+  const star = e.target.closest("[data-star]");
+  if (star && lastDetail) {
+    toggleWatch(lastDetail.symbol);
+    const on = inWatch(lastDetail.symbol);
+    star.classList.toggle("on", on);
+    star.textContent = on ? "★" : "☆";
+    star.setAttribute("aria-pressed", String(on));
+    star.title = `Thêm/bỏ ${lastDetail.symbol} vào ⭐ Của tôi`;
+    renderScreen(screenRows);
+    return;
+  }
+  /* thoát so sánh */
+  if (e.target.closest("#btnCmpClose")) exitCompare();
+});
+
+/* ---------------- nút So sánh ---------------- */
+$("#btnCompare").addEventListener("click", () => {
+  if (compareMode) { exitCompare(); return; }
+  if (!lastDetail) { toast("Hãy phân tích một mã trước khi so sánh", "warn"); return; }
+  compareMode = true;
+  syncCompareUI();
+  $("#symInput").value = "";
+  hideSuggest();
+  $("#symInput").focus();
+  toast(`Nhập mã thứ 2 để so sánh với ${lastDetail.symbol}`, "ok");
+});
+
+/* ---------------- export CSV ---------------- */
+function exportCsv() {
+  const rows = visibleRows();
+  if (!rows.length) { toast("Không có dòng nào để xuất", "warn"); return; }
+  const head = ["#", "Ma", "Gia", "20 phien %", "RSI", "KL/TB20", "Diem", "Tin hieu"];
+  const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [head.map(esc).join(",")];
+  rows.forEach((r, i) => {
+    lines.push([i + 1, r.symbol, r.close, r.r20, r.rsi, r.vol_ratio, r.score, r.verdict].map(esc).join(","));
+  });
+  const d = new Date();
+  const p2 = (n) => String(n).padStart(2, "0");
+  const name = `man_loc_${p2(d.getDate())}${p2(d.getMonth() + 1)}${d.getFullYear()}.csv`;
+  const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  toast(`Đã xuất ${rows.length} dòng → ${name}`, "ok");
+}
+$("#btnCsv").addEventListener("click", exportCsv);
+
+/* phím Back/Forward của trình duyệt + link #MÃ chia sẻ được */
+window.addEventListener("hashchange", () => {
+  if (compareMode) return;   /* đang so sánh → bỏ qua, chờ người dùng thoát */
+  const h = location.hash.slice(1).toUpperCase();
+  if (h && h !== selectedSym && /^[A-Z]{2,6}$/.test(h)) openSymbol(h);
+});
 
 $("#noticeClose").addEventListener("click", () => {
   $("#notice").classList.add("hidden");
@@ -492,37 +767,61 @@ $("#btnLive").addEventListener("click", async () => {
 });
 
 /* sort/filter chips */
-$("#sortChips").addEventListener("click", (e) => {
-  const b = e.target.closest(".chip-btn");
-  if (!b) return;
-  const key = b.dataset.sort;
-  if (key === sortBy) sortDir = -sortDir;
-  else { sortBy = key; sortDir = -1; }
+/* sort — 1 nguồn sự thật: chips ở toolbar và cột bảng cùng gọi setSort() */
+function syncSortUI() {
   document.querySelectorAll("#sortChips .chip-btn").forEach((c) => {
     const on = c.dataset.sort === sortBy;
     c.classList.toggle("on", on);
     c.querySelector(".arr").textContent = on ? (sortDir === -1 ? "▼" : "▲") : "▼";
   });
+  document.querySelectorAll(".tbl thead th.sortable").forEach((th) => {
+    const on = th.dataset.sort === sortBy;
+    th.querySelector(".arr").textContent = on ? (sortDir === -1 ? "▼" : "▲") : "";
+    th.setAttribute("aria-sort", on ? (sortDir === -1 ? "descending" : "ascending") : "none");
+  });
+}
+function setSort(key) {
+  if (key === sortBy) sortDir = -sortDir;
+  else { sortBy = key; sortDir = -1; }
+  saveSortState();
+  syncSortUI();
   renderScreen(screenRows);
+}
+
+$("#sortChips").addEventListener("click", (e) => {
+  const b = e.target.closest(".chip-btn");
+  if (b) setSort(b.dataset.sort);
+});
+
+document.querySelectorAll(".tbl thead th.sortable").forEach((th) => {
+  th.addEventListener("click", () => setSort(th.dataset.sort));
 });
 
 $("#filterChips").addEventListener("click", (e) => {
   const b = e.target.closest(".chip-btn");
   if (!b) return;
   filterBy = b.dataset.filter;
+  saveFilterState();
+  syncFilterUI();
+  renderScreen(screenRows);
+});
+
+function syncFilterUI() {
   document.querySelectorAll("#filterChips .chip-btn").forEach((c) => {
     c.classList.toggle("on", c.dataset.filter === filterBy);
     c.classList.toggle("good", c.dataset.filter === "good" && c.classList.contains("on"));
     c.classList.toggle("bad", c.dataset.filter === "bad" && c.classList.contains("on"));
   });
-  renderScreen(screenRows);
-});
+}
 
 /* search input */
 const input = $("#symInput");
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") { openSymbol(input.value); }
-  if (e.key === "Escape") { hideSuggest(); input.blur(); }
+  if (e.key === "Escape") {
+    if (compareMode) exitCompare();
+    else { hideSuggest(); input.blur(); }
+  }
 });
 input.addEventListener("input", (e) => {
   e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, "");
@@ -535,6 +834,22 @@ document.addEventListener("keydown", (e) => {
   const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
   if (e.key === "/" && !typing) { e.preventDefault(); input.focus(); input.select(); }
   if ((e.key === "t" || e.key === "T") && !typing && !e.ctrlKey && !e.metaKey) toggleTheme();
+  /* ↑/↓ di chuyển chọn mã theo đúng thứ tự bảng đang hiển thị */
+  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !typing && !compareMode) {
+    const rows = visibleRows();
+    if (!rows.length) return;
+    e.preventDefault();
+    const step = e.key === "ArrowDown" ? 1 : -1;
+    let i = rows.findIndex((r) => r.symbol === selectedSym);
+    i = (i === -1 ? (step === 1 ? 0 : rows.length - 1) : i + step);
+    i = Math.max(0, Math.min(rows.length - 1, i));
+    const next = rows[i];
+    if (next.symbol !== selectedSym) openSymbol(next.symbol);
+    setTimeout(() => {
+      const tr = document.querySelector(`#screenBody tr[data-sym="${next.symbol}"]`);
+      if (tr) { tr.focus(); tr.scrollIntoView({ block: "nearest" }); }
+    }, 80);
+  }
 });
 
 document.addEventListener("visibilitychange", () => {
@@ -544,6 +859,9 @@ document.addEventListener("visibilitychange", () => {
 /* ---------------- init ---------------- */
 applyTheme(document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark");
 setLiveBtn();
+syncSortUI();
+syncFilterUI();
+syncCompareUI();
 
 async function loadBasket() {
   try {

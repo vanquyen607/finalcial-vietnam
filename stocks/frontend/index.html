@@ -20,6 +20,7 @@
   </script>
 </head>
 <body>
+  <a class="skip" href="#main">Chuyển đến nội dung chính</a>
   <header class="topbar">
     <div class="brand">
       <span class="logo">▲</span>
@@ -39,7 +40,7 @@
 
   <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker-track" id="tickerTrack"></div></div>
 
-  <main class="wrap">
+  <main class="wrap" id="main">
     <section class="cards" id="cards" aria-label="Chỉ số thị trường">
       <div class="card"><div class="skel" style="height:110px"></div></div>
       <div class="card"><div class="skel" style="height:110px"></div></div>
@@ -48,8 +49,8 @@
 
     <div class="notice" id="notice">
       <span class="n-ico">⚠</span>
-      <span>Thị trường đang ở xu hướng điều chỉnh ngắn hạn (dưới MA20/MA200) và khối ngoại bán ròng liên tục —
-      giải ngân từng phần, luôn đặt cắt Lỗ. Nguồn vnstock giới hạn 20 req/phút nên lần chạy màn lọc đầu tiên mất ~6 phút,
+      <span class="n-txt"><span id="noticeText">Thị trường đang ở xu hướng điều chỉnh ngắn hạn (dưới MA20/MA200) và khối ngoại bán ròng liên tục —
+      giải ngân từng phần, luôn đặt cắt Lỗ.</span> Nguồn vnstock giới hạn 20 req/phút nên lần chạy màn lọc đầu tiên mất ~6 phút,
       các lần sau dùng cache.</span>
       <button class="n-x" id="noticeClose" title="Ẩn thông báo" aria-label="Ẩn thông báo">×</button>
     </div>
@@ -77,7 +78,10 @@
         <button class="chip-btn" data-filter="watch">Theo dõi</button>
         <button class="chip-btn" data-filter="neutral">Trung tính</button>
         <button class="chip-btn" data-filter="bad">Tránh</button>
+        <button class="chip-btn" data-filter="mine">⭐ Của tôi</button>
       </div>
+      <span class="sep"></span>
+      <button class="chip-btn" id="btnCsv" title="Xuất các dòng đang hiển thị ra tệp Excel/CSV">⤓ CSV</button>
     </div>
 
     <div class="main">
@@ -90,8 +94,13 @@
           <table class="tbl">
             <thead>
               <tr>
-                <th>#</th><th>Mã</th><th>Giá</th><th>20 phiên</th><th>RSI</th>
-                <th>KL/20</th><th>Điểm</th><th>Tín hiệu</th>
+                <th>#</th><th>Mã</th>
+                <th class="sortable" data-sort="close">Giá <span class="arr"></span></th>
+                <th class="sortable" data-sort="r20">20 phiên <span class="arr"></span></th>
+                <th class="sortable" data-sort="rsi">RSI <span class="arr"></span></th>
+                <th class="sortable" data-sort="vol_ratio">KL/20 <span class="arr"></span></th>
+                <th class="sortable" data-sort="score">Điểm <span class="arr"></span></th>
+                <th>Tín hiệu</th>
               </tr>
             </thead>
             <tbody id="screenBody">
@@ -113,6 +122,7 @@
             <div class="suggest" id="symSuggest" role="listbox"></div>
           </div>
           <button class="btn primary" id="btnAnalyze">Phân tích</button>
+          <button class="btn" id="btnCompare" disabled title="So sánh mã đang xem với mã khác">⊕ So sánh</button>
         </div>
         <div id="detail">
           <div class="empty">Chưa chọn mã.<br />Bấm một dòng ở bảng bên trái, hoặc nhập mã rồi bấm <b>Phân tích</b>.</div>
