@@ -8,6 +8,11 @@ const fmtDate = (s) => {
   const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m ? `${m[3]}/${m[2]}/${m[1]}` : (s || "—");
 };
+/* escape dữ liệu từ server/API trước khi chèn innerHTML — chống XSS */
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+/* chỉ cho phép http(s) — chặn javascript:/data: trong href */
+const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "#");
 
 let selectedSym = null;
 let chart = null;
@@ -126,14 +131,14 @@ async function loadOverview(refresh = false, silent = false) {
       return;
     }
     if (st.status !== "ready") {
-      if (!silent) $("#cards").innerHTML = `<div class="card"><div class="err">Không tải được chỉ số: ${st.message || "?"}</div></div>`;
+      if (!silent) $("#cards").innerHTML = `<div class="card"><div class="err">Không tải được chỉ số: ${esc(st.message || "?")}</div></div>`;
       else toast("Làm mới chỉ số thất bại", "err");
       return;
     }
     renderCards(st);
     clearTimeout(pollTimers.overview);
   } catch (e) {
-    if (!silent) $("#cards").innerHTML = `<div class="card"><div class="err">Lỗi: ${e.message}</div></div>`;
+    if (!silent) $("#cards").innerHTML = `<div class="card"><div class="err">Lỗi: ${esc(e.message)}</div></div>`;
   }
 }
 
@@ -363,7 +368,7 @@ async function openSymbol(sym, refresh = false) {
     if (sym !== selectedSym) return;   /* người dùng đã chọn mã khác — bỏ request cũ */
     detailBusy = false;
     if (st.status !== "ready") {
-      if (!refresh) $("#detail").innerHTML = `<div class="err">${st.message || "Không có dữ liệu"}</div>`;
+      if (!refresh) $("#detail").innerHTML = `<div class="err">${esc(st.message || "Không có dữ liệu")}</div>`;
       else toast(st.message || "Không tải được " + sym, "err");
       return;
     }
@@ -376,7 +381,7 @@ async function openSymbol(sym, refresh = false) {
   } catch (e) {
     if (sym !== selectedSym) return;
     detailBusy = false;
-    if (!refresh) $("#detail").innerHTML = `<div class="err">Lỗi: ${e.message}</div>`;
+    if (!refresh) $("#detail").innerHTML = `<div class="err">Lỗi: ${esc(e.message)}</div>`;
   }
 }
 
@@ -684,9 +689,9 @@ async function loadNews(sym) {
     box.innerHTML =
       `<h4>Tin tức ${sym} · ${items.length} tin <span style="text-transform:none;font-weight:400">(CafeF)</span></h4><ul>` +
       items.map((n, i) => `<li${i >= NEWS_PREVIEW ? ' class="extra"' : ""}>
-            <span class="n-date">${n.date}</span>
-            <a class="n-title" href="${n.url}" target="_blank" rel="noopener">${n.title}</a>
-            ${n.sub ? `<div class="n-sub">${n.sub}</div>` : ""}
+            <span class="n-date">${esc(n.date)}</span>
+            <a class="n-title" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>
+            ${n.sub ? `<div class="n-sub">${esc(n.sub)}</div>` : ""}
           </li>`).join("") +
       `</ul>` +
       (items.length > NEWS_PREVIEW ? `<button class="news-more" type="button"></button>` : "");
@@ -694,7 +699,7 @@ async function loadNews(sym) {
     lastNewsHTML = box.innerHTML;
   } catch (e) {
     if (sym !== selectedSym) return;
-    box.innerHTML = `<h4>Tin tức ${sym}</h4><div class="empty">Không tải được tin (${e.message}).</div>`;
+    box.innerHTML = `<h4>Tin tức ${sym}</h4><div class="empty">Không tải được tin (${esc(e.message)}).</div>`;
   }
 }
 

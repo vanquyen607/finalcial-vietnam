@@ -215,3 +215,27 @@ curl -s https://vnstocks.com/api/vnstock/versions
 | Version unchanged after install | pip ran in a different environment. Compare `python -c "import sys; print(sys.executable)"` with the path in the update notice. |
 | `externally-managed-environment` | You are on the system Python. Go back to Section 2 and use `~/.venv`; do not add `--break-system-packages`. |
 | Device limit reached while reinstalling a sponsor package | Ask the user to remove devices they no longer use at <https://vnstocks.com/account?section=devices>, then re-run the installer. |
+
+
+<!-- agent-skills | addyosmani/agent-skills -->
+# Agent Skills (global: ~/.config/opencode/skills)
+
+25 skills quy hoach cong viec ky thuat (spec â†’ plan â†’ build â†’ test â†’ review â†’ ship).
+
+## Quy tac
+
+- Neu tac vu khop mot skill, dung tool `skill` de nap truoc khi hanh dong; lam dung toan bo workflow, khong uong gia.
+- Skill o `~/.config/opencode/skills/<ten>/SKILL.md`; reference goi `../../references/` nam o `~/.config/opencode/references/`.
+
+## Intent â†’ Skill
+
+- Tinh nang moi / yeu cau mo ra â†’ `spec-driven-development`, sau do `planning-and-task-breakdown`, `incremental-implementation` + `test-driven-development`
+- Loi / hanh vi bat thuong â†’ `debugging-and-error-recovery`
+- Review truoc merge â†’ `code-review-and-quality`
+- Don gian hoa code â†’ `code-simplification`
+- Thiet ke API / interface â†’ `api-and-interface-design`
+- UI / frontend â†’ `frontend-ui-engineering`
+- Bao mat / auth / secrets â†’ `security-and-hardening`
+- Hieu nang â†’ `performance-optimization` (do truoc, moi toi uu)
+- Deploy / git / release â†’ `git-workflow-and-versioning`, `shipping-and-launch`
+

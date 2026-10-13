@@ -1,4 +1,5 @@
 """API phan tich chung khoan - Phan Tich CK."""
+import logging
 import time
 from collections import deque
 from pathlib import Path
@@ -119,7 +120,11 @@ def api_symbol_fundamentals(sym: str):
 
 @app.exception_handler(Exception)
 def err(request, exc):  # noqa: ANN001
-    return JSONResponse(status_code=500, content={"status": "error", "message": str(exc)})
+    # khong tra noi dung exception ra client (chan lo thong tin noi bo) — ghi log server
+    logging.getLogger("phan-tich").exception("500 %s %s", request.method, request.url.path)
+    return JSONResponse(status_code=500, content={
+        "status": "error",
+        "message": "Lỗi máy chủ — thử lại sau."})
 
 
 app.mount("/", StaticFiles(directory=str(FRONTEND), html=True), name="static")

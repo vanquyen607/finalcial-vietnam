@@ -734,8 +734,9 @@ def _run_pass() -> list[dict] | None:
                 "stop", "t1", "t2", "risk_pct", "rr")}
         with _screen_lock:
             screen_state.update({"done": i,
-                                 "results": sorted(merged.values(), key=lambda x: -x["score"])})
-    return sorted(merged.values(), key=lambda x: -x["score"])
+                                 "results": sorted(merged.values(),
+                                                   key=lambda x: -x.get("score", 0))})
+    return sorted(merged.values(), key=lambda x: -x.get("score", 0))
 
 
 def _wait_between_passes() -> bool:
@@ -764,7 +765,7 @@ def _screen_worker():
             rows = _run_pass()
             if rows is None:
                 break
-            rows.sort(key=lambda x: -x["score"])
+            rows.sort(key=lambda x: -x.get("score", 0))
             obj = {"results": rows, "generated_at": time.time(), "source": "live"}
             _save(DATA / "screen.json", obj)
             with _screen_lock:
@@ -775,6 +776,9 @@ def _screen_worker():
                     break
             if not _wait_between_passes():
                 break
+    except Exception as e:          # khoong de worker chet im — bao UI ro loi
+        with _screen_lock:
+            screen_state["message"] = f"Lỗi quét: {e}"
     finally:
         with _screen_lock:
             if screen_state["status"] == "running":

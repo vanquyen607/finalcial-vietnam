@@ -28,6 +28,9 @@ def _ms(s: str) -> str:
 
 def get_news(sym: str, refresh: bool = False) -> dict:
     sym = sym.upper().strip()
+    # validate truoc khi dat vao ten file/URL — chan path traversal (..\) va query injection
+    if not sym.isalpha() or not 2 <= len(sym) <= 6:
+        return {"status": "error", "message": "Mã không hợp lệ"}
     path = NEWS_DIR / f"{sym}.json"
     if not refresh and path.exists():
         try:
@@ -46,6 +49,8 @@ def get_news(sym: str, refresh: bool = False) -> dict:
             link = (it.get("LinkDetail") or "").split("?")[0]
             if link.startswith("/"):
                 link = "https://cafef.vn" + link
+            if not link.startswith(("http://", "https://")):
+                continue            # chan javascript:/data: link
             items.append({
                 "title": (it.get("Title") or "").strip(),
                 "sub": (it.get("SubTitle") or "").strip(),
