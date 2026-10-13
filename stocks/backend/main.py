@@ -7,7 +7,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import market, news
+from backend import fund, market, news
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
@@ -105,6 +105,16 @@ def api_symbol(sym: str, refresh: int = Query(0)):
 @app.get("/api/symbol/{sym}/news")
 def api_symbol_news(sym: str, refresh: int = Query(0)):
     return news.get_news(sym, refresh=bool(refresh))
+
+
+@app.get("/api/breadth")
+def api_breadth(refresh: int = Query(0)):
+    return market.breadth(refresh=bool(refresh))
+
+
+@app.get("/api/symbol/{sym}/fundamentals")
+def api_symbol_fundamentals(sym: str):
+    return fund.get_fundamentals(sym)
 
 
 @app.exception_handler(Exception)

@@ -155,7 +155,7 @@ function renderCards(st) {
         <span class="chip">Vùng 30 phiên <b>${fmt(ix.lo30, 0)} – ${fmt(ix.hi30, 0)}</b></span>
         <span class="chip">KL <b>${fmt(ix.vol_last_m, 0)}tr</b>/TB20 ${fmt(ix.vol20_m, 0)}tr</span>
       </div>
-      <div class="trend">Xu hướng: <b>${ix.trend}</b> ${ix.above_ma200 ? "" : "· ⚠️ dưới MA200"}</div>`;
+      <div class="trend">Xu hướng: <b>${ix.trend}</b> ${ix.above_ma200 === false ? "· ⚠️ dưới MA200" : ""}</div>`;
     box.appendChild(el);
   });
   const meta = document.createElement("div");
@@ -173,8 +173,49 @@ function updateNotice(st) {
   const el = document.getElementById("noticeText");
   const ix = (st.indices || [])[0];
   if (!el || !ix) return;
-  el.textContent = `Thị trường ${ix.label}: ${ix.trend}${ix.above_ma200 ? "" : " · ⚠️ dưới MA200"} —`
+  el.textContent = `Thị trường ${ix.label}: ${ix.trend}${ix.above_ma200 === false ? " · ⚠️ dưới MA200" : ""} —`
     + " giải ngân từng phần, luôn đặt cắt Lỗ.";
+}
+
+/* ---------------- breadth (tăng/giảm + thanh khoản + ngoại theo sàn) ---------------- */
+let breadthPending = false;
+async function loadBreadth() {
+  if (breadthPending) return;
+  breadthPending = true;
+  try {
+    const st = await api("/api/breadth");
+    renderBreadth(st);
+    clearTimeout(pollTimers.breadth);
+    if (st.status === "fetching") pollTimers.breadth = setTimeout(loadBreadth, 5000);
+  } catch (e) { /* im lang — breadth la phu */ }
+  finally { breadthPending = false; }
+}
+function renderBreadth(st) {
+  const box = $("#breadthCard");
+  if (!box) return;
+  if (st.status === "empty" || st.status === "error" || !st.exchanges) {
+    box.hidden = true;
+    return;
+  }
+  const rows = [["HOSE", "hose"], ["HNX", "hnx"], ["UPCOM", "upcom"]].map(([lab, k]) => {
+    const e = st.exchanges[k];
+    if (!e || !e.n) return "";
+    return `<div class="br-row">
+      <span class="br-ex">${lab}</span>
+      <span class="br-up">▲ ${e.up}</span>
+      <span class="br-flat">– ${e.flat}</span>
+      <span class="br-down">▼ ${e.down}</span>
+      <span class="br-val">${fmt(e.value_t, 0)} tỷ GTGD</span>
+      <span class="br-fn ${cls(e.fnet_t)}">Ngoại ${sign(e.fnet_t, 1)} tỷ</span>
+    </div>`;
+  }).join("");
+  if (!rows.trim()) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<div class="label">Thị trường hôm nay · tăng / đứng / giảm${st.stale ? " · dữ liệu cũ" : ""}</div>
+    ${rows}
+    <div class="trend">Tổng GTGD <b>${fmt(st.total && st.total.value_t, 0)} tỷ</b> · ngoại ròng toàn thị trường
+      <b class="${cls(st.total && st.total.fnet_t)}">${sign(st.total && st.total.fnet_t, 1)} tỷ</b>
+      · ${st.updated_at || ""}</div>`;
 }
 
 /* ---------------- screen ---------------- */
@@ -379,6 +420,8 @@ function renderDetail(d, stale) {
         <div class="metric"><div class="k">52 tuần</div><div class="v" style="font-size:12.5px">${fmt(d.lo52, 0)}–${fmt(d.hi52, 0)}</div></div>
       </div>
 
+      <div class="fund" id="fund"></div>
+
       <div class="plan">
         <div class="cell k"><div class="k-label">Vùng vào lệnh</div><div class="k-val">${fmt(d.entry[0], 1)} – ${fmt(d.entry[1], 1)}</div></div>
         <div class="cell r"><div class="k-label">Cắt lỗ</div><div class="k-val">${fmt(d.stop, 1)}</div><div class="k-sub">rủi ro ${fmt(d.risk_pct, 1)}%</div></div>
@@ -411,6 +454,8 @@ function renderDetail(d, stale) {
   drawChart(d.ohlcv);
   syncCompareUI();
   checkAlerts(d);
+  if (fundCache[d.symbol]) renderFund(fundCache[d.symbol]);
+  else loadFundamentals(d.symbol);          /* lazy — khong block phan tich ky thuat */
 }
 
 /* ---------------- báo giá ---------------- */
@@ -432,6 +477,50 @@ function checkAlerts(d) {
       try { new Notification("Báo giá " + d.symbol, { body: h.msg }); } catch (e) {}
     }
   });
+}
+
+/* ---------------- chỉ số cơ bản (fundamental) ---------------- */
+const fundCache = {};
+const fundPending = new Set();
+const FUND_KEYS = [
+  ["P/E", ["pe_ratio"], 2, ""],
+  ["P/B", ["pb_ratio"], 2, ""],
+  ["EPS TTM", ["trailing_eps"], 0, "đ"],
+  ["BVPS", ["book_value_per_share_bvps"], 0, "đ"],
+  ["P/S", ["ps_ratio"], 2, ""],
+  ["ROE TTM", ["roe_trailling", "roe"], 1, "%"],
+  ["ROA TTM", ["roa_trailling", "roa"], 1, "%"],
+  ["Biên gộp", ["gross_margin"], 1, "%"],
+  ["Biên ròng", ["net_margin"], 1, "%"],
+  ["EV/EBITDA", ["ev_ebitda"], 1, ""],
+  ["Beta", ["beta"], 2, ""],
+  ["Cổ tức", ["dividend_yield"], 2, "%"],
+];
+async function loadFundamentals(sym) {
+  const box = document.getElementById("fund");
+  if (!box || fundCache[sym] || fundPending.has(sym)) return;
+  fundPending.add(sym);
+  box.innerHTML = `<div class="loading-line"><span class="spinner"></span> Đang tải chỉ số cơ bản…</div>`;
+  try {
+    const st = await api(`/api/symbol/${sym}/fundamentals`);
+    fundPending.delete(sym);
+    if (st.status !== "ready" || !st.data) { box.remove(); return; }
+    fundCache[sym] = st;
+    if (selectedSym === sym) renderFund(st);
+  } catch (e) { fundPending.delete(sym); box.remove(); }
+}
+function renderFund(st) {
+  const box = document.getElementById("fund");
+  if (!box) return;
+  const d = st.data || {};
+  const cells = FUND_KEYS.map(([lab, keys, dp, suf]) => {
+    const k = keys.find((x) => d[x] != null && !isNaN(d[x]));
+    if (!k) return "";
+    return `<div class="metric"><div class="k">${lab}</div><div class="v">${fmt(d[k], dp)}${suf}</div></div>`;
+  }).join("");
+  if (!cells) { box.remove(); return; }
+  box.innerHTML = `<h4>Chỉ số cơ bản${st.stale ? " · cache cũ" : ""}</h4>
+    <div class="metrics">${cells}</div>`;
 }
 
 /* ---------------- so sánh 2 mã ---------------- */
@@ -663,6 +752,7 @@ function liveTick() {
 
 function doLive() {
   loadOverview(true, true);
+  loadBreadth();
   if (selectedSym && !detailBusy && !compareMode) openSymbol(selectedSym, true);
 }
 
@@ -877,6 +967,7 @@ loadSession();
 setInterval(loadSession, 60000);
 setInterval(liveTick, 1000);
 loadOverview();
+loadBreadth();
 loadScreen();
 
 if (liveOn) {

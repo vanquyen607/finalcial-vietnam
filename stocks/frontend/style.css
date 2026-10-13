@@ -421,6 +421,44 @@ table.tbl tbody tr:focus-visible { outline: 2px solid var(--accent); outline-off
 .metric .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
 .metric .v { font-size: 15px; font-weight: 750; margin-top: 2px; font-variant-numeric: tabular-nums; }
 
+/* chỉ số cơ bản (tab Cơ bản trong chi tiết) */
+.fund { margin: 2px 0 6px; }
+.fund h4 {
+  font-size: 12.5px; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--muted); font-weight: 700; margin: 10px 0 2px;
+}
+.fund .metrics { margin: 6px 0 10px; }
+
+/* breadth: tăng/giảm + thanh khoản + ngoại theo sàn */
+.breadth {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 16px; margin: 0 0 10px;
+  box-shadow: var(--shadow-sm);
+}
+.breadth .label {
+  color: var(--muted); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .5px; margin-bottom: 8px;
+}
+.br-row {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
+  padding: 4px 0; font-size: 13px; font-variant-numeric: tabular-nums;
+  border-top: 1px dashed var(--border);
+}
+.br-row:first-of-type { border-top: 0; }
+.br-ex { min-width: 58px; font-weight: 800; font-size: 12px; letter-spacing: .6px; }
+.br-up { color: var(--up); font-weight: 700; min-width: 52px; }
+.br-down { color: var(--down); font-weight: 700; min-width: 52px; }
+.br-flat { color: var(--muted); min-width: 46px; }
+.br-val { color: var(--muted); font-size: 12px; }
+.br-fn { font-size: 12px; font-weight: 700; }
+.br-fn.up { color: var(--up); }
+.br-fn.down { color: var(--down); }
+.breadth .trend { color: var(--muted); font-size: 12px; margin-top: 7px; }
+@media (max-width: 720px) {
+  .br-row { gap: 4px 10px; }
+  .br-val { display: none; }
+}
+
 .plan { display: grid; grid-template-columns: repeat(4, 1fr); gap: 9px; margin: 6px 0 13px; }
 @media (max-width: 640px) { .plan { grid-template-columns: repeat(2, 1fr); } }
 .plan .cell { border-radius: 10px; padding: 10px 11px; border: 1px solid var(--border); }
