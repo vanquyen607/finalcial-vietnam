@@ -116,7 +116,7 @@ with sync_playwright() as p:
     head = pg.locator(".cmp-tbl thead").inner_text()
     check("header 2 cột HPG vs FPT", "HPG" in head and "FPT" in head, head.replace("\n", " "))
     nrows = pg.locator(".cmp-tbl tbody tr").count()
-    check("đủ 17 tiêu chí", nrows == 17, str(nrows))
+    check("đủ 20 tiêu chí (17 kỹ thuật + 3 FA)", nrows == 20, str(nrows))
     check("hash giữ nguyên #HPG", (pg.evaluate("location.hash") or "").upper() == "#HPG", pg.evaluate("location.hash"))
     check("selectedSym vẫn HPG", pg.evaluate("selectedSym") == "HPG")
     pg.evaluate("document.getElementById('symInput').focus()")

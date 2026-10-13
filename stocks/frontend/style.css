@@ -428,6 +428,15 @@ table.tbl tbody tr:focus-visible { outline: 2px solid var(--accent); outline-off
   color: var(--muted); font-weight: 700; margin: 10px 0 2px;
 }
 .fund .metrics { margin: 6px 0 10px; }
+.fund .metric { cursor: help; }
+.chip-mini {
+  display: inline-block; margin-left: 6px; padding: 1px 6px;
+  border-radius: 6px; font-size: 10.5px; font-weight: 700;
+  background: var(--surface); border: 1px solid var(--border); color: var(--muted);
+}
+.chip-mini.up { border-color: color-mix(in srgb, var(--up) 55%, var(--border)); color: var(--up); }
+.chip-mini.down { border-color: color-mix(in srgb, var(--down) 55%, var(--border)); color: var(--down); }
+.fund-hint { font-size: 11.5px; color: var(--muted); margin-bottom: 8px; }
 
 /* breadth: tăng/giảm + thanh khoản + ngoại theo sàn */
 .breadth {

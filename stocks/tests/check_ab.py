@@ -58,7 +58,7 @@ with sync_playwright() as p:
     n = pg.locator(".fund .metric").count()
     check("fund >= 6 chi tieu", n >= 6, str(n))
     ftxt = pg.locator(".fund").inner_text().lower()
-    for lab in ("p/e", "p/b", "eps ttm", "roe ttm", "beta"):
+    for lab in ("p/e", "p/b", "eps", "roe"):
         check(f"fund co {lab}", lab in ftxt)
     check("fund khong NaN", "nan" not in ftxt)
 

@@ -8,7 +8,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import fund, market, news
+from backend import fund, market, news, screen
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
@@ -75,22 +75,22 @@ def api_overview(refresh: int = Query(0)):
 
 @app.get("/api/screen")
 def api_screen():
-    return market.screen()
+    return screen.screen()
 
 
 @app.post("/api/screen/run")
 def api_screen_run(auto: int = Query(0)):
-    return market.start_screen(auto=bool(auto))
+    return screen.start_screen(auto=bool(auto))
 
 
 @app.post("/api/screen/stop")
 def api_screen_stop():
-    return market.stop_screen()
+    return screen.stop_screen()
 
 
 @app.get("/api/session")
 def api_session():
-    return {"in_session": market._in_session(), "now": market.now_vn().strftime("%H:%M %d/%m")}
+    return {"in_session": market.is_session(), "now": market.now_vn().strftime("%H:%M %d/%m")}
 
 
 @app.get("/api/symbols")
