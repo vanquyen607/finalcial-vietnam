@@ -11,45 +11,47 @@ import time
 from backend.store import DATA, _cached
 
 
-def _fmt_pct(v, d=1):
-    if v is None:
-        return "—"
-    return f"{v:+.{d}f}%"
-
-
-def _fmt_num(v, d=0):
-    if v is None:
-        return "—"
-    return f"{v:,.{d}f}"
-
-
 def build_brief() -> dict:
     now = time.time()
 
-    # 1. Overview
+    # 1. Overview — fields: label, close, chg_pct
     ov = _cached(DATA / "overview.json")
     indices = []
     if ov and ov.get("data"):
         for row in ov["data"].get("indices", []):
             indices.append({
-                "name": row.get("name", "?"),
-                "value": row.get("value"),
-                "change_pct": row.get("change_pct"),
+                "name": row.get("label") or row.get("code", "?"),
+                "value": row.get("close"),
+                "change_pct": row.get("chg_pct"),
             })
 
-    # 2. Regime
+    # 2. Regime — field: regime (bull/bear/neutral), reason
     regime_obj = _cached(DATA / "regime.json")
-    regime = regime_obj.get("data", {}) if regime_obj else {}
+    regime_raw = regime_obj.get("data", {}) if regime_obj else {}
+    regime = {
+        "state": regime_raw.get("regime", "unknown"),
+        "note": regime_raw.get("reason", ""),
+        "vn_above_ma50": regime_raw.get("vn_above_ma50"),
+    }
 
-    # 3. Breadth
+    # 3. Breadth — fields: exchanges.hose.up/down, total.up/down
     br = _cached(DATA / "breadth.json")
-    breadth = br.get("data", {}) if br else {}
+    br_raw = br.get("data", {}) if br else {}
+    hose = br_raw.get("exchanges", {}).get("hose", {})
+    total = br_raw.get("total", {})
+    breadth = {
+        "hose_up": hose.get("up"),
+        "hose_down": hose.get("down"),
+        "total_up": total.get("up"),
+        "total_down": total.get("down"),
+        "fnet_t": total.get("fnet_t"),
+    }
 
-    # 4. Screen top
+    # 4. Screen top — field: results
     scr = _cached(DATA / "screen.json")
     top = []
     if scr:
-        rows = sorted(scr.get("rows", []),
+        rows = sorted(scr.get("results", []),
                       key=lambda r: r.get("score", -99), reverse=True)
         for r in rows[:5]:
             top.append({
@@ -61,7 +63,7 @@ def build_brief() -> dict:
                 "tone": r.get("tone", "neutral"),
             })
 
-    # 5. Su kien som (7 ngay) — doc tu events cache cac ma trong BASKET
+    # 5. Su kien som — doc tu events cache
     upcoming = []
     ev_dir = DATA / "events"
     if ev_dir.exists():
@@ -73,12 +75,10 @@ def build_brief() -> dict:
                     continue
                 for it in obj.get("items", []):
                     d = it.get("date")
-                    if not d or not (today_str <= d <= "9999-12-31"):
-                        continue
-                    # con trong 7 ngay? (uoc luong don gian)
-                    upcoming.append({"symbol": p.stem, "date": d,
-                                     "category": it.get("category"),
-                                     "title": it.get("title")[:80]})
+                    if d and d >= today_str:
+                        upcoming.append({"symbol": p.stem, "date": d,
+                                         "category": it.get("category"),
+                                         "title": (it.get("title") or "")[:80]})
             except Exception:
                 continue
         upcoming.sort(key=lambda x: x.get("date", ""))
@@ -88,8 +88,8 @@ def build_brief() -> dict:
     port_obj = _cached(DATA / "portfolio.json")
     port_summary = None
     if port_obj and port_obj.get("positions"):
-        from backend.portfolio import get_summary
         try:
+            from backend.portfolio import get_summary
             s = get_summary()
             port_summary = {"count": s["count"], "total_value": s["total_value"],
                             "total_pl": s["total_pl"], "total_pl_pct": s["total_pl_pct"]}
@@ -110,26 +110,20 @@ def build_brief() -> dict:
 
     # Tao text summary
     lines = []
-    # market
     vn = next((i for i in indices if "VN" in i["name"].upper()), None)
-    if vn:
-        lines.append(f"VN-Index {vn['value']:,.1f} ({vn['change_pct']:+.1f}%)")
-    # regime
-    if regime:
-        st = regime.get("state", "unknown")
-        label = {"bull": "📈 Bull", "bear": "📉 Bear", "neutral": "➡️ Trung tính"}.get(st, st)
+    if vn and vn["value"] is not None:
+        chg = f" ({vn['change_pct']:+.1f}%)" if vn["change_pct"] is not None else ""
+        lines.append(f"VN-Index {vn['value']:,.1f}{chg}")
+    if regime["state"] != "unknown":
+        label = {"bull": "📈 Bull", "bear": "📉 Bear", "neutral": "➡️ Trung tính"}.get(regime["state"], regime["state"])
         lines.append(f"Regime: {label}")
-    # breadth
-    if breadth:
-        up = breadth.get("hose_up", "?")
-        dn = breadth.get("hose_down", "?")
-        breadth_note = "tăng giá chiếm ưu thế" if isinstance(up, (int, float)) and isinstance(dn, (int, float)) and up > dn else "giảm giá chiếm ưu thế"
-        lines.append(f"Breath: {up}↑ / {dn}↓ — {breadth_note}")
-    # top
+    up, dn = breadth["hose_up"], breadth["hose_down"]
+    if up is not None and dn is not None:
+        note = "tăng giá chiếm ưu thế" if up > dn else "giảm giá chiếm ưu thế"
+        lines.append(f"Breadth HOSE: {up}↑ / {dn}↓ — {note}")
     if top:
         sym_str = ", ".join(f"{t['symbol']}({t['score']})" for t in top[:3])
         lines.append(f"Top màn lọc: {sym_str}")
-    # alerts
     if alert_count:
         lines.append(f"🔔 {alert_count} alert chưa đọc")
 
