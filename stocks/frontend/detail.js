@@ -127,6 +127,11 @@ function renderDetail(d, stale) {
         <h4>Xu hướng BCTC ${d.symbol} <span style="text-transform:none;font-weight:400">(roee tier)</span></h4>
         <div id="fundtrendBody"></div>
       </div>
+
+      <div class="peers" id="peers" hidden>
+        <h4>So sánh ngành ${d.symbol}</h4>
+        <div id="peersBody"></div>
+      </div>
     </div>`;
 
   const newsBox = document.getElementById("news");
@@ -137,7 +142,8 @@ function renderDetail(d, stale) {
   if (fundCache[d.symbol]) renderFund(fundCache[d.symbol]);
   else loadFundamentals(d.symbol);
   loadEvents(d.symbol);
-  loadFundtrend(d.symbol);          /* lazy — khong block phan tich ky thuat */
+  loadFundtrend(d.symbol);
+  loadPeers(d.symbol);          /* lazy — khong block phan tich ky thuat */
 }
 
 /* ---------------- báo giá ---------------- */
@@ -545,6 +551,64 @@ function renderFundtrend(data) {
       }
     }
   }
+
+  body.innerHTML = html;
+}
+
+/* ---------------- peers (so sanh nganh) ---------------- */
+async function loadPeers(sym) {
+  const box = document.getElementById("peers");
+  if (!box) return;
+  try {
+    const st = await api(`/api/symbol/${sym}/peers`);
+    if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    renderPeers(st, sym);
+  } catch (e) { box.hidden = true; }
+}
+
+function renderPeers(st, selfSym) {
+  const box = document.getElementById("peers");
+  const body = document.getElementById("peersBody");
+  if (!box || !body) return;
+  const rows = st.rows || [];
+  if (rows.length < 2) { box.hidden = true; return; }
+  box.hidden = false;
+
+  const indName = st.industry?.name || "?";
+  const ranks = st.ranks || {};
+  const comp = st.comp_vs_avg || {};
+  const avg = st.avg || {};
+
+  let html = `<div class="pt-sub">${esc(indName)} · ${st.peer_count} peers trong BASKET</div>`;
+
+  // summary badges
+  html += `<div class="pt-badges">`;
+  if (ranks.roe) html += `<span class="pt-badge">ROE #${ranks.roe}/${rows.length}</span>`;
+  if (ranks.pe) html += `<span class="pt-badge">P/E #${ranks.pe}/${rows.length}</span>`;
+  if (ranks.pb) html += `<span class="pt-badge">P/B #${ranks.pb}/${rows.length}</span>`;
+  if (comp.roe != null) html += `<span class="pt-badge ${comp.roe >= 0 ? "up" : "down"}">ROE ${comp.roe >= 0 ? "+" : ""}${fmt(comp.roe, 0)}% vs TB</span>`;
+  html += `</div>`;
+
+  // table
+  html += `<table class="pt-table"><thead><tr>
+    <th>Mã</th><th>ROE %</th><th>ROA %</th><th>P/E</th><th>P/B</th>
+  </tr></thead><tbody>`;
+  html += rows.map(r => `<tr${r.is_self ? ' class="pt-self"' : ""}>
+    <td class="pt-sym">${esc(r.symbol)}${r.is_self ? " ●" : ""}</td>
+    <td class="${cls(r.roe || 0)}">${fmt(r.roe, 1)}</td>
+    <td class="${cls(r.roa || 0)}">${fmt(r.roa, 1)}</td>
+    <td>${fmt(r.pe, 1)}</td>
+    <td>${fmt(r.pb, 1)}</td>
+  </tr>`).join("");
+  html += `</tbody>`;
+  // avg row
+  html += `<tfoot><tr class="pt-avg">
+    <td>TB ngành</td>
+    <td>${fmt(avg.roe, 1)}</td>
+    <td>${fmt(avg.roa, 1)}</td>
+    <td>${fmt(avg.pe, 1)}</td>
+    <td>${fmt(avg.pb, 1)}</td>
+  </tr></tfoot></table>`;
 
   body.innerHTML = html;
 }
