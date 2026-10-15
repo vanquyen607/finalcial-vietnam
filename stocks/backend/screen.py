@@ -13,6 +13,15 @@ screen_state = {"status": "idle", "done": 0, "total": 0, "current": "", "results
                 "cycles": 0, "next_at": 0.0}
 
 
+def _prefetch_fund(sym: str) -> None:
+    """Tai truoc chi so co ban o nen khi quet man — user click vao la co san."""
+    try:
+        from backend import fund
+        fund.get_fundamentals(sym)
+    except Exception:
+        pass
+
+
 def _verdict_of(score: int) -> tuple[str, str]:
     if score >= 10:
         return "MUA / TÍCH LŨY", "good"
@@ -124,6 +133,7 @@ def _run_pass() -> list[dict] | None:
                 "symbol", "close", "date", "rsi", "ma20", "ma50", "ma200", "vol_ratio",
                 "r5", "r20", "sup", "res", "hi52", "lo52", "score", "verdict", "tone",
                 "stop", "t1", "t2", "risk_pct", "rr")}
+            threading.Thread(target=_prefetch_fund, args=(sym,), daemon=True).start()
         with _screen_lock:
             screen_state.update({"done": i,
                                  "results": sorted(merged.values(),

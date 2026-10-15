@@ -1,5 +1,9 @@
-"""Du lieu tung ma co phieu — lich su gia, phan tich ky thuat, cache 6h."""
+"""Du lieu tung ma co phieu — lich su gia, phan tich ky thuat, cache 6h.
+
+Stale-while-revalidate: cache het han van render ngay (stale=True), refresh o nen.
+"""
 import json
+import threading
 import time
 
 import pandas as pd
@@ -7,6 +11,9 @@ import pandas as pd
 from backend.calc import compute
 from backend.store import SKILL_DATA, SYM_DIR, _cached, _fresh, _save
 from backend.vnrate import paced
+
+_inflight: set[str] = set()
+_inflight_lock = threading.Lock()
 
 
 def _quote_history(sym: str) -> pd.DataFrame:
@@ -61,8 +68,15 @@ def get_symbol(sym: str, refresh: bool = False, priority: bool = False) -> dict:
         cached = _fresh(path)
         if cached:
             return {"status": "ready", "data": cached["data"]}
+        stale = _cached(path)       # het han nhung van render duoc
+        if stale and stale.get("data"):
+            with _inflight_lock:
+                if sym not in _inflight:
+                    _inflight.add(sym)
+                    threading.Thread(target=_refresh_bg, args=(sym,), daemon=True).start()
+            return {"status": "ready", "data": stale["data"], "stale": True}
     try:
-        df = paced(_quote_history, sym, priority=priority)
+        df = paced(_quote_history, sym, priority=True)   # live request luon uu tien
         data = compute(sym, df)
         if data is None:
             return {"status": "error", "message": f"Không lấy được dữ liệu {sym}"}
@@ -73,3 +87,16 @@ def get_symbol(sym: str, refresh: bool = False, priority: bool = False) -> dict:
         if cached:
             return {"status": "ready", "data": cached.get("data", cached), "stale": True}
         return {"status": "error", "message": f"Lỗi tải {sym}: {e}"}
+
+
+def _refresh_bg(sym: str) -> None:
+    try:
+        df = paced(_quote_history, sym, priority=True)
+        data = compute(sym, df)
+        if data:
+            _save(SYM_DIR / f"{sym}.json", {"fetched_at": time.time(), "data": data})
+    except Exception:
+        pass
+    finally:
+        with _inflight_lock:
+            _inflight.discard(sym)
