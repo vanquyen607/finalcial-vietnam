@@ -127,6 +127,25 @@
       </div>
       <span class="sep"></span>
       <button class="chip-btn" id="btnCsv" title="Xuất các dòng đang hiển thị ra tệp Excel/CSV">⤓ CSV</button>
+      <span class="sep"></span>
+      <button class="chip-btn" id="btnPortfolio" title="Danh mục đầu tư & P&L">💼 Danh mục</button>
+    </div>
+
+    <!-- Portfolio panel -->
+    <div class="port-panel" id="portPanel" hidden>
+      <div class="pp-head">
+        <strong>💼 Danh mục đầu tư</strong>
+        <button class="btn icon ghost" id="btnClosePort" aria-label="Đóng">✕</button>
+      </div>
+      <div class="pp-summary" id="portSummary"></div>
+      <div class="pp-positions" id="portPositions"><div class="empty">Chưa có vị thế nào.</div></div>
+      <form class="pp-form" id="portForm">
+        <input type="text" id="portSym" placeholder="Mã" maxlength="6" required>
+        <input type="number" id="portQty" placeholder="SL (cp)" min="1" step="100" required>
+        <input type="number" id="portPrice" placeholder="Giá BTC" min="0.1" step="0.1" required>
+        <button type="submit" class="btn primary small">Thêm</button>
+      </form>
+      <div class="pp-alloc" id="portAlloc"></div>
     </div>
 
     <div class="main">
@@ -189,6 +208,7 @@
 <script src="screen.js"></script>
 <script src="detail.js"></script>
 <script src="alerts.js"></script>
+<script src="portfolio.js"></script>
 <script src="live.js"></script>
 </body>
 </html>

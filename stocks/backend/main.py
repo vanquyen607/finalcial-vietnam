@@ -8,7 +8,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import alerts, events, flow, fund, fundtrend, market, news, peers, regime, screen
+from backend import alerts, events, flow, fund, fundtrend, market, news, peers, portfolio, regime, screen
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
@@ -184,6 +184,43 @@ def api_delete_alert_rule(rule_id: str):
 def api_clear_alerts():
     n = alerts.clear_alerts()
     return {"status": "ok", "cleared": n}
+
+
+# ---------------- portfolio ----------------
+@app.get("/api/portfolio")
+def api_portfolio():
+    return {"status": "ready", **portfolio.get_summary()}
+
+
+@app.post("/api/portfolio")
+async def api_portfolio_add(request: Request):
+    body = await request.json()
+    try:
+        r = portfolio.add_position(body.get("symbol", ""),
+                                   float(body.get("qty", 0)),
+                                   float(body.get("avg_price", 0)))
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+
+@app.put("/api/portfolio/{sym}")
+async def api_portfolio_update(sym: str, request: Request):
+    body = await request.json()
+    try:
+        r = portfolio.update_position(sym, float(body.get("qty", 0)),
+                                      float(body.get("avg_price", 0)))
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+
+@app.delete("/api/portfolio/{sym}")
+def api_portfolio_delete(sym: str):
+    ok = portfolio.remove_position(sym)
+    if ok:
+        return {"status": "ok"}
+    return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy"})
 
 
 @app.exception_handler(Exception)
