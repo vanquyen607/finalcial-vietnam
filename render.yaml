@@ -11,3 +11,5 @@ services:
         value: 3.11.9
       - key: TZ
         value: Asia/Ho_Chi_Minh
+      - key: VNSTOCK_DISABLE_AGENT_SETUP
+        value: "1"

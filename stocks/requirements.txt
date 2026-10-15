@@ -1,7 +1,7 @@
 --extra-index-url https://vnstocks.com/api/simple
-fastapi
-uvicorn[standard]
-pandas
-requests
-tzdata
-vnstock>=4.0.8
+fastapi==0.142.1
+uvicorn[standard]==0.53.0
+pandas==2.3.3
+requests==2.34.2
+tzdata==2026.3
+vnstock==4.0.8

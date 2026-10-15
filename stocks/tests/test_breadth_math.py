@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import pandas as pd
 
 import vnstock
-from backend import market
+from backend import breadth as br
 
 
 class FakeTrading:
@@ -35,13 +35,13 @@ class FakeTrading:
         return df
 
 
-market.paced = lambda fn, *a, **k: fn(*a, **k)   # bo qua sleep
+br.paced = lambda fn, *a, **k: fn(*a, **k)   # bo qua sleep
 filler = [f"X{str(i).zfill(3)}" for i in range(94)]   # vuot nguong 100 ma
-market._breadth_symbols = lambda: {
+br._breadth_symbols = lambda: {
     "hose": ["VCB", "HPG", "FPT", "VND"] + filler, "hnx": ["REE"], "upcom": ["ABC"]}
 vnstock.Trading = FakeTrading
 
-out = market._breadth_build()
+out = br._breadth_build()
 import json
 print(json.dumps(out, ensure_ascii=False, indent=1))
 ex = out["exchanges"]
@@ -66,7 +66,7 @@ def zero_board(syms, **kw):
     return pd.DataFrame([["VCB", "HSX", 0, 56700, 0, 0, 0]], columns=cols)
 FakeTrading.price_board = staticmethod(zero_board)
 try:
-    market._breadth_build()
+    br._breadth_build()
     print("FAIL: khong raise _OffHours")
-except market._OffHours:
+except br._OffHours:
     print("OFFHOURS OK")
