@@ -117,6 +117,11 @@ function renderDetail(d, stale) {
         <h4>Tin tức ${d.symbol}</h4>
         <div class="loading-line"><span class="spinner"></span> Đang tải tin…</div>
       </div>
+
+      <div class="events" id="events" hidden>
+        <h4>Lịch sự kiện ${d.symbol}</h4>
+        <div id="eventsBody"></div>
+      </div>
     </div>`;
 
   const newsBox = document.getElementById("news");
@@ -125,7 +130,8 @@ function renderDetail(d, stale) {
   syncCompareUI();
   checkAlerts(d);
   if (fundCache[d.symbol]) renderFund(fundCache[d.symbol]);
-  else loadFundamentals(d.symbol);          /* lazy — khong block phan tich ky thuat */
+  else loadFundamentals(d.symbol);
+  loadEvents(d.symbol);          /* lazy — khong block phan tich ky thuat */
 }
 
 /* ---------------- báo giá ---------------- */
@@ -388,6 +394,51 @@ async function loadNews(sym) {
     if (sym !== selectedSym) return;
     box.innerHTML = `<h4>Tin tức ${sym}</h4><div class="empty">Không tải được tin (${esc(e.message)}).</div>`;
   }
+}
+
+/* ---------------- events (lich su kien CafeF) ---------------- */
+const EV_ICONS = { dividend: "💰", listing: "📋", issuance: "📢", agm: "🏛", earnings: "📊", other: "📅" };
+const EV_LABELS = { dividend: "Cổ tức/Thưởng", listing: "Niêm yết", issuance: "Phát hành", agm: "ĐHCĐ", earnings: "KQKD", other: "Khác" };
+async function loadEvents(sym) {
+  const box = document.getElementById("events");
+  if (!box) return;
+  try {
+    const st = await api(`/api/symbol/${sym}/events`);
+    if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    renderEvents(st);
+  } catch (e) { box.hidden = true; }
+}
+function renderEvents(st) {
+  const box = document.getElementById("events");
+  const body = document.getElementById("eventsBody");
+  if (!box || !body) return;
+  const upcoming = st.upcoming || [];
+  const items = st.items || [];
+  if (!items.length && !upcoming.length) { box.hidden = true; return; }
+  box.hidden = false;
+
+  let html = "";
+  if (st.has_near_event) {
+    html += `<div class="ev-warn">⚠️ Có sự kiện quan trọng trong 3 ngày tới — cân nhắc rủi ro sự kiện trước khi vào lệnh.</div>`;
+  }
+  if (upcoming.length) {
+    html += `<div class="ev-section">Sắp tới (7 ngày)</div><ul class="ev-list">` +
+      upcoming.map((u) => `<li>
+        <span class="ev-ico">${EV_ICONS[u.category] || "📅"}</span>
+        <span class="ev-date">${fmtDate(u.date)}${u.days_from_now === 0 ? " (hôm nay)" : ` (+${u.days_from_now}d)`}</span>
+        <span class="ev-cat">${EV_LABELS[u.category] || u.category}</span>
+        <span class="ev-title">${esc(u.title)}</span>
+      </li>`).join("") + `</ul>`;
+  }
+  if (items.length) {
+    html += `<div class="ev-section">Gần đây</div><ul class="ev-list">` +
+      items.slice(0, 8).map((it) => `<li${it.date ? "" : ' class="ev-nodate"'}>
+        <span class="ev-ico">${EV_ICONS[it.category] || "📅"}</span>
+        <span class="ev-date">${it.date ? fmtDate(it.date) : "—"}</span>
+        <span class="ev-title">${esc(it.title)}</span>
+      </li>`).join("") + `</ul>`;
+  }
+  body.innerHTML = html;
 }
 
 /* ---------------- suggestions ---------------- */

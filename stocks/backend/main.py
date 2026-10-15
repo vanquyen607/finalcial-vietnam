@@ -8,7 +8,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import fund, market, news, regime, screen
+from backend import events, fund, market, news, regime, screen
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
@@ -124,6 +124,11 @@ def api_regime(refresh: int = Query(0)):
 @app.get("/api/symbol/{sym}/fundamentals")
 def api_symbol_fundamentals(sym: str):
     return fund.get_fundamentals(sym)
+
+
+@app.get("/api/symbol/{sym}/events")
+def api_symbol_events(sym: str, refresh: int = Query(0)):
+    return events.get_events(sym, refresh=bool(refresh))
 
 
 @app.exception_handler(Exception)
