@@ -35,11 +35,48 @@
         <span class="live-count" id="liveCount">—</span>
       </span>
       <span class="tb-sep" aria-hidden="true"></span>
+      <span class="alert-box">
+        <button class="btn icon ghost" id="btnAlerts" title="Alert & Quy tắc" aria-label="Alerts">🔔<span class="alert-badge" id="alertBadge" hidden>0</span></button>
+      </span>
       <button class="btn icon ghost" id="btnTheme" title="Đổi giao diện sáng/tối (T)" aria-label="Đổi giao diện">🌙</button>
       <button class="btn" id="btnRefreshOverview" title="Cập nhật chỉ số (cache 30 phút)">⟳ Chỉ số</button>
       <button class="btn primary" id="btnRunScreen">Chạy màn lọc 40 mã</button>
     </div>
   </header>
+
+  <!-- Alert panel -->
+  <div class="alert-panel" id="alertPanel" hidden>
+    <div class="ap-head">
+      <strong>🔔 Alert</strong>
+      <button class="btn small ghost" id="btnClearAlerts" title="Xóa tất cả">Xóa</button>
+      <button class="btn icon ghost" id="btnCloseAlerts" aria-label="Đóng">✕</button>
+    </div>
+    <div class="ap-tabs">
+      <button class="ap-tab active" data-tab="apAlerts">Sự kiện</button>
+      <button class="ap-tab" data-tab="apRules">Quy tắc</button>
+      <button class="ap-tab" data-tab="apNewRule">+ Thêm</button>
+    </div>
+    <div class="ap-body" id="apAlerts"><div class="empty">Chưa có alert nào.</div></div>
+    <div class="ap-body" id="apRules" hidden><div class="empty">Chưa có quy tắc.</div></div>
+    <div class="ap-body" id="apNewRule" hidden>
+      <form id="ruleForm" class="rule-form">
+        <label>Mã <input type="text" id="ruleSym" placeholder="FPT" maxlength="6" required></label>
+        <label>Loại
+          <select id="ruleType">
+            <option value="price_above">Giá ≥</option>
+            <option value="price_below">Giá ≤</option>
+            <option value="volume_spike">KL × TB20 ≥</option>
+            <option value="score_at_least">Điểm ≥</option>
+            <option value="rsi_above">RSI ≥</option>
+            <option value="rsi_below">RSI ≤</option>
+          </select>
+        </label>
+        <label>Ngưỡng <input type="number" id="ruleTh" step="0.1" required></label>
+        <label>Ghi chú <input type="text" id="ruleNote" placeholder="tuỳ chọn" maxlength="100"></label>
+        <button type="submit" class="btn primary small">Thêm quy tắc</button>
+      </form>
+    </div>
+  </div>
 
   <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker-track" id="tickerTrack"></div></div>
 
@@ -151,6 +188,7 @@
 <script src="overview.js"></script>
 <script src="screen.js"></script>
 <script src="detail.js"></script>
+<script src="alerts.js"></script>
 <script src="live.js"></script>
 </body>
 </html>

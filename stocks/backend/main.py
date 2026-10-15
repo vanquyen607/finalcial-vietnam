@@ -8,13 +8,18 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import events, flow, fund, fundtrend, market, news, peers, regime, screen
+from backend import alerts, events, flow, fund, fundtrend, market, news, peers, regime, screen
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
 
 app = FastAPI(title="Phan Tich Co Phieu VN", version="1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@app.on_event("startup")
+def _startup():
+    alerts.start_scheduler()
 
 # ---------------------------------------------------------------- rate limit
 _WINDOW = 60          # giay
@@ -144,6 +149,41 @@ def api_symbol_peers(sym: str):
 @app.get("/api/symbol/{sym}/flow")
 def api_symbol_flow(sym: str):
     return flow.get_flow(sym)
+
+
+# ---------------- alerts ----------------
+@app.get("/api/alerts")
+def api_alerts(limit: int = Query(50, ge=1, le=200)):
+    return {"status": "ready", "alerts": alerts.list_alerts(limit)}
+
+
+@app.post("/api/alerts/rules")
+async def api_add_alert_rule(request: Request):
+    body = await request.json()
+    try:
+        rule = alerts.add_rule(body)
+        return {"status": "ok", "rule": rule}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+
+@app.get("/api/alerts/rules")
+def api_list_alert_rules():
+    return {"status": "ready", "rules": alerts.list_rules()}
+
+
+@app.delete("/api/alerts/rules/{rule_id}")
+def api_delete_alert_rule(rule_id: str):
+    ok = alerts.delete_rule(rule_id)
+    if ok:
+        return {"status": "ok"}
+    return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy rule"})
+
+
+@app.post("/api/alerts/clear")
+def api_clear_alerts():
+    n = alerts.clear_alerts()
+    return {"status": "ok", "cleared": n}
 
 
 @app.exception_handler(Exception)
