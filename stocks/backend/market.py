@@ -98,6 +98,11 @@ def paced(fn, *args, priority: bool = False, **kwargs):
                         _next_slot = max(_next_slot, time.time() + LIMIT_WAIT)
                     time.sleep(LIMIT_WAIT)
                     continue
+                # SystemExit (vnstock rate limit) khong duoc thoat ra ngoai —
+                # no la BaseException nen moi handler `except Exception` deu bo qua
+                # va uvicorn se chet. Doi thanh loi thuong truoc khi nem.
+                if isinstance(last_err, SystemExit):
+                    raise RuntimeError(f"vnstock rate limit: {last_err}") from last_err
                 raise last_err
     finally:
         if priority:
@@ -198,18 +203,24 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
     else:
         verdict, tone = "TRÁNH / GIẢM", "bad"
 
-    # vung vao lenh
+    # vung vao lenh — luon tang dan, khong duoc dat tren gia hien tai
     near_res = res / last - 1 <= 0.03
     if rsi > 70:
         entry = [_r(ma20 * 0.99), _r(ma20 * 1.02)]
         entry_note = f"RSI {rsi:.0f} đang quá mua — KHÔNG mua đuổi, chờ pullback về vùng {entry[0]}–{entry[1]}"
     elif near_res:
-        entry = [_r(last * 0.998), _r(res * 1.005)]
+        a, b = _r(last * 0.998), _r(res * 1.005)
+        entry = [min(a, b), max(a, b)]
         entry_note = (f"Chờ đóng cửa trên kháng cự {res:.1f} với thanh khoản cao để mua, "
                       f"hoặc tích lũy trong vùng {entry[0]}–{entry[1]}")
     else:
-        entry = [_r(max(sup * 0.99, ma20 * 0.985)), _r(last)]
+        lo = max(sup * 0.99, min(ma20 * 0.985, last * 0.995))
+        entry = [_r(min(lo, last * 0.995)), _r(last)]
         entry_note = f"Mua tích lũy trong vùng {entry[0]}–{entry[1]} (gần hỗ trợ {sup:.1f})"
+    if entry[0] > entry[1]:
+        entry = [_r(min(entry[0], entry[1])), _r(max(entry[0], entry[1]))]
+    if entry[0] == entry[1] and entry[1] > 0:
+        entry[0] = _r(entry[1] - _tick(entry[1]))   # lam tron tick de chet vung -> mo rong 1 tick
 
     if score < 0:
         entry_note = (f"KHÔNG mua lúc này — cấu trúc kỹ thuật đang xấu. Vùng {entry[0]}–{entry[1]} "
@@ -515,11 +526,10 @@ def _breadth_build() -> dict:
     frames = []
     for i in range(0, len(all_syms), 250):
         chunk = all_syms[i:i + 250]
-        df = board.price_board(chunk)
+        # di qua paced: dong bo voi cac goi vnstock khac (GAP 7.5s), retry rate limit
+        df = paced(board.price_board, chunk)
         if df is not None and not df.empty:
             frames.append(df)
-        if i + 250 < len(all_syms):
-            time.sleep(0.4)
     if not frames:
         raise RuntimeError("Bảng giá rỗng")
     df = pd.concat(frames, ignore_index=True)
@@ -532,6 +542,12 @@ def _breadth_build() -> dict:
     live = last > 0
     if float(live.mean()) < 0.2:
         raise _OffHours()          # ngoai gio / board dang reset — giu cache cu
+
+    # accumulated_value cua VCI dang o don vi TRIEU dong (HPG ~400000 = 400 ty VND),
+    # con foreign_*_value dang o don vi dong — quy ve dong truoc khi chia 1e9
+    nz = val[val > 0]
+    if len(nz) and float(nz.median()) < 1e6:
+        val = val * 1e6           # trieu dong -> dong
 
     bucket = df[("listing", "exchange")].map(_exchange_bucket)
     chg = pd.Series(0.0, index=df.index)

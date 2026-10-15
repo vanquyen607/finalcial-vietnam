@@ -7,7 +7,7 @@ let nextLive = Date.now() + LIVE_MS;
 let inSession = true;
 
 function setLiveBtn() {
-  $("#btnLive").classList.toggle("off", !liveOn);
+  $("#btnLive").classList.toggle("off", !liveOn || !inSession);
 }
 
 async function loadSession() {
@@ -15,6 +15,7 @@ async function loadSession() {
     const s = await api("/api/session");
     inSession = !!s.in_session;
   } catch (e) {}
+  setLiveBtn();
 }
 
 function liveTick() {

@@ -16,6 +16,11 @@ async function loadOverview(refresh = false, silent = false) {
     }
     renderCards(st);
     clearTimeout(pollTimers.overview);
+    /* du lieu qua cu (>30 phut) -> tu refresh MOT lan, khong can nhan tau */
+    if (st.stale && !refresh && !loadOverview.autoDone) {
+      loadOverview.autoDone = true;
+      setTimeout(() => loadOverview(true, true), 400);
+    }
   } catch (e) {
     if (!silent) $("#cards").innerHTML = `<div class="card"><div class="err">Lỗi: ${esc(e.message)}</div></div>`;
   }
