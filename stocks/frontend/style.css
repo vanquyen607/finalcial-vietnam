@@ -944,3 +944,26 @@ footer b { color: var(--text-2); }
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .ticker-track { animation: none; padding-left: 0; }
 }
+
+/* ---------------- mobile panels ---------------- */
+@media (max-width: 560px) {
+  .brief-panel,
+  .alert-panel,
+  .port-panel {
+    left: 8px; right: 8px; width: auto; max-width: none;
+    top: auto; bottom: 8px; max-height: 70vh;
+  }
+  .ap-tab { font-size: 11px; padding: 6px 2px; }
+  .pp-form { flex-wrap: wrap; }
+  .pp-form input { min-width: 0; }
+}
+@media (max-width: 400px) {
+  .brief-panel,
+  .alert-panel,
+  .port-panel {
+    left: 4px; right: 4px; bottom: 4px; max-height: 75vh;
+  }
+  .bp-grid { grid-template-columns: repeat(2, 1fr); }
+  .bp-table { font-size: 11px; }
+  .bp-table th, .bp-table td { padding: 3px 3px; }
+}
