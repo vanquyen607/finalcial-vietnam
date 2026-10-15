@@ -122,6 +122,11 @@ function renderDetail(d, stale) {
         <h4>Lịch sự kiện ${d.symbol}</h4>
         <div id="eventsBody"></div>
       </div>
+
+      <div class="fundtrend" id="fundtrend" hidden>
+        <h4>Xu hướng BCTC ${d.symbol} <span style="text-transform:none;font-weight:400">(roee tier)</span></h4>
+        <div id="fundtrendBody"></div>
+      </div>
     </div>`;
 
   const newsBox = document.getElementById("news");
@@ -131,7 +136,8 @@ function renderDetail(d, stale) {
   checkAlerts(d);
   if (fundCache[d.symbol]) renderFund(fundCache[d.symbol]);
   else loadFundamentals(d.symbol);
-  loadEvents(d.symbol);          /* lazy — khong block phan tich ky thuat */
+  loadEvents(d.symbol);
+  loadFundtrend(d.symbol);          /* lazy — khong block phan tich ky thuat */
 }
 
 /* ---------------- báo giá ---------------- */
@@ -445,6 +451,101 @@ function renderEvents(st) {
         <span class="ev-title">${esc(it.title)}</span>
       </li>`).join("") + `</ul>`;
   }
+  body.innerHTML = html;
+}
+
+/* ---------------- fundtrend (xu huong BCTC) ---------------- */
+async function loadFundtrend(sym) {
+  const box = document.getElementById("fundtrend");
+  if (!box) return;
+  try {
+    const st = await api(`/api/symbol/${sym}/fundtrend`);
+    if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    renderFundtrend(st.data || {});
+  } catch (e) { box.hidden = true; }
+}
+
+function sparkline(vals, positive = true) {
+  if (!vals || vals.length < 2) return "";
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = max - min || 1;
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * 48;
+    const y = 20 - ((v - min) / range) * 18 - 1;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  const color = positive ? "var(--up)" : "var(--down)";
+  return `<svg width="48" height="22" style="vertical-align:middle"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+}
+
+function renderFundtrend(data) {
+  const box = document.getElementById("fundtrend");
+  const body = document.getElementById("fundtrendBody");
+  if (!box || !body) return;
+  const quarters = data.quarters || [];
+  const years = data.years || [];
+  if (!quarters.length && !years.length) { box.hidden = true; return; }
+  box.hidden = false;
+
+  let html = "";
+
+  // Quarterly trend table
+  if (quarters.length) {
+    html += `<div class="ft-section">Quý (từ ratio)</div>`;
+    html += `<table class="ft-table"><thead><tr>
+      <th>Kỳ</th><th>ROE %</th><th>Doanh thu %</th><th>LNST %</th><th>EPS</th><th></th>
+    </tr></thead><tbody>`;
+    // reverse de cu nhat len dau
+    const qs = [...quarters].reverse();
+    const roeVals = qs.map(q => q.roe).filter(v => v != null);
+    const revVals = qs.map(q => q.rev_growth).filter(v => v != null);
+    const patVals = qs.map(q => q.pat_growth).filter(v => v != null);
+    const lastQ = qs[0] || {};
+    html += qs.map((q, i) => `<tr${i === 0 ? ' class="ft-latest"' : ""}>
+      <td class="ft-period">${esc(q.period || "—")}</td>
+      <td class="${cls(q.roe || 0)}">${fmt(q.roe, 1)}</td>
+      <td class="${cls(q.rev_growth || 0)}">${sign(q.rev_growth, 1)}</td>
+      <td class="${cls(q.pat_growth || 0)}">${sign(q.pat_growth, 1)}</td>
+      <td>${fmt(q.eps, 0)}</td>
+      <td></td>
+    </tr>`).join("");
+    html += `</tbody></table>`;
+    html += `<div class="ft-sparks">
+      <span>ROE ${sparkline(roeVals, roeVals.at(-1) >= (roeVals[0] || 0))}</span>
+      <span>Doanh thu ${sparkline(revVals, revVals.at(-1) >= (revVals[0] || 0))}</span>
+      <span>LNST ${sparkline(patVals, patVals.at(-1) >= (patVals[0] || 0))}</span>
+    </div>`;
+  }
+
+  // Annual trend table
+  if (years.length) {
+    html += `<div class="ft-section">Năm (từ income statement)</div>`;
+    html += `<table class="ft-table"><thead><tr>
+      <th>Năm</th><th>Doanh thu (tỷ)</th><th>LNST (tỷ)</th><th>LN gộp (tỷ)</th><th>EPS (đ)</th>
+    </tr></thead><tbody>`;
+    const ys = [...years].reverse(); // cu nhat len dau
+    html += ys.map((y, i) => `<tr${i === 0 ? ' class="ft-latest"' : ""}>
+      <td class="ft-period">${y.year || "—"}</td>
+      <td>${fmt(y.revenue, 0)}</td>
+      <td class="${cls(y.profit || 0)}">${fmt(y.profit, 0)}</td>
+      <td>${fmt(y.gross_profit, 0)}</td>
+      <td>${fmt(y.eps, 0)}</td>
+    </tr>`).join("");
+    html += `</tbody></table>`;
+    // YoY growth
+    if (ys.length >= 2) {
+      const prev = ys[1], cur = ys[0];
+      if (prev.revenue && cur.revenue) {
+        const g = ((cur.revenue - prev.revenue) / prev.revenue * 100);
+        html += `<div class="ft-yoy">YoY doanh thu: <span class="${cls(g)}">${sign(g, 1)}%</span></div>`;
+      }
+      if (prev.profit && cur.profit) {
+        const g = ((cur.profit - prev.profit) / prev.profit * 100);
+        html += `<div class="ft-yoy">YoY LNST: <span class="${cls(g)}">${sign(g, 1)}%</span></div>`;
+      }
+    }
+  }
+
   body.innerHTML = html;
 }
 
