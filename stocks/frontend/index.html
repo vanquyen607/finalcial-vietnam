@@ -23,19 +23,22 @@
   <a class="skip" href="#main">Chuyển đến nội dung chính</a>
   <header class="topbar">
     <div class="brand">
-      <span class="logo">▲</span>
+      <span class="logo" aria-hidden="true">▲</span>
       <h1>Phân Tích <em>Cổ Phiếu VN</em></h1>
+      <span class="clock" id="clock"></span>
     </div>
-    <span class="clock" id="clock"></span>
     <span class="spacer"></span>
 
-    <span class="live-box">
-      <button class="btn live" id="btnLive" title="Tự làm mới 60s trong phiên giao dịch">Live</button>
-      <span class="live-count" id="liveCount">—</span>
-    </span>
-    <button class="btn icon ghost" id="btnTheme" title="Đổi giao diện sáng/tối (T)" aria-label="Đổi giao diện">🌙</button>
-    <button class="btn" id="btnRefreshOverview" title="Cập nhật chỉ số">⟳ Chỉ số</button>
-    <button class="btn primary" id="btnRunScreen">Chạy màn lọc 40 mã</button>
+    <div class="tb-actions">
+      <span class="live-box">
+        <button class="btn live" id="btnLive" title="Tự làm mới 60s trong phiên giao dịch">Live</button>
+        <span class="live-count" id="liveCount">—</span>
+      </span>
+      <span class="tb-sep" aria-hidden="true"></span>
+      <button class="btn icon ghost" id="btnTheme" title="Đổi giao diện sáng/tối (T)" aria-label="Đổi giao diện">🌙</button>
+      <button class="btn" id="btnRefreshOverview" title="Cập nhật chỉ số (cache 30 phút)">⟳ Chỉ số</button>
+      <button class="btn primary" id="btnRunScreen">Chạy màn lọc 40 mã</button>
+    </div>
   </header>
 
   <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker-track" id="tickerTrack"></div></div>
