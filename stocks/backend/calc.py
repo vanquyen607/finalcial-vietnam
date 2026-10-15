@@ -132,9 +132,11 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
     narrative = (f"Giá {last:,.1f} đang {trend}. RSI {rsi:.0f}, MACD "
                  f"{'tích cực' if hist_val > 0 else 'tiêu cực'}, {vol_txt} ({vr:.2f}× TB20 phiên), "
                  f"20 phiên thay đổi {r20:+.1f}%. {entry_note}. Cắt lỗ {stop:.1f} "
-                 f"(rủi ro {risk:.1f}%), chốt lời từng phần tại {t1:.1f} rồi hướng {t2:.1f} "
-                 f"(risk:reward ~1:{rr:.1f})."
-                 + ("" if score >= 0 else " Cấu trúc kỹ thuật đang xấu — ưu tiên đứng ngoài."))
+                 f"(rủi ro {risk:.1f}%) — backtest 3 năm cho thấy stop giảm thiệt hại nặng "
+                 f"(tối đa -43% → -15%) nhưng có thể bỏ lỡ lệnh thắng lớn; đây là công cụ "
+                 f"quản lý rủi ro, không phải tối ưu lợi nhuận. Chốt lời từng phần tại {t1:.1f} "
+                 f"rồi hướng {t2:.1f} (risk:reward ~1:{rr:.1f}). "
+                 + ("" if score >= 0 else " Cấu trúc kỹ thuật đang xấu — ưu tiên đứng ngoài. "))
 
     ohlcv = [
         {"time": d.strftime("%Y-%m-%d"), "open": round(float(o), 2), "high": round(float(h), 2),

@@ -92,10 +92,12 @@ function renderDetail(d, stale) {
 
       <div class="plan">
         <div class="cell k"><div class="k-label">Vùng vào lệnh</div><div class="k-val">${fmt(d.entry[0], 1)} – ${fmt(d.entry[1], 1)}</div></div>
-        <div class="cell r"><div class="k-label">Cắt lỗ</div><div class="k-val">${fmt(d.stop, 1)}</div><div class="k-sub">rủi ro ${fmt(d.risk_pct, 1)}%</div></div>
-        <div class="cell t"><div class="k-label">Chốt lời T1</div><div class="k-val">${fmt(d.t1, 1)}</div><div class="k-sub">RR ~1:${fmt(d.rr, 1)}</div></div>
-        <div class="cell t"><div class="k-label">Chốt lời T2</div><div class="k-val">${fmt(d.t2, 1)}</div><div class="k-sub">đỉnh 52w ${fmt(d.hi52, 0)}</div></div>
+        <div class="cell r"><div class="k-label">Cắt lỗ (quản lý rủi ro)</div><div class="k-val">${fmt(d.stop, 1)}</div><div class="k-sub">rủi ro ${fmt(d.risk_pct, 1)}%</div></div>
+        <div class="cell t"><div class="k-label">Chốt lời T1 (gợi ý)</div><div class="k-val">${fmt(d.t1, 1)}</div><div class="k-sub">RR ~1:${fmt(d.rr, 1)}</div></div>
+        <div class="cell t"><div class="k-label">Chốt lời T2 (gợi ý)</div><div class="k-val">${fmt(d.t2, 1)}</div><div class="k-sub">đỉnh 52w ${fmt(d.hi52, 0)}</div></div>
       </div>
+
+      <div class="backtest-note">📊 Backtest 3 năm (623 lệnh ≥10 điểm): stop/T1 giúp giảm thắng lớn hơn là cắt lỗ — max lợi nhuận từ +64% xuống +12%. Dùng stop để <b>chống lỗ nặng</b>, không kỳ vọng tối ưu lời. Hold 20 phiên không stop: TB +0.94%, t-stat 0.22 (không vượt index có ý nghĩa).</div>
 
       <div class="entry-note">💡 ${d.entry_note}</div>
       <div class="narrative">${d.narrative}</div>
