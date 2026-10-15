@@ -35,6 +35,7 @@
         <span class="live-count" id="liveCount">—</span>
       </span>
       <span class="tb-sep" aria-hidden="true"></span>
+      <button class="btn" id="btnBrief" title="Bản tin tổng hợp từ cache — không gọi API">📰 Brief</button>
       <span class="alert-box">
         <button class="btn icon ghost" id="btnAlerts" title="Alert & Quy tắc" aria-label="Alerts">🔔<span class="alert-badge" id="alertBadge" hidden>0</span></button>
       </span>
@@ -43,6 +44,16 @@
       <button class="btn primary" id="btnRunScreen">Chạy màn lọc 40 mã</button>
     </div>
   </header>
+
+  <!-- Brief panel -->
+  <div class="brief-panel" id="briefPanel" hidden>
+    <div class="bp-head">
+      <strong>📰 Bản tin tổng hợp</strong>
+      <button class="btn small ghost" id="btnRefreshBrief" title="Tạo lại từ cache">⟳</button>
+      <button class="btn icon ghost" id="btnCloseBrief" aria-label="Đóng">✕</button>
+    </div>
+    <div class="bp-body" id="briefBody"><div class="empty">Đang tạo…</div></div>
+  </div>
 
   <!-- Alert panel -->
   <div class="alert-panel" id="alertPanel" hidden>
@@ -209,6 +220,7 @@
 <script src="detail.js"></script>
 <script src="alerts.js"></script>
 <script src="portfolio.js"></script>
+<script src="brief.js"></script>
 <script src="live.js"></script>
 </body>
 </html>

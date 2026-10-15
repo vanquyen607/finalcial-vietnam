@@ -8,7 +8,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import alerts, events, flow, fund, fundtrend, market, news, peers, portfolio, regime, screen
+from backend import alerts, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, regime, screen
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
@@ -221,6 +221,12 @@ def api_portfolio_delete(sym: str):
     if ok:
         return {"status": "ok"}
     return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy"})
+
+
+# ---------------- brief ----------------
+@app.get("/api/brief")
+def api_brief():
+    return brief.build_brief()
 
 
 @app.exception_handler(Exception)
