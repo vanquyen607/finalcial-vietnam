@@ -381,11 +381,17 @@ async function loadNews(sym) {
     }
     box.innerHTML =
       `<h4>Tin tức ${sym} · ${items.length} tin <span style="text-transform:none;font-weight:400">(CafeF)</span></h4><ul>` +
-      items.map((n, i) => `<li${i >= NEWS_PREVIEW ? ' class="extra"' : ""}>
+      items.map((n, i) => {
+        const tags = (n.sent_tags || []).filter(t => t !== "neutral" && t !== "skip");
+        const tagHtml = tags.length ? ` <span class="sent-tags">` +
+          tags.map(t => `<span class="sent-tag ${t}">${SENT_ICONS[t] || ""}${t === "catalyst" ? "Catalyst" : t === "risk" ? "Rủi ro" : t === "positive" ? "+" : "-"}</span>`).join("") +
+          `</span>` : "";
+        return `<li${i >= NEWS_PREVIEW ? ' class="extra"' : ""}>
             <span class="n-date">${esc(n.date)}</span>
-            <a class="n-title" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>
+            <a class="n-title" href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a>${tagHtml}
             ${n.sub ? `<div class="n-sub">${esc(n.sub)}</div>` : ""}
-          </li>`).join("") +
+          </li>`;
+      }).join("") +
       `</ul>` +
       (items.length > NEWS_PREVIEW ? `<button class="news-more" type="button"></button>` : "");
     syncNewsState();
@@ -399,6 +405,7 @@ async function loadNews(sym) {
 /* ---------------- events (lich su kien CafeF) ---------------- */
 const EV_ICONS = { dividend: "💰", listing: "📋", issuance: "📢", agm: "🏛", earnings: "📊", other: "📅" };
 const EV_LABELS = { dividend: "Cổ tức/Thưởng", listing: "Niêm yết", issuance: "Phát hành", agm: "ĐHCĐ", earnings: "KQKD", other: "Khác" };
+const SENT_ICONS = { positive: "🟢", negative: "🔴", catalyst: "⚡", risk: "⚠️", neutral: "⚪", skip: "⏭" };
 async function loadEvents(sym) {
   const box = document.getElementById("events");
   if (!box) return;

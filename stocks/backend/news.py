@@ -7,6 +7,8 @@ from zoneinfo import ZoneInfo
 
 import requests
 
+from backend.sentiment import analyze_news_item
+
 _VN = ZoneInfo("Asia/Ho_Chi_Minh")
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,7 +38,8 @@ def get_news(sym: str, refresh: bool = False) -> dict:
         try:
             obj = json.loads(path.read_text(encoding="utf-8"))
             if time.time() - obj.get("fetched_at", 0) < TTL:
-                return {"status": "ready", "items": obj["items"], "cached": True}
+                items = [analyze_news_item(it) for it in obj.get("items", [])]
+                return {"status": "ready", "items": items, "cached": True}
         except Exception:
             pass
     try:
@@ -60,12 +63,14 @@ def get_news(sym: str, refresh: bool = False) -> dict:
         items = [i for i in items if i["title"]]
         obj = {"fetched_at": time.time(), "items": items}
         path.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
-        return {"status": "ready", "items": items}
+        tagged = [analyze_news_item(it) for it in items]
+        return {"status": "ready", "items": tagged}
     except Exception as e:
         if path.exists():
             try:
                 obj = json.loads(path.read_text(encoding="utf-8"))
-                return {"status": "ready", "items": obj["items"], "stale": True}
+                items = [analyze_news_item(it) for it in obj.get("items", [])]
+                return {"status": "ready", "items": items, "stale": True}
             except Exception:
                 pass
         return {"status": "error", "message": str(e)}
