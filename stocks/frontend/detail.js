@@ -132,6 +132,11 @@ function renderDetail(d, stale) {
         <h4>So sánh ngành ${d.symbol}</h4>
         <div id="peersBody"></div>
       </div>
+
+      <div class="flow" id="flow" hidden>
+        <h4>Room ngoại & Tài chính ${d.symbol}</h4>
+        <div id="flowBody"></div>
+      </div>
     </div>`;
 
   const newsBox = document.getElementById("news");
@@ -143,7 +148,8 @@ function renderDetail(d, stale) {
   else loadFundamentals(d.symbol);
   loadEvents(d.symbol);
   loadFundtrend(d.symbol);
-  loadPeers(d.symbol);          /* lazy — khong block phan tich ky thuat */
+  loadPeers(d.symbol);
+  loadFlow(d.symbol);          /* lazy — khong block phan tich ky thuat */
 }
 
 /* ---------------- báo giá ---------------- */
@@ -609,6 +615,77 @@ function renderPeers(st, selfSym) {
     <td>${fmt(avg.pe, 1)}</td>
     <td>${fmt(avg.pb, 1)}</td>
   </tr></tfoot></table>`;
+
+  body.innerHTML = html;
+}
+
+/* ---------------- flow (room ngoai + leverage) ---------------- */
+async function loadFlow(sym) {
+  const box = document.getElementById("flow");
+  if (!box) return;
+  try {
+    const st = await api(`/api/symbol/${sym}/flow`);
+    if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    renderFlow(st.data || {}, sym);
+  } catch (e) { box.hidden = true; }
+}
+
+function fmtNum(v) {
+  if (v == null) return "—";
+  if (Math.abs(v) >= 1e9) return fmt(v / 1e9, 1) + "B";
+  if (Math.abs(v) >= 1e6) return fmt(v / 1e6, 1) + "M";
+  if (Math.abs(v) >= 1e3) return fmt(v / 1e3, 1) + "K";
+  return fmt(v, 0);
+}
+
+function renderFlow(data, sym) {
+  const box = document.getElementById("flow");
+  const body = document.getElementById("flowBody");
+  if (!box || !body) return;
+  if (!data.foreign_room && data.total_debt == null) { box.hidden = true; return; }
+  box.hidden = false;
+
+  let html = "";
+
+  // Room ngoai
+  if (data.foreign_room != null) {
+    html += `<div class="fl-section">Room ngoại</div>`;
+    const used = data.foreign_buy != null && data.foreign_room
+      ? (data.foreign_buy / data.foreign_room * 100) : null;
+    html += `<div class="fl-grid">`;
+    html += `<div class="fl-cell"><div class="fl-k">Room còn lại</div><div class="fl-v">${fmtNum(data.foreign_room)}</div></div>`;
+    html += `<div class="fl-cell"><div class="fl-k">Mua ròng</div><div class="fl-v ${cls(data.foreign_net || 0)}">${data.foreign_net != null ? sign(data.foreign_net, 0) : "—"}</div></div>`;
+    html += `<div class="fl-cell"><div class="fl-k">Mua / Bán</div><div class="fl-v">${fmtNum(data.foreign_buy)} / ${fmtNum(data.foreign_sell)}</div></div>`;
+    html += `</div>`;
+    if (data.foreign_net != null && data.foreign_net > 0) {
+      html += `<div class="fl-note up">Nước ngoài đang MUA RÒNG — tín hiệu tích cực.</div>`;
+    } else if (data.foreign_net != null && data.foreign_net < 0) {
+      html += `<div class="fl-note down">Nước ngoài đang BÁN RÒNG — theo dõi dòng tiền.</div>`;
+    }
+  }
+
+  // Leverage (don vi ty VND)
+  if (data.total_debt != null || data.debt_to_equity != null) {
+    html += `<div class="fl-section">Tài chính (BCTC ${data.year || "?"})</div>`;
+    html += `<div class="fl-grid">`;
+    html += `<div class="fl-cell"><div class="fl-k">Vay ngắn hạn</div><div class="fl-v">${fmt(data.st_borrow, 0)} tỷ</div></div>`;
+    html += `<div class="fl-cell"><div class="fl-k">Vay dài hạn</div><div class="fl-v">${fmt(data.lt_borrow, 0)} tỷ</div></div>`;
+    html += `<div class="fl-cell"><div class="fl-k">Tổng nợ vay</div><div class="fl-v">${fmt(data.total_debt, 0)} tỷ</div></div>`;
+    html += `<div class="fl-cell"><div class="fl-k">Vốn CSH</div><div class="fl-v">${fmt(data.equity, 0)} tỷ</div></div>`;
+    html += `</div>`;
+    if (data.debt_to_equity != null) {
+      const tone = data.debt_to_equity > 2 ? "down" : data.debt_to_equity > 1 ? "" : "up";
+      html += `<div class="fl-grid">`;
+      html += `<div class="fl-cell"><div class="fl-k">Nợ / Vốn CSH</div><div class="fl-v ${tone}">${fmt(data.debt_to_equity, 2)}</div></div>`;
+      if (data.debt_to_assets != null)
+        html += `<div class="fl-cell"><div class="fl-k">Nợ / Tài sản</div><div class="fl-v ${data.debt_to_assets > 60 ? "down" : data.debt_to_assets < 30 ? "up" : ""}">${fmt(data.debt_to_assets, 1)}%</div></div>`;
+      html += `</div>`;
+      if (data.debt_to_equity > 2)
+        html += `<div class="fl-note down">Đòn bẩy cao (${fmt(data.debt_to_equity, 1)}x) — rủi ro tài chính.</div>`;
+      else if (data.debt_to_equity < 0.5)
+        html += `<div class="fl-note up">Đòn bẩy thấp (${fmt(data.debt_to_equity, 1)}x) — bảng CĐ vững.</div>`;
+    }
+  }
 
   body.innerHTML = html;
 }
