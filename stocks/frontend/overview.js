@@ -57,6 +57,26 @@ function renderCards(st) {
     <div class="trend">vnstock/VCI · cache 30 phút</div>`;
   box.appendChild(meta);
   updateNotice(st);
+  loadRegime();
+}
+
+/* ---------------- regime banner ---------------- */
+async function loadRegime() {
+  try {
+    const st = await api("/api/regime");
+    renderRegime(st);
+  } catch (e) { /* im lang — regime la phu */ }
+}
+function renderRegime(st) {
+  const el = document.getElementById("regimeBanner");
+  if (!el || st.status !== "ready") { if (el) el.hidden = true; return; }
+  const r = st.regime;
+  const icons = { bull: "📈", bear: "📉", neutral: "➖" };
+  const labels = { bull: "THỊ TRƯỜNG THUẬN LỢI", bear: "THỊ TRƯỜNG BẤT LỢI", neutral: "THỊ TRƯỜNG TRUNG TÍNH" };
+  el.hidden = false;
+  el.className = `regime-banner ${r}`;
+  el.innerHTML = `<span class="r-ico">${icons[r] || "➖"}</span>
+    <span class="r-txt">${labels[r] || "TRUNG TÍNH"}<span class="r-reason">${esc(st.reason || "")}</span></span>`;
 }
 
 /* notice: câu đầu tự lấy từ dữ liệu chỉ số, không còn hardcoded */

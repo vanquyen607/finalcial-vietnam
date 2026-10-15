@@ -73,6 +73,8 @@ function renderDetail(d, stale) {
         <span class="trend">${d.trend}</span>
       </div>
 
+      ${d.regime_gate ? `<div class="regime-note">⚠️ ${esc(d.regime_note || "Thị trường bất lợi — cân nhắc chờ.")}</div>` : ""}
+
       <div class="metrics">
         <div class="metric"><div class="k">RSI 14</div><div class="v ${d.rsi > 70 ? "down" : d.rsi < 30 ? "up" : ""}">${fmt(d.rsi, 1)}</div></div>
         <div class="metric"><div class="k">MA20</div><div class="v">${fmt(d.ma20, 1)}</div></div>

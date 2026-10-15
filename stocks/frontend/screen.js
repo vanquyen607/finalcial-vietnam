@@ -89,7 +89,7 @@ function renderScreen(rows) {
         <td class="${r.rsi > 70 ? "down" : r.rsi < 30 ? "up" : ""}">${fmt(r.rsi, 0)}</td>
         <td>${fmt(r.vol_ratio, 2)}×</td>
         <td><span class="score ${tone}">${r.score}</span></td>
-        <td><span class="tag ${tone}">${r.verdict}</span></td>
+        <td><span class="tag ${tone}"${r.regime_gate ? ` title="${esc(r.regime_note || "")}"` : ""}>${r.verdict}${r.regime_gate ? " ⚠" : ""}</span></td>
       </tr>`;
     })
     .join("");

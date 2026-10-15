@@ -322,6 +322,32 @@ b, strong { font-weight: 700; }
 .notice .n-x:hover { color: var(--text); }
 .notice.hidden { display: none; }
 
+/* ---------------- regime banner ---------------- */
+.regime-banner {
+  display: flex; align-items: center; gap: 10px;
+  border-radius: var(--radius-sm); padding: 9px 12px;
+  font-size: 12.5px; color: var(--text-2); margin-bottom: 14px;
+  font-weight: 600;
+}
+.regime-banner.bull {
+  background: color-mix(in srgb, var(--up) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--up) 30%, var(--border));
+  border-left: 3px solid var(--up);
+}
+.regime-banner.bear {
+  background: color-mix(in srgb, var(--down) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--down) 30%, var(--border));
+  border-left: 3px solid var(--down);
+}
+.regime-banner.neutral {
+  background: var(--warn-soft);
+  border: 1px solid color-mix(in srgb, var(--warn) 32%, var(--border));
+  border-left: 3px solid var(--warn);
+}
+.regime-banner .r-ico { font-size: 15px; }
+.regime-banner .r-txt { flex: 1; }
+.regime-banner .r-reason { font-weight: 400; color: var(--muted); margin-left: 6px; }
+
 /* ---------------- section head + toolbar ---------------- */
 .sect-head { display: flex; align-items: center; gap: 12px; margin: 2px 0 10px; flex-wrap: wrap; }
 .sect-head h2 {
@@ -530,6 +556,15 @@ table.tbl tbody tr:focus-visible { outline: 2px solid var(--accent); outline-off
 .big-tag.neutral { background: color-mix(in srgb, var(--muted) 17%, transparent); color: var(--muted); }
 .big-tag.bad { background: var(--down-soft); color: var(--down); }
 .verdict-line .trend { color: var(--muted); font-size: 12.5px; }
+
+.regime-note {
+  background: color-mix(in srgb, var(--down) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--down) 25%, var(--border));
+  border-left: 3px solid var(--down);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px; margin: 8px 0 4px;
+  font-size: 12px; color: var(--text-2); font-weight: 500;
+}
 
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 7px; margin: 12px 0; }
 .metric {

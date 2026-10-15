@@ -8,7 +8,7 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import fund, market, news, screen
+from backend import fund, market, news, regime, screen
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
@@ -100,7 +100,10 @@ def api_symbols():
 
 @app.get("/api/symbol/{sym}")
 def api_symbol(sym: str, refresh: int = Query(0)):
-    return market.get_symbol(sym, refresh=bool(refresh), priority=bool(refresh))
+    result = market.get_symbol(sym, refresh=bool(refresh), priority=bool(refresh))
+    if result.get("status") == "ready" and result.get("data"):
+        result["data"] = regime.apply_gate(result["data"])
+    return result
 
 
 @app.get("/api/symbol/{sym}/news")
@@ -111,6 +114,11 @@ def api_symbol_news(sym: str, refresh: int = Query(0)):
 @app.get("/api/breadth")
 def api_breadth(refresh: int = Query(0)):
     return market.breadth(refresh=bool(refresh))
+
+
+@app.get("/api/regime")
+def api_regime(refresh: int = Query(0)):
+    return regime.get_regime(refresh=bool(refresh))
 
 
 @app.get("/api/symbol/{sym}/fundamentals")
