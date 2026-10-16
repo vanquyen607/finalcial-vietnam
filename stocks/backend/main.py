@@ -4,11 +4,12 @@ import time
 from collections import deque
 from pathlib import Path
 
-from fastapi import FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend import alerts, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, regime, screen
+from backend.auth import admin_guard, is_locked
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
@@ -70,7 +71,13 @@ async def guard(request: Request, call_next):  # noqa: ANN001
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "time": market.now_vn().strftime("%H:%M:%S %d/%m/%Y")}
+    return {"ok": True, "locked": is_locked(),
+            "time": market.now_vn().strftime("%H:%M:%S %d/%m/%Y")}
+
+
+@app.get("/api/auth/check")
+def api_auth_check(_: None = Depends(admin_guard)):
+    return {"status": "ok", "locked": is_locked()}
 
 
 @app.get("/api/overview")
@@ -83,12 +90,12 @@ def api_screen():
     return screen.screen()
 
 
-@app.post("/api/screen/run")
+@app.post("/api/screen/run", dependencies=[Depends(admin_guard)])
 def api_screen_run(auto: int = Query(0)):
     return screen.start_screen(auto=bool(auto))
 
 
-@app.post("/api/screen/stop")
+@app.post("/api/screen/stop", dependencies=[Depends(admin_guard)])
 def api_screen_stop():
     return screen.stop_screen()
 
@@ -157,7 +164,7 @@ def api_alerts(limit: int = Query(50, ge=1, le=200)):
     return {"status": "ready", "alerts": alerts.list_alerts(limit)}
 
 
-@app.post("/api/alerts/rules")
+@app.post("/api/alerts/rules", dependencies=[Depends(admin_guard)])
 async def api_add_alert_rule(request: Request):
     body = await request.json()
     try:
@@ -172,7 +179,7 @@ def api_list_alert_rules():
     return {"status": "ready", "rules": alerts.list_rules()}
 
 
-@app.delete("/api/alerts/rules/{rule_id}")
+@app.delete("/api/alerts/rules/{rule_id}", dependencies=[Depends(admin_guard)])
 def api_delete_alert_rule(rule_id: str):
     ok = alerts.delete_rule(rule_id)
     if ok:
@@ -180,7 +187,7 @@ def api_delete_alert_rule(rule_id: str):
     return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy rule"})
 
 
-@app.post("/api/alerts/clear")
+@app.post("/api/alerts/clear", dependencies=[Depends(admin_guard)])
 def api_clear_alerts():
     n = alerts.clear_alerts()
     return {"status": "ok", "cleared": n}
@@ -192,7 +199,7 @@ def api_portfolio():
     return {"status": "ready", **portfolio.get_summary()}
 
 
-@app.post("/api/portfolio")
+@app.post("/api/portfolio", dependencies=[Depends(admin_guard)])
 async def api_portfolio_add(request: Request):
     body = await request.json()
     try:
@@ -204,7 +211,7 @@ async def api_portfolio_add(request: Request):
         return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
 
 
-@app.put("/api/portfolio/{sym}")
+@app.put("/api/portfolio/{sym}", dependencies=[Depends(admin_guard)])
 async def api_portfolio_update(sym: str, request: Request):
     body = await request.json()
     try:
@@ -215,7 +222,7 @@ async def api_portfolio_update(sym: str, request: Request):
         return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
 
 
-@app.delete("/api/portfolio/{sym}")
+@app.delete("/api/portfolio/{sym}", dependencies=[Depends(admin_guard)])
 def api_portfolio_delete(sym: str):
     ok = portfolio.remove_position(sym)
     if ok:

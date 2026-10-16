@@ -103,8 +103,12 @@ async function runScreen() {
   const btn = $("#btnRunScreen");
   btn.disabled = true;
   try {
-    await api("/api/screen/run", { method: "POST" });
-    toast("Đã bắt đầu quét 40 mã — lần đầu ~6 phút", "ok");
+    const r = await apiAdmin("/api/screen/run", { method: "POST" });
+    if (r && r.status === "cooldown") {
+      toast(r.message || "Vừa chạy xong — đợi chút rồi thử lại", "warn");
+    } else {
+      toast("Đã bắt đầu quét 40 mã — lần đầu ~6 phút", "ok");
+    }
     clearTimeout(pollTimers.screen);
     loadScreen();
   } catch (e) {

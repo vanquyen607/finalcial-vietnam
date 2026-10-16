@@ -13,3 +13,5 @@ services:
         value: Asia/Ho_Chi_Minh
       - key: VNSTOCK_DISABLE_AGENT_SETUP
         value: "1"
+      - key: ADMIN_TOKEN
+        sync: false   # dat trong Render Dashboard (Settings > Environment); de trong = mo

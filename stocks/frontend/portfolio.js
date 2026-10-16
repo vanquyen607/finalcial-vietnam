@@ -59,7 +59,7 @@
     $$(".pp-del", box).forEach(btn => {
       btn.addEventListener("click", async () => {
         if (!confirm(`Xoá ${btn.dataset.sym} khỏi danh mục?`)) return;
-        await api(`/api/portfolio/${encodeURIComponent(btn.dataset.sym)}`, { method: "DELETE" });
+        await apiAdmin(`/api/portfolio/${encodeURIComponent(btn.dataset.sym)}`, { method: "DELETE" });
         loadPortfolio();
       });
     });
@@ -92,7 +92,7 @@
       const price = parseFloat($("#portPrice").value);
       if (!sym || isNaN(qty) || isNaN(price)) return;
       try {
-        const r = await api("/api/portfolio", {
+        const r = await apiAdmin("/api/portfolio", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol: sym, qty, avg_price: price })

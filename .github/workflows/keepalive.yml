@@ -1,0 +1,26 @@
+name: keep-alive
+
+# Giu instance Render (free tier) khong ngu -> tranh cold start 30-60s.
+# Render tat instance sau ~15 phut khong co request. Ping /api/health moi ~10 phut.
+# Luu y: GitHub Actions cron co the tre vai phut va tu tat sau 60 ngay repo
+# khong hoat dong. Neu can on dinh hon, dung UptimeRobot (mien phi) thay the.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: |
+          URL="https://finalcial-vietnam.onrender.com/api/health"
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$URL" || echo "000")
+            echo "Lần $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 20
+          done
+          echo "Không nhận được 200 (có thể đang cold start) — bỏ qua."

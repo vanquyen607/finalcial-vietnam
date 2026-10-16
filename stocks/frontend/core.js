@@ -82,12 +82,41 @@ const HTTP_MSG = {
   500: "Máy chủ đang bận — thử lại sau",
   503: "Máy chủ đang khởi động — thử lại sau",
 };
+/* token quản trị (tùy chọn) — chỉ cần khi server đặt ADMIN_TOKEN */
+let adminToken = "";
+try { adminToken = localStorage.getItem("ck_admin") || ""; } catch (e) {}
+function setAdminToken(t) {
+  adminToken = (t || "").trim();
+  try {
+    if (adminToken) localStorage.setItem("ck_admin", adminToken);
+    else localStorage.removeItem("ck_admin");
+  } catch (e) {}
+}
+function askAdminToken() {
+  const t = prompt("Nhập token quản trị (ADMIN_TOKEN) để thực hiện thao tác này:");
+  if (t == null) return false;
+  setAdminToken(t);
+  return !!adminToken;
+}
 async function api(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({}, opts.headers || {});
+  if (adminToken) headers["X-Admin-Token"] = adminToken;
+  opts.headers = headers;
   let r;
   try { r = await fetch(path, opts); }
   catch (e) { throw new Error("Mất kết nối máy chủ"); }
+  if (r.status === 401) { const e = new Error("Cần token quản trị"); e.code = 401; throw e; }
   if (!r.ok) throw new Error(HTTP_MSG[r.status] || `Lỗi máy chủ (HTTP ${r.status})`);
   return r.json();
+}
+/* thao tác cần quyền: nếu 401 thì hỏi token rồi thử lại 1 lần */
+async function apiAdmin(path, opts) {
+  try { return await api(path, opts); }
+  catch (e) {
+    if (e.code === 401 && askAdminToken()) return await api(path, opts);
+    throw e;
+  }
 }
 
 /* ---------------- toast ---------------- */

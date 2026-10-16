@@ -122,12 +122,12 @@ $("#btnLive").addEventListener("click", async () => {
   setLiveBtn();
   try {
     if (liveOn) {
-      await api("/api/screen/run?auto=1", { method: "POST" });
+      await apiAdmin("/api/screen/run?auto=1", { method: "POST" });
       nextLive = Date.now() + 5000;
       doLive();
       toast("Live bật — tự làm mới 60s trong phiên", "ok");
     } else {
-      await api("/api/screen/stop", { method: "POST" });
+      await apiAdmin("/api/screen/stop", { method: "POST" });
       toast("Đã tắt Live — dữ liệu dùng cache", "warn");
     }
   } catch (e) { toast("Không kết nối được server", "err"); }

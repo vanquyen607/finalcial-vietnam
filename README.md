@@ -177,6 +177,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8100
 
 # 5. Test
 python tests/test_calc.py
+python tests/test_modules.py
 ```
 
 ### Environment variables
@@ -185,6 +186,27 @@ python tests/test_calc.py
 |------|----------|-------|
 | `VNSTOCK_DISABLE_AGENT_SETUP` | `1` | Tắt vnstock ghi AGENTS.md |
 | `PYTHONIOENCODING` | `utf-8` | Fix encoding Windows |
+| `ADMIN_TOKEN` | *(trống)* | Đặt → khóa endpoint tốn quota/thay đổi dữ liệu. Trống → mở (dev) |
+
+### Bảo mật (tùy chọn)
+
+Khi `ADMIN_TOKEN` được đặt, các endpoint ghi/tốn quota yêu cầu header
+`X-Admin-Token` (hoặc `?token=`):
+
+`POST /api/screen/run`, `POST /api/screen/stop`, `POST|DELETE /api/alerts/rules`,
+`POST /api/alerts/clear`, `POST|PUT|DELETE /api/portfolio`.
+
+Đọc dữ liệu (`/api/overview`, `/api/symbol/...`) vẫn công khai. Frontend tự hỏi
+token và lưu `localStorage` khi gặp 401.
+
+**Chống lạm dụng khác:** rate-limit per-IP (180 req/phút, POST 10 req/phút) và
+cooldown 90s cho chạy màn lọc thủ công.
+
+### Chống cold start (Render free)
+
+Instance Render ngủ sau ~15 phút không có request → lần đầu truy cập chậm 30-60s.
+Workflow `.github/workflows/keepalive.yml` ping `/api/health` mỗi 10 phút để giữ ấm.
+Lưu ý: cron GitHub Actions có thể trễ vài phút; muốn ổn định hơn dùng UptimeRobot.
 
 ---
 

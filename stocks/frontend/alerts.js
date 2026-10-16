@@ -79,7 +79,7 @@
       btn.addEventListener("click", async () => {
         const li = btn.closest(".ap-item");
         if (!li) return;
-        await api(`/api/alerts/rules/${encodeURIComponent(li.dataset.id)}`, { method: "DELETE" });
+        await apiAdmin(`/api/alerts/rules/${encodeURIComponent(li.dataset.id)}`, { method: "DELETE" });
         loadRules();
       });
     });
@@ -97,7 +97,7 @@
       const note = ($("#ruleNote").value || "").trim();
       if (!sym || isNaN(th)) return;
       try {
-        const r = await api("/api/alerts/rules", {
+        const r = await apiAdmin("/api/alerts/rules", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol: sym, type, threshold: th, note })
@@ -141,7 +141,7 @@
 
     const clearBtn = $("#btnClearAlerts");
     if (clearBtn) clearBtn.addEventListener("click", async () => {
-      await api("/api/alerts/clear", { method: "POST" });
+      await apiAdmin("/api/alerts/clear", { method: "POST" });
       unread = 0;
       updateBadge();
       loadAlerts();

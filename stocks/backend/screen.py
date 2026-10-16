@@ -12,6 +12,10 @@ screen_state = {"status": "idle", "done": 0, "total": 0, "current": "", "results
                 "_kick": False, "worker_alive": False,
                 "cycles": 0, "next_at": 0.0}
 
+# chong spam: 1 lan quet tay / MANUAL_COOLDOWN giay (ton quota vnstock)
+MANUAL_COOLDOWN = 90
+_last_manual = 0.0
+
 
 def _prefetch_fund(sym: str) -> None:
     """Tai truoc chi so co ban o nen khi quet man — user click vao la co san."""
@@ -87,9 +91,17 @@ def screen() -> dict:
 
 
 def start_screen(auto: bool = False) -> dict:
+    global _last_manual
     with _screen_lock:
         if auto:
             screen_state["auto"] = True
+        else:
+            now = time.time()
+            wait = MANUAL_COOLDOWN - (now - _last_manual)
+            if wait > 0 and screen_state["status"] != "running":
+                return {"status": "cooldown", "retry_in": int(wait) + 1,
+                        "message": f"Vừa chạy xong — đợi {int(wait) + 1}s để tránh hết quota."}
+            _last_manual = now
         if screen_state.get("worker_alive"):
             # worker dang chay: auto -> khong canh gi; quet tay -> day chong ngu
             if not auto and screen_state["status"] != "running":
