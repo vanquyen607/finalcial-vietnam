@@ -25,18 +25,32 @@ def build_brief() -> dict:
                 "change_pct": row.get("chg_pct"),
             })
 
-    # 2. Regime — field: regime (bull/bear/neutral), reason
-    regime_obj = _cached(DATA / "regime.json")
-    regime_raw = regime_obj.get("data", {}) if regime_obj else {}
-    regime = {
-        "state": regime_raw.get("regime", "unknown"),
-        "note": regime_raw.get("reason", ""),
-        "vn_above_ma50": regime_raw.get("vn_above_ma50"),
-    }
+    # 2. Regime — uu tien live de khop banner/bang, fallback cache
+    try:
+        from backend.regime import get_regime
+        rr = get_regime()
+        regime = {
+            "state": rr.get("regime", "unknown"),
+            "note": rr.get("reason", ""),
+            "vn_above_ma50": rr.get("vn_above_ma50"),
+        }
+    except Exception:
+        regime_obj = _cached(DATA / "regime.json")
+        regime_raw = regime_obj.get("data", {}) if regime_obj else {}
+        regime = {
+            "state": regime_raw.get("regime", "unknown"),
+            "note": regime_raw.get("reason", ""),
+            "vn_above_ma50": regime_raw.get("vn_above_ma50"),
+        }
 
-    # 3. Breadth — fields: exchanges.hose.up/down, total.up/down
-    br = _cached(DATA / "breadth.json")
-    br_raw = br.get("data", {}) if br else {}
+    # 3. Breadth — fields: exchanges.hose.up/down, total.up/down (uu tien live)
+    try:
+        from backend.breadth import breadth as _breadth_live
+        bl = _breadth_live()
+        br_raw = (bl if bl.get("status") == "ready"
+                  else (_cached(DATA / "breadth.json") or {}).get("data", {}))
+    except Exception:
+        br_raw = (_cached(DATA / "breadth.json") or {}).get("data", {})
     hose = br_raw.get("exchanges", {}).get("hose", {})
     total = br_raw.get("total", {})
     breadth = {
@@ -47,18 +61,22 @@ def build_brief() -> dict:
         "fnet_t": total.get("fnet_t"),
     }
 
-    # 4. Screen top — field: results
-    scr = _cached(DATA / "screen.json")
+    # 4. Screen top — uu tien live (khop bang), fallback cache
+    try:
+        from backend.screen import screen as _screen_live
+        rows_all = _screen_live().get("results", [])
+    except Exception:
+        rows_all = (_cached(DATA / "screen.json") or {}).get("results", [])
     top = []
-    if scr:
-        rows = sorted(scr.get("results", []),
-                      key=lambda r: r.get("score", -99), reverse=True)
+    if rows_all:
+        rows = sorted(rows_all, key=lambda r: r.get("score", -99), reverse=True)
         for r in rows[:5]:
             top.append({
                 "symbol": r.get("symbol"),
                 "score": r.get("score"),
                 "verdict": r.get("verdict"),
                 "close": r.get("close"),
+                "date": r.get("date"),
                 "r20": r.get("r20"),
                 "tone": r.get("tone", "neutral"),
             })

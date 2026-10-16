@@ -22,6 +22,13 @@ def _check_regime() -> dict:
 
     ov = overview()
     br = breadth()
+    if br.get("status") != "ready":
+        # breadth dang fetch/cu -> dung ban cache de tinh regime khop voi phan hien thi
+        cached = _cached(DATA / "breadth.json")
+        if cached:
+            inner = cached.get("data") or cached
+            if inner.get("exchanges"):
+                br = {"status": "ready", **inner}
 
     # --- VN-Index vs MA50 ---
     vn_above_ma50 = None
