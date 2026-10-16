@@ -57,17 +57,17 @@ function renderCards(st) {
     <div class="trend">vnstock/VCI · cache 30 phút</div>`;
   box.appendChild(meta);
   updateNotice(st);
-  loadRegime();
+  loadRegime(st);
 }
 
 /* ---------------- regime banner ---------------- */
-async function loadRegime() {
+async function loadRegime(ovState) {
   try {
     const st = await api("/api/regime");
-    renderRegime(st);
+    renderRegime(st, ovState);
   } catch (e) { /* im lang — regime la phu */ }
 }
-function renderRegime(st) {
+function renderRegime(st, ovState) {
   const el = document.getElementById("regimeBanner");
   if (!el || st.status !== "ready") { if (el) el.hidden = true; return; }
   const r = st.regime;
@@ -76,7 +76,27 @@ function renderRegime(st) {
   el.hidden = false;
   el.className = `regime-banner ${r}`;
   el.innerHTML = `<span class="r-ico">${icons[r] || "➖"}</span>
-    <span class="r-txt">${labels[r] || "TRUNG TÍNH"}<span class="r-reason">${esc(st.reason || "")}</span></span>`;
+    <span class="r-txt">${labels[r] || "TRUNG TÍNH"}<span class="r-reason">${esc(regimeReason(st, ovState))}</span></span>`;
+}
+/* Ly do regime: so chi so lay tu du lieu overview dang hien (luon khop the chi so),
+   phan breadth lay tu /api/regime. Chi hien tin hieu ung ho verdict (nhu cu). */
+function regimeReason(st, ovState) {
+  const vn = ovState && (ovState.indices || []).find((x) => x.code === "VNINDEX");
+  const vnTxt = vn && vn.close != null && vn.ma50 != null
+    ? `VN-Index ${vn.close.toFixed(1)} vs MA50 ${vn.ma50.toFixed(1)}`
+    : (st.vn_label || "");
+  const parts = [];
+  if (st.regime === "bull") {
+    if (st.vn_above_ma50 === true && vnTxt) parts.push(vnTxt);
+    if (st.breadth_bull === true && st.breadth_label) parts.push(st.breadth_label);
+  } else if (st.regime === "bear") {
+    if (st.vn_above_ma50 === false && vnTxt) parts.push(vnTxt);
+    if (st.breadth_bull === false && st.breadth_label) parts.push(st.breadth_label);
+  } else {
+    if (vnTxt) parts.push(vnTxt);
+    else if (st.breadth_label) parts.push(st.breadth_label);
+  }
+  return parts.join(" · ") || st.reason || "";
 }
 
 /* notice: câu đầu tự lấy từ dữ liệu chỉ số, không còn hardcoded */

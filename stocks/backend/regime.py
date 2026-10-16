@@ -3,14 +3,14 @@
 
 Backtest cho thay: 2026 (bear) win rate chi 26%, excess ca ky = 0.
 Rule don gian: chi tin hieu MUA khi VN-Index > MA50 HOAC breadth up > down.
-Cache 30 phien (cung TTL overview) — khong go API moi request.
+Cache 5 phut (ngan hon overview de verdict bot tre) — khong go API moi request.
 """
 import threading
 import time
 
 from backend.store import DATA, _cached
 
-REGIME_TTL = 30 * 60       # 30 phut
+REGIME_TTL = 5 * 60        # 5 phut
 _regime_lock = threading.Lock()
 _regime_state = {"status": "init", "data": None}
 
@@ -75,6 +75,8 @@ def _check_regime() -> dict:
         "reason": reason,
         "vn_above_ma50": vn_above_ma50,
         "breadth_bull": breadth_bull,
+        "vn_label": vn_label,
+        "breadth_label": breadth_label,
         "checked_at": time.time(),
     }
 
