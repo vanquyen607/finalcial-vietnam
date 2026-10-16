@@ -273,5 +273,10 @@ loadBreadth();
 loadScreen();
 
 if (liveOn) {
-  api("/api/screen/run?auto=1", { method: "POST" }).then(() => loadScreen()).catch(() => {});
+  /* tự bật quét auto khi tải trang — nhưng KHÔNG hỏi token đột ngột:
+     nếu server khoá mà chưa có token thì để người dùng tự bật Live (sẽ được hỏi token) */
+  api("/api/health").then((h) => {
+    if (h && h.locked && !adminToken) return;
+    return apiAdmin("/api/screen/run?auto=1", { method: "POST" }).then(() => loadScreen());
+  }).catch(() => {});
 }

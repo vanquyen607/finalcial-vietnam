@@ -116,7 +116,7 @@ def overview(refresh: bool = False) -> dict:
 
 
 def _seed_overview():
-    p = ROOT.parent / "reports" / "index_2026-10-08.json"
+    p = ROOT / "reports" / "index_2026-10-08.json"
     if not p.exists():
         return None
     try:

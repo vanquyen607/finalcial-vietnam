@@ -40,7 +40,7 @@ def _seed_screen():
     p = DATA / "screen.json"
     if p.exists():
         return
-    src = ROOT.parent / "reports" / "screen_2026-10-08.json"
+    src = ROOT / "reports" / "screen_2026-10-08.json"
     if src.exists():
         try:
             rows = json.loads(src.read_text(encoding="utf-8"))
