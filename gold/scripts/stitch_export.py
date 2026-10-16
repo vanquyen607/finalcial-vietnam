@@ -14,7 +14,20 @@ import time
 import urllib.request
 
 MCP_URL = "https://stitch.googleapis.com/mcp"
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def _find_repo(start: str) -> str:
+    """Di nguoc len tren tim thu muc chua opencode.json (goc repo)."""
+    cur = os.path.abspath(start)
+    for _ in range(6):
+        if os.path.exists(os.path.join(cur, "opencode.json")):
+            return cur
+        parent = os.path.dirname(cur)
+        if parent == cur:
+            break
+        cur = parent
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # fallback
+
+
+REPO = _find_repo(os.path.dirname(os.path.abspath(__file__)))
 
 
 def load_key():

@@ -14,7 +14,7 @@ echo.
 
 rem ---------- 0) Dung watchdog truoc (khong thi no khoi dong lai app) ----------
 powershell -NoProfile -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'powershell.exe' -and $_.CommandLine -like '*watchdog.ps1*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }" < nul
-del "D:\Desktop\finan\gold\_logs\watchdog.pid" >nul 2>&1
+del "%~dp0_logs\watchdog.pid" >nul 2>&1
 echo [ OK ] Da dung watchdog.
 
 rem ---------- 0b) Tat duong cong khai (Tailscale Funnel) ----------

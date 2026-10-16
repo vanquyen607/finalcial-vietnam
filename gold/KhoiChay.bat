@@ -8,10 +8,10 @@ rem  Dong cua so nay dong duoc - 2 tien trinh van chay tiep.
 rem =========================================================
 
 set "ROOT=%~dp0"
-set "API=%ROOT%gold\backend"
-set "WEB=%ROOT%gold\frontend"
-set "SCRIPTS=%ROOT%gold\scripts"
-set "LOGDIR=%ROOT%gold\_logs"
+set "API=%ROOT%backend"
+set "WEB=%ROOT%frontend"
+set "SCRIPTS=%ROOT%scripts"
+set "LOGDIR=%ROOT%_logs"
 set "LOG=%LOGDIR%\tunnel.log"
 set "OUT=%LOGDIR%\tunnel.out.log"
 set "URLFILE=%LOGDIR%\url.txt"
@@ -32,7 +32,7 @@ if errorlevel 1 (
 )
 
 if exist "%WEB%\dist\index.html" goto distok
-echo [CANH BAO] Chua build giao dien - chay  npm run build  trong gold\frontend
+echo [CANH BAO] Chua build giao dien - chay  npm run build  trong frontend
 echo            Hien tai chi chay API tai http://127.0.0.1:8000
 echo.
 :distok
@@ -78,7 +78,7 @@ echo.
 echo   Cua so nay dong duoc - app/tunnel van chay tiep.
 echo   Muon DUNG het: chay Tat.bat  (hoac shortcut "Aurum - Tat")
 echo   Link co dinh (Tailscale Funnel): https://desktop-uco2224.tailfb154c.ts.net
-echo   Log: gold\_logs\{app.err,watchdog,tunnel}.log
+echo   Log: _logs\{app.err,watchdog,tunnel}.log
 echo --------------------------------------------------
 echo.
 if defined URL start "" "!URL!"
@@ -86,7 +86,7 @@ pause
 exit /b 0
 
 :failapp
-echo [ LOI ] App khong len duoc sau 45s - xem log: gold\_logs\app.err.log
+echo [ LOI ] App khong len duoc sau 45s - xem log: _logs\app.err.log
 goto end
 
 :hint

@@ -3,7 +3,7 @@ chcp 65001 >nul
 set "PYTHONIOENCODING=utf-8"
 title Phan Tich Co Phieu
 setlocal
-set "ROOT=%~dp0stocks"
+set "ROOT=%~dp0"
 set "PORT=8100"
 cd /d "%ROOT%"
 

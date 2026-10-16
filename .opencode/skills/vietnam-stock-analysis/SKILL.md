@@ -50,11 +50,11 @@ Always follow this procedure to ensure accuracy:
 
 6.  **Present & Save Report:**
     - **Present:** Display the full report directly to the user in the conversation.
-    - **Save:** Also save the report as a Markdown file in the `reports/` directory (create it if it doesn't exist) with the naming convention:
+    - **Save:** Also save the report as a Markdown file in the `stocks/reports/` directory (create it if it doesn't exist) with the naming convention:
       ```
-      reports/[SYMBOL]_[YYYY-MM-DD].md
+      stocks/reports/[SYMBOL]_[YYYY-MM-DD].md
       ```
-      Example: `reports/SSI_2026-03-18.md`
+      Example: `stocks/reports/SSI_2026-03-18.md`
     - Inform the user where the report was saved.
 
 ## Report Structure (Output Requirements)
