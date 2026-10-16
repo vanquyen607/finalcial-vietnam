@@ -71,6 +71,26 @@ function visibleRows() {
     });
 }
 
+function rowHTML(r, i) {
+  const tone = r.tone || "neutral";
+  return `<tr data-sym="${r.symbol}" tabindex="0" class="${r.symbol === selectedSym ? "sel" : ""}"
+    aria-selected="${r.symbol === selectedSym}">
+    <td class="rank">${i + 1}</td>
+    <td><span class="sym">${inWatch(r.symbol) ? '<span class="star-inline" title="Trong ⭐ Của tôi">★</span>' : ""}${r.symbol}</span></td>
+    <td>${fmt(r.close, r.close < 50 ? 1 : 0)}</td>
+    <td class="${cls(r.r20)}">${sign(r.r20, 1)}%</td>
+    <td class="${r.rsi > 70 ? "down" : r.rsi < 30 ? "up" : ""}">${fmt(r.rsi, 0)}</td>
+    <td>${fmt(r.vol_ratio, 2)}×</td>
+    <td><span class="score ${tone}">${r.score}</span></td>
+    <td><span class="tag ${tone}"${r.regime_gate ? ` title="${esc(r.regime_note || "")}"` : ""}>${r.verdict}${r.regime_gate ? " ⚠" : ""}</span></td>
+  </tr>`;
+}
+
+function bindRow(tr) {
+  tr.addEventListener("click", () => openSymbol(tr.dataset.sym));
+  tr.addEventListener("keydown", (e) => { if (e.key === "Enter") openSymbol(tr.dataset.sym); });
+}
+
 function renderScreen(rows) {
   screenRows = rows || [];
   renderTicker();
@@ -85,26 +105,32 @@ function renderScreen(rows) {
     body.innerHTML = `<tr><td colspan="8" class="empty">${screenRows.length ? "Không có mã nào khớp bộ lọc." : "Chưa có dữ liệu."}</td></tr>`;
     return;
   }
-  body.innerHTML = rows2
-    .map((r, i) => {
-      const tone = r.tone || "neutral";
-      return `<tr data-sym="${r.symbol}" tabindex="0" class="${r.symbol === selectedSym ? "sel" : ""}"
-        aria-selected="${r.symbol === selectedSym}">
-        <td class="rank">${i + 1}</td>
-        <td><span class="sym">${inWatch(r.symbol) ? '<span class="star-inline" title="Trong ⭐ Của tôi">★</span>' : ""}${r.symbol}</span></td>
-        <td>${fmt(r.close, r.close < 50 ? 1 : 0)}</td>
-        <td class="${cls(r.r20)}">${sign(r.r20, 1)}%</td>
-        <td class="${r.rsi > 70 ? "down" : r.rsi < 30 ? "up" : ""}">${fmt(r.rsi, 0)}</td>
-        <td>${fmt(r.vol_ratio, 2)}×</td>
-        <td><span class="score ${tone}">${r.score}</span></td>
-        <td><span class="tag ${tone}"${r.regime_gate ? ` title="${esc(r.regime_note || "")}"` : ""}>${r.verdict}${r.regime_gate ? " ⚠" : ""}</span></td>
-      </tr>`;
-    })
-    .join("");
-  body.querySelectorAll("tr[data-sym]").forEach((tr) => {
-    tr.addEventListener("click", () => openSymbol(tr.dataset.sym));
-    tr.addEventListener("keydown", (e) => { if (e.key === "Enter") openSymbol(tr.dataset.sym); });
-  });
+  body.innerHTML = rows2.map((r, i) => rowHTML(r, i)).join("");
+  body.querySelectorAll("tr[data-sym]").forEach(bindRow);
+}
+
+/* Dong bo 1 dong bang theo du lieu o chi tiet dang mo — giu bang luon khop voi chi tiet
+   (o chi tiet tu refresh moi 60s con bang chi doi sau 1 vong quet ~5-6 phut). */
+const ROW_KEYS = ["close", "rsi", "ma20", "ma50", "ma200", "vol_ratio", "r5", "r20",
+  "sup", "res", "hi52", "lo52", "score", "verdict", "tone", "stop", "t1", "t2",
+  "risk_pct", "rr", "date"];
+function syncRowFromDetail(d) {
+  if (!d || !d.symbol) return;
+  const row = screenRows.find((r) => r.symbol === d.symbol);
+  if (!row) return;
+  ROW_KEYS.forEach((k) => { if (k in d) row[k] = d[k]; });
+  if ("regime_gate" in d) row.regime_gate = d.regime_gate; else delete row.regime_gate;
+  if ("regime_note" in d) row.regime_note = d.regime_note; else delete row.regime_note;
+  const tr = document.querySelector(`#screenBody tr[data-sym="${d.symbol}"]`);
+  if (!tr) { renderTicker(); return; }
+  const pos = visibleRows().findIndex((r) => r.symbol === d.symbol);
+  if (pos < 0) { tr.remove(); renderTicker(); return; }   /* doi tone -> bi loc ra khoi bang */
+  const tmp = document.createElement("tbody");
+  tmp.innerHTML = rowHTML(row, pos);
+  const newTr = tmp.firstElementChild;
+  tr.replaceWith(newTr);
+  bindRow(newTr);
+  renderTicker();
 }
 
 async function runScreen() {

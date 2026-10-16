@@ -34,6 +34,7 @@ async function openSymbol(sym, refresh = false) {
       return;
     }
     renderDetail(st.data, st.stale);
+    if (refresh) syncRowFromDetail(st.data);   /* giu dong trong bang khop voi chi tiet */
     if (!refresh) {
       $("#detail").scrollTop = 0;          /* về đầu khi mở mã mới */
       if (location.hash.slice(1).toUpperCase() !== sym) location.hash = sym;

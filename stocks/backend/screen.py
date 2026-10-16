@@ -3,6 +3,7 @@ import json
 import threading
 import time
 
+from backend.calc import verdict_of
 from backend.market import (BASKET, DATA, ROOT, _cached, _save,
                             get_symbol, is_session)
 
@@ -27,13 +28,34 @@ def _prefetch_fund(sym: str) -> None:
 
 
 def _verdict_of(score: int) -> tuple[str, str]:
-    if score >= 10:
-        return "MUA / TÍCH LŨY", "good"
-    if score >= 6:
-        return "THEO DÕI", "watch"
-    if score >= 0:
-        return "TRUNG TÍNH", "neutral"
-    return "TRÁNH / GIẢM", "bad"
+    return verdict_of(score)
+
+
+def _gate_rows(rows: list[dict]) -> list[dict]:
+    """Gate regime DUNG MOT LAN, tinh tu diem GOC.
+
+    Row cu co the da bi gate (diem bi ha + co score_raw) -> khoi phuc diem goc
+    truoc khi gate lai, tranh ha 2 lan lam lech ghi chu voi o chi tiet.
+    """
+    try:
+        from backend.regime import apply_gate, get_regime
+        rg = get_regime()
+    except Exception:
+        apply_gate, rg = None, None
+    out = []
+    for r in rows:
+        r = dict(r)
+        raw = r.pop("score_raw", None)
+        if raw is None:
+            raw = r.get("score", 0)
+        r.pop("regime_gate", None)
+        r.pop("regime_note", None)
+        r["score"] = raw
+        r["verdict"], r["tone"] = verdict_of(raw)
+        if apply_gate is not None and raw >= 6:
+            r = apply_gate(r, rg)
+        out.append(r)
+    return out
 
 
 def _seed_screen():
@@ -61,18 +83,7 @@ def screen() -> dict:
     if path.exists() and st["status"] != "running":
         try:
             obj = json.loads(path.read_text(encoding="utf-8"))
-            results = obj["results"]
-            for r in results:
-                if "verdict" not in r:
-                    r["verdict"], r["tone"] = _verdict_of(r.get("score", 0))
-            # ap regime gate cho ket qua screen
-            try:
-                from backend.regime import apply_gate, get_regime
-                rg = get_regime()
-                results = [apply_gate(r, rg) if r.get("score", 0) >= 6 else r
-                           for r in results]
-            except Exception:
-                pass
+            results = _gate_rows(obj["results"])
             results.sort(key=lambda x: -x.get("score", 0))
             st.update({"status": "ready", "results": results,
                        "generated_at": obj.get("generated_at"),
@@ -125,29 +136,12 @@ def stop_screen() -> dict:
 def _screen_file_rows() -> list[dict]:
     try:
         obj = json.loads((DATA / "screen.json").read_text(encoding="utf-8"))
-        rows = obj.get("results", [])
-        for r in rows:
-            if "verdict" not in r:
-                r["verdict"], r["tone"] = _verdict_of(r.get("score", 0))
-        # ap regime gate cho ket qua cache
-        try:
-            from backend.regime import apply_gate, get_regime
-            rg = get_regime()
-            rows = [apply_gate(r, rg) if r.get("score", 0) >= 6 else r
-                    for r in rows]
-        except Exception:
-            pass
-        return rows
+        return _gate_rows(obj.get("results", []))
     except Exception:
         return []
 
 
 def _run_pass() -> list[dict] | None:
-    from backend.regime import get_regime
-    try:
-        _regime_cache = get_regime()
-    except Exception:
-        _regime_cache = {"regime": "neutral"}
     with _screen_lock:
         screen_state["_kick"] = False
         base = screen_state.get("results") or _screen_file_rows()
@@ -162,15 +156,10 @@ def _run_pass() -> list[dict] | None:
         res = get_symbol(sym, refresh=True)
         if res["status"] == "ready":
             d = res["data"]
-            from backend.regime import apply_gate
-            d = apply_gate(d, _regime_cache)
             merged[sym] = {k: d.get(k) for k in (
                 "symbol", "close", "date", "rsi", "ma20", "ma50", "ma200", "vol_ratio",
                 "r5", "r20", "sup", "res", "hi52", "lo52", "score", "verdict", "tone",
                 "stop", "t1", "t2", "risk_pct", "rr")}
-            if d.get("regime_gate"):
-                merged[sym]["regime_gate"] = True
-                merged[sym]["regime_note"] = d.get("regime_note", "")
             threading.Thread(target=_prefetch_fund, args=(sym,), daemon=True).start()
         with _screen_lock:
             screen_state.update({"done": i,

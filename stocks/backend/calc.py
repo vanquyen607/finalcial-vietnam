@@ -21,6 +21,17 @@ def _r(x: float) -> float:
     return round(round(x / t) * t, 2)
 
 
+def verdict_of(score: int) -> tuple[str, str]:
+    """Nhan + tone tu diem tho — nguon chan ly duy nhat (calc.py & screen.py dung chung)."""
+    if score >= 10:
+        return "MUA / TÍCH LŨY", "good"
+    if score >= 6:
+        return "THEO DÕI", "watch"
+    if score >= 0:
+        return "TRUNG TÍNH", "neutral"
+    return "TRÁNH / GIẢM", "bad"
+
+
 def to_dong(val: pd.Series) -> pd.Series:
     """VCI accumulated_value dang o don vi TRIEU dong (HPG ~400000 = 400 ty) — quy ve dong.
 
@@ -114,14 +125,7 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
         trend = "xu hướng giảm, giá dưới MA20 và MA50"
 
     # xu the + diem
-    if score >= 10:
-        verdict, tone = "MUA / TÍCH LŨY", "good"
-    elif score >= 6:
-        verdict, tone = "THEO DÕI", "watch"
-    elif score >= 0:
-        verdict, tone = "TRUNG TÍNH", "neutral"
-    else:
-        verdict, tone = "TRÁNH / GIẢM", "bad"
+    verdict, tone = verdict_of(score)
 
     entry, entry_note = make_entry_zone(last, sup, res, ma20, rsi, score)
 
