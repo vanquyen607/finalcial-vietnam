@@ -46,3 +46,13 @@ gold/_logs/
 # cache app phan tich co phieu
 stocks/data/
 stocks/_shots/
+
+# Script phan tich: cache CSV + ket qua sinh tu dong (giu local, khong commit)
+scripts/_cache/
+scripts/_cache_*/
+scripts/*_result*.json
+scripts/*_0929.json
+
+# Thu muc lam viec cua cong cu kilo (worktree scratch)
+.kilo/
+
