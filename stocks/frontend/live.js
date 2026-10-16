@@ -5,6 +5,7 @@ let liveOn = true;
 try { liveOn = localStorage.getItem("ck_live") !== "0"; } catch (e) {}
 let nextLive = Date.now() + LIVE_MS;
 let inSession = true;
+let nextOpenTs = 0;
 
 function setLiveBtn() {
   $("#btnLive").classList.toggle("off", !liveOn || !inSession);
@@ -14,15 +15,33 @@ async function loadSession() {
   try {
     const s = await api("/api/session");
     inSession = !!s.in_session;
+    nextOpenTs = s.next_open_ts || 0;
   } catch (e) {}
   setLiveBtn();
+}
+
+/* đếm ngược tới lúc mở phiên: "mở cửa sau 01:23:45" */
+function fmtCountdown(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  const d = Math.floor(sec / 86400); sec -= d * 86400;
+  const h = Math.floor(sec / 3600); sec -= h * 3600;
+  const m = Math.floor(sec / 60); const s = sec - m * 60;
+  const p = (n) => String(n).padStart(2, "0");
+  if (d > 0) return `${d} ngày ${p(h)}h`;
+  if (h > 0) return `${p(h)}:${p(m)}:${p(s)}`;
+  return `${p(m)}:${p(s)}`;
 }
 
 function liveTick() {
   const el = $("#liveCount");
   if (!liveOn) { el.textContent = "tắt — bấm để bật"; return; }
   if (document.hidden) { el.innerHTML = `<span class="warn">tạm dừng (tab ẩn)</span>`; return; }
-  if (!inSession) { el.innerHTML = `<span class="warn">ngoài giờ giao dịch</span>`; return; }
+  if (!inSession) {
+    el.innerHTML = nextOpenTs
+      ? `<span class="warn">mở cửa sau ${fmtCountdown(nextOpenTs - Date.now() / 1000)}</span>`
+      : `<span class="warn">ngoài giờ giao dịch</span>`;
+    return;
+  }
   const left = Math.max(0, Math.ceil((nextLive - Date.now()) / 1000));
   el.textContent = `cập nhật sau ${left}s`;
   if (left <= 0) { nextLive = Date.now() + LIVE_MS; doLive(); }
@@ -31,6 +50,7 @@ function liveTick() {
 function doLive() {
   loadOverview(true, true);
   loadBreadth();
+  loadScreen();                       /* bảng xếp hạng — đọc cache, không tốn quota vnstock */
   if (selectedSym && !detailBusy && !compareMode) openSymbol(selectedSym, true);
 }
 
@@ -221,7 +241,11 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && liveOn) nextLive = Date.now() + 3000;
+  if (!document.hidden) {
+    loadSession();
+    loadScreen();
+    if (liveOn) nextLive = Date.now() + 3000;
+  }
 });
 
 /* ---------------- init ---------------- */

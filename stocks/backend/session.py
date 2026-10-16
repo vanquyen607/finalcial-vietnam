@@ -5,9 +5,13 @@ NGUON:
 - TB 5305/TB-SGDHN (HNX) ve lich nghi giao dich 2026
 - Le co dinh ngay am lich 2027 theo phap luat (Tet Am lich CHUA co van ban So — du kien)
 """
-from datetime import datetime
+from datetime import datetime, time as _time, timedelta
 
 from backend.store import now_vn
+
+# Moc phien (khop is_session): sang 09:15-11:35, chieu 12:55-15:05
+_OPEN_AM = _time(9, 15)
+_OPEN_PM = _time(12, 55)
 
 MARKET_CLOSED = {
     # -------- 2026 — chinh thuc (HOSE 2294 + HNX 5305) --------
@@ -42,3 +46,43 @@ def is_session(now: datetime | None = None) -> bool:
         return False
     hm = int(now.strftime("%H%M"))
     return 915 <= hm <= 1135 or 1255 <= hm <= 1505
+
+
+def _is_trading_day(d) -> bool:
+    """T2-T6 va khong nam trong lich nghi le (MARKET_CLOSED)."""
+    return d.weekday() < 5 and d.strftime("%Y-%m-%d") not in MARKET_CLOSED
+
+
+def session_state(now: datetime | None = None) -> str:
+    """Trang thai phien: open | pre | lunch | closed | weekend | holiday."""
+    now = now if now is not None else now_vn()
+    if now.weekday() >= 5:
+        return "weekend"
+    if now.strftime("%Y-%m-%d") in MARKET_CLOSED:
+        return "holiday"
+    if is_session(now):
+        return "open"
+    t = now.time()
+    if t < _OPEN_AM:
+        return "pre"
+    if _time(11, 35) < t < _OPEN_PM:
+        return "lunch"
+    return "closed"
+
+
+def next_open(now: datetime | None = None) -> datetime:
+    """Thoi diem mo phien ke tiep (09:15 sang hom nay, 12:55 chieu, hoac 09:15
+    ngay giao dich ke tiep). Giu nguyen tzinfo cua `now` (Asia/Ho_Chi_Minh)."""
+    now = now if now is not None else now_vn()
+    d = now.date()
+    if _is_trading_day(d):
+        t = now.time()
+        if t < _OPEN_AM:
+            return now.replace(hour=9, minute=15, second=0, microsecond=0)
+        if t < _OPEN_PM:  # dang giua phien sang / nghi trua -> mo phien chieu
+            return now.replace(hour=12, minute=55, second=0, microsecond=0)
+    nd = d + timedelta(days=1)
+    while not _is_trading_day(nd):
+        nd += timedelta(days=1)
+    return now.replace(year=nd.year, month=nd.month, day=nd.day,
+                       hour=9, minute=15, second=0, microsecond=0)

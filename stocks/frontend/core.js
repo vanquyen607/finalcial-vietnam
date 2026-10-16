@@ -133,7 +133,6 @@ function applyTheme(t) {
   document.documentElement.setAttribute("data-theme", t);
   try { localStorage.setItem("ck_theme", t); } catch (e) {}
   const b = $("#btnTheme");
-  b.textContent = t === "dark" ? "☀️" : "🌙";
   b.title = t === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối";
   if (lastDetail && lastDetail.ohlcv) drawChart(lastDetail.ohlcv);
 }

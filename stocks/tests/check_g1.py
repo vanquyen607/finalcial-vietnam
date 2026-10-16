@@ -20,7 +20,7 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={"width": 1440, "height": 900})
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.goto(BASE, wait_until="networkidle")
+    pg.goto(BASE, wait_until="domcontentloaded")
 
     # 1. a11y cơ bản
     check("skip-link tồn tại", pg.locator("a.skip[href='#main']").count() == 1)
@@ -41,7 +41,7 @@ with sync_playwright() as p:
     pg.click("#sortChips .chip-btn[data-sort='close']")
     pg.click("#filterChips .chip-btn[data-filter='bad']")
     pg.wait_for_timeout(300)
-    pg.reload(wait_until="networkidle")
+    pg.reload(wait_until="domcontentloaded")
     pg.wait_for_selector("#screenBody tr[data-sym]", timeout=30000)
     sort_on = pg.locator("#sortChips .chip-btn.on").get_attribute("data-sort")
     arr_txt = pg.locator("#sortChips .chip-btn.on .arr").inner_text()

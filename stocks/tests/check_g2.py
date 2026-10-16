@@ -19,7 +19,7 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={"width": 1440, "height": 900})
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.goto(BASE, wait_until="networkidle")
+    pg.goto(BASE, wait_until="domcontentloaded")
     pg.wait_for_selector("#screenBody tr[data-sym]", timeout=30000)
 
     # ---------- 1. WATCHLIST ----------
@@ -43,7 +43,7 @@ with sync_playwright() as p:
     check("rowCount 1/40", "1/40" in cnt, cnt)
 
     # reload → giữ cả filter lẫn watchlist
-    pg.reload(wait_until="networkidle")
+    pg.reload(wait_until="domcontentloaded")
     pg.wait_for_selector("#screenBody tr[data-sym]", timeout=30000)
     check("filter mine giữ sau F5", pg.locator("#filterChips .chip-btn.on").get_attribute("data-filter") == "mine")
     wl = pg.evaluate("JSON.parse(localStorage.getItem('ck_watch'))")

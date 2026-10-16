@@ -19,7 +19,7 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.goto(BASE, wait_until="networkidle")
+    pg.goto(BASE, wait_until="domcontentloaded")
     pg.wait_for_selector("#cards .card .big", timeout=30000)
 
     # khong trang ngang (body)
@@ -30,9 +30,13 @@ with sync_playwright() as p:
     check("toolbar thấy chip sort", pg.locator("#sortChips .chip-btn").first.is_visible())
     check("toolbar thấy chip lọc", pg.locator("#filterChips .chip-btn").first.is_visible())
 
-    # bảng: cuộn ngang được, header sticky
-    tbl_sw = pg.evaluate("document.querySelector('.tbl-scroll').scrollWidth > document.querySelector('.tbl-scroll').clientWidth")
-    check("bảng cuộn ngang được", tbl_sw)
+    # bảng: cột phụ (20 phiên, KL/20) ẩn trên mobile cho gọn; cột chính vẫn thấy
+    hidden = pg.evaluate(
+        "() => [...document.querySelectorAll('table.tbl thead th')]"
+        ".filter(th => getComputedStyle(th).display === 'none').map(th => th.textContent.trim())"
+    )
+    check("ẩn cột phụ (20 phiên, KL/20) trên mobile", set(hidden) == {"20 phiên", "KL/20"}, str(hidden))
+    check("cột Tín hiệu vẫn hiển thị", pg.locator("table.tbl thead th").last.is_visible())
 
     # mở mã bằng ô search (dùng JS vì nút có thể need scroll)
     pg.fill("#symInput", "HPG")

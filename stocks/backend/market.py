@@ -10,7 +10,7 @@ from backend.store import (BASKET, CACHE_TTL, DATA, NEWS_DIR, ROOT, SKILL_DATA, 
                            _cached, _fresh, _save, now_vn)
 from backend.vnrate import GAP, LIMIT_WAIT, paced
 from backend.calc import _r, _rsi, _tick, compute, make_entry_zone
-from backend.session import MARKET_CLOSED, is_session
+from backend.session import MARKET_CLOSED, is_session, next_open, session_state
 from backend.symbol import _quote_history, _seed_symbol, _seeded_cache, get_symbol
 from backend.overview import (_build_overview, _index_df, _ma, _ov_lock, _ov_state,
                               _seed_overview, overview)
@@ -22,7 +22,7 @@ __all__ = [
     "_cached", "_fresh", "_save", "now_vn",
     "GAP", "LIMIT_WAIT", "paced",
     "_r", "_rsi", "_tick", "compute", "make_entry_zone",
-    "MARKET_CLOSED", "is_session",
+    "MARKET_CLOSED", "is_session", "next_open", "session_state",
     "_quote_history", "_seed_symbol", "_seeded_cache", "get_symbol",
     "_build_overview", "_index_df", "_ma", "_ov_lock", "_ov_state", "_seed_overview", "overview",
     "BREADTH_TTL", "_OffHours", "_breadth_build", "_breadth_lock", "_breadth_state",

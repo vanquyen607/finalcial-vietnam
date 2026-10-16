@@ -11,7 +11,7 @@ with sync_playwright() as p:
     pg = b.new_page()
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.goto("http://127.0.0.1:8100", wait_until="networkidle")
+    pg.goto("http://127.0.0.1:8100", wait_until="domcontentloaded")
     pg.wait_for_selector("#screenBody tr[data-sym]", timeout=30000)
     with pg.expect_download() as dl:
         pg.click("#btnCsv")

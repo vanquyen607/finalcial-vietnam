@@ -1,5 +1,13 @@
 /* Phan Tich Co Phieu VN — screen.js (tach tu app.js) */
 /* ---------------- screen ---------------- */
+/* nhịp poll bảng theo trạng thái: đang quét 3s; rảnh & trong phiên (Live) 10s;
+   rảnh & ngoài phiên/tắt Live 45s; tab ẩn 60s — hạn chế request thừa */
+function screenPollDelay(running) {
+  if (document.hidden) return 60000;
+  if (running) return 3000;
+  return (liveOn && inSession) ? 10000 : 45000;
+}
+
 async function loadScreen() {
   try {
     const st = await api("/api/screen");
@@ -10,7 +18,7 @@ async function loadScreen() {
       $("#screenMeta").textContent = `${st.done}/${st.total} · hiện tại: ${st.current || "…"} · ${auto}`;
       renderScreen(st.results || []);
       clearTimeout(pollTimers.screen);
-      pollTimers.screen = setTimeout(loadScreen, 3000);
+      pollTimers.screen = setTimeout(loadScreen, screenPollDelay(true));
       return;
     }
     $("#screenBar").style.width = "100%";
@@ -25,7 +33,7 @@ async function loadScreen() {
       $("#screenBody").innerHTML = `<tr><td colspan="8" class="empty">Chưa có dữ liệu. Bấm <b>Chạy màn lọc 40 mã</b> (lần đầu ~6 phút).</td></tr>`;
     }
     clearTimeout(pollTimers.screen);
-    pollTimers.screen = setTimeout(loadScreen, 8000);
+    pollTimers.screen = setTimeout(loadScreen, screenPollDelay(false));
   } catch (e) {
     $("#screenMeta").textContent = "lỗi: " + e.message;
     clearTimeout(pollTimers.screen);

@@ -102,7 +102,13 @@ def api_screen_stop():
 
 @app.get("/api/session")
 def api_session():
-    return {"in_session": market.is_session(), "now": market.now_vn().strftime("%H:%M %d/%m")}
+    now = market.now_vn()
+    nxt = market.next_open(now)
+    return {"in_session": market.is_session(now),
+            "state": market.session_state(now),
+            "now": now.strftime("%H:%M %d/%m"),
+            "next_open_ts": int(nxt.timestamp()),
+            "next_open": nxt.strftime("%H:%M %d/%m")}
 
 
 @app.get("/api/symbols")

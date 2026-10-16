@@ -2,12 +2,14 @@
 """Unit test cac module moi: sentiment, events, auth, brief — khong go API, <5s."""
 import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 os.environ["VNSTOCK_DISABLE_AGENT_SETUP"] = "1"
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from backend import auth, brief, events, sentiment
+from backend import session as bsession
 
 fails = []
 
@@ -120,6 +122,23 @@ try:
     check("build_brief: lines la list", isinstance(b["lines"], list))
 except Exception as e:
     check("build_brief khong crash", False, repr(e))
+
+# ---------------------------------------------------------------- session
+print("== session: state + next_open ==")
+_sess_cases = [
+    (datetime(2026, 10, 16, 8, 30), "pre", "09:15 16/10"),
+    (datetime(2026, 10, 16, 9, 23), "open", "12:55 16/10"),
+    (datetime(2026, 10, 16, 12, 0), "lunch", "12:55 16/10"),
+    (datetime(2026, 10, 16, 15, 30), "closed", "09:15 19/10"),
+    (datetime(2026, 10, 17, 10, 0), "weekend", "09:15 19/10"),
+    (datetime(2026, 9, 2, 10, 0), "holiday", "09:15 03/09"),
+]
+for _now, _st, _op in _sess_cases:
+    check(f"session_state {_now:%d/%m %H:%M} = {_st}", bsession.session_state(_now) == _st)
+    check(f"next_open {_now:%d/%m %H:%M} = {_op}",
+          bsession.next_open(_now).strftime("%H:%M %d/%m") == _op)
+check("is_session 10:00 T6 = True", bsession.is_session(datetime(2026, 10, 16, 10, 0)))
+check("is_session T7 = False", not bsession.is_session(datetime(2026, 10, 17, 10, 0)))
 
 print()
 if fails:

@@ -19,7 +19,7 @@ with sync_playwright() as p:
     pg = b.new_page(viewport={"width": 1440, "height": 900})
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.goto(BASE, wait_until="networkidle")
+    pg.goto(BASE, wait_until="domcontentloaded")
     pg.wait_for_selector("#screenBody tr[data-sym]", timeout=30000)
 
     # ---------- 1. OVERVIEW 3 CHI SO (gồm UPCOM) ----------
