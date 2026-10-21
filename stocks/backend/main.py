@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import alerts, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, regime, screen
+from backend import ai, alerts, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, regime, screen
 from backend.auth import admin_guard, is_locked
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -162,6 +162,17 @@ def api_symbol_peers(sym: str):
 @app.get("/api/symbol/{sym}/flow")
 def api_symbol_flow(sym: str):
     return flow.get_flow(sym)
+
+
+@app.post("/api/symbol/{sym}/ask")
+async def api_symbol_ask(sym: str, request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={
+            "status": "error", "message": "Dữ liệu gửi lên không hợp lệ"})
+    q = body.get("question") if isinstance(body, dict) else ""
+    return ai.answer(sym, str(q or "")[:ai.MAX_Q + 1])
 
 
 # ---------------- alerts ----------------

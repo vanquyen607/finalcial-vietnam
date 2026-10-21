@@ -103,6 +103,22 @@ function renderDetail(d, stale) {
       <div class="entry-note">💡 ${d.entry_note}</div>
       <div class="narrative">${d.narrative}</div>
 
+      <div class="ai-box" id="aiBox">
+        <div class="ai-head">
+          <h4>Hỏi AI về ${d.symbol}</h4>
+          <span class="ai-badge">Gemini</span>
+          <button type="button" class="ai-clear" id="aiClear" title="Xoá hội thoại của mã này">Xoá</button>
+        </div>
+        <div class="ai-chips" id="aiChips"></div>
+        <div class="ai-log" id="aiLog"></div>
+        <form class="ai-form" id="aiForm">
+          <input id="aiInput" maxlength="500" autocomplete="off"
+                 placeholder="Hỏi về ${d.symbol}… (VD: rủi ro chính là gì?)">
+          <button class="btn primary" type="submit" id="aiSend">Gửi</button>
+        </form>
+        <div class="ai-note">AI trả lời dựa trên dữ liệu cache của app — chỉ để tham khảo, không phải khuyến nghị đầu tư. Câu hỏi được gửi tới Google Gemini.</div>
+      </div>
+
       <div class="chart-head">
         <h4>Biểu đồ nến 260 phiên</h4>
         <div class="chart-legend">
@@ -158,6 +174,7 @@ function renderDetail(d, stale) {
   loadFundtrend(d.symbol);
   loadPeers(d.symbol);
   loadFlow(d.symbol);          /* lazy — khong block phan tich ky thuat */
+  if (window.initAI) initAI(d.symbol);
 }
 
 /* ---------------- báo giá ---------------- */
