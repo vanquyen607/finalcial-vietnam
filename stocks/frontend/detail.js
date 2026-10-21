@@ -108,11 +108,18 @@ function renderDetail(d, stale) {
         <div class="chart-legend">
           <span><i style="background:#f0b423"></i>MA20</span>
           <span><i style="background:#4d8dff"></i>MA50</span>
+          <span><i style="background:#4d8dff66"></i>KL</span>
           <span><i style="background:var(--up)"></i>Tăng</span>
           <span><i style="background:var(--down)"></i>Giảm</span>
         </div>
       </div>
       <div id="chart"></div>
+      <div class="chart-plan">
+        <span><i style="background:#a78bfa"></i>Vào ${fmt(d.entry[0], 1)}–${fmt(d.entry[1], 1)}</span>
+        <span><i style="background:var(--down)"></i>Cắt lỗ ${fmt(d.stop, 1)}</span>
+        <span><i style="background:var(--up)"></i>T1 ${fmt(d.t1, 1)}</span>
+        <span><i style="background:var(--up)"></i>T2 ${fmt(d.t2, 1)}</span>
+      </div>
 
       <div class="news" id="news">
         <h4>Tin tức ${d.symbol}</h4>
@@ -142,7 +149,7 @@ function renderDetail(d, stale) {
 
   const newsBox = document.getElementById("news");
   if (newsBox && lastNewsHTML) { newsBox.innerHTML = lastNewsHTML; syncNewsState(); }
-  drawChart(d.ohlcv);
+  drawChart(d.ohlcv, d);
   syncCompareUI();
   checkAlerts(d);
   if (fundCache[d.symbol]) renderFund(fundCache[d.symbol]);
@@ -178,6 +185,16 @@ function checkAlerts(d) {
    Chỉ giữ 6 chỉ số dễ hiểu cho người mới; di chuột ô nào xem ý nghĩa ô đó. */
 const fundCache = {};
 const fundPending = new Set();
+const auxCache = {};
+const AUX_TTL = 10 * 60 * 1000;
+function auxCached(kind, sym) {
+  const e = auxCache[kind + ":" + sym];
+  return e && Date.now() - e.t < AUX_TTL ? e.st : null;
+}
+function auxStore(kind, sym, st) {
+  auxCache[kind + ":" + sym] = { t: Date.now(), st };
+  return st;
+}
 const FUND_KEYS = [
   ["P/E", ["pe_ratio"], 1, "", "Giá cao gấp mấy lần so với lãi 1 năm — dưới 15 thường là rẻ"],
   ["P/B", ["pb_ratio"], 1, "", "Giá so với giá trị tài sản ròng trên sổ sách — dưới 1 là rẻ hơn sổ sách"],
@@ -332,7 +349,7 @@ function sma(vals, n) {
   return out;
 }
 
-function drawChart(ohlcv) {
+function drawChart(ohlcv, d) {
   const box = document.getElementById("chart");
   if (!box || !window.LightweightCharts) return;
   if (chart) { chart.remove(); chart = null; }
@@ -354,12 +371,28 @@ function drawChart(ohlcv) {
     autoSize: true,
   });
 
+  const up = cssVar("--up", "#2ecc71");
+  const down = cssVar("--down", "#ff5b5b");
+
   const candles = chart.addCandlestickSeries({
-    upColor: cssVar("--up", "#2ecc71"), downColor: cssVar("--down", "#ff5b5b"),
+    upColor: up, downColor: down,
     borderVisible: false,
-    wickUpColor: cssVar("--up", "#2ecc71"), wickDownColor: cssVar("--down", "#ff5b5b"),
+    wickUpColor: up, wickDownColor: down,
   });
   candles.setData(ohlcv.map((r) => ({ time: r.time, open: r.open, high: r.high, low: r.low, close: r.close })));
+
+  const vol = chart.addHistogramSeries({
+    priceFormat: { type: "volume" },
+    priceScaleId: "",
+    lastValueVisible: false,
+    priceLineVisible: false,
+  });
+  vol.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+  vol.setData(ohlcv.map((r) => ({
+    time: r.time,
+    value: r.volume || 0,
+    color: (r.close >= r.open ? up : down) + "66",
+  })));
 
   const closes = ohlcv.map((r) => r.close);
   const ma20 = sma(closes, 20).map((v, i) => ({ time: ohlcv[i + 19].time, value: v }));
@@ -369,6 +402,27 @@ function drawChart(ohlcv) {
   l20.setData(ma20);
   const l50 = chart.addLineSeries({ color: "#4d8dff", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
   l50.setData(ma50);
+
+  if (d) {
+    const entryMid = Array.isArray(d.entry) && d.entry.length === 2 ? (d.entry[0] + d.entry[1]) / 2 : null;
+    const dashed = (LightweightCharts.LineStyle && LightweightCharts.LineStyle.Dashed) || 2;
+    [
+      [entryMid, "#a78bfa", "Vào"],
+      [d.stop, down, "Cắt lỗ"],
+      [d.t1, up, "T1"],
+      [d.t2, up, "T2"],
+    ].forEach(([price, color, title]) => {
+      if (price == null || isNaN(price)) return;
+      candles.createPriceLine({
+        price,
+        color,
+        lineWidth: 1,
+        lineStyle: dashed,
+        axisLabelVisible: false,
+        title,
+      });
+    });
+  }
 
   chart.timeScale().fitContent();
 }
@@ -428,9 +482,12 @@ const SENT_ICONS = { positive: "🟢", negative: "🔴", catalyst: "⚡", risk: 
 async function loadEvents(sym) {
   const box = document.getElementById("events");
   if (!box) return;
+  const cached = auxCached("ev", sym);
+  if (cached) { if (sym === selectedSym) renderEvents(cached); return; }
   try {
     const st = await api(`/api/symbol/${sym}/events`);
     if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    auxStore("ev", sym, st);
     renderEvents(st);
   } catch (e) { box.hidden = true; }
 }
@@ -471,9 +528,12 @@ function renderEvents(st) {
 async function loadFundtrend(sym) {
   const box = document.getElementById("fundtrend");
   if (!box) return;
+  const cached = auxCached("ft", sym);
+  if (cached) { if (sym === selectedSym) renderFundtrend(cached.data || {}); return; }
   try {
     const st = await api(`/api/symbol/${sym}/fundtrend`);
     if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    auxStore("ft", sym, st);
     renderFundtrend(st.data || {});
   } catch (e) { box.hidden = true; }
 }
@@ -566,9 +626,12 @@ function renderFundtrend(data) {
 async function loadPeers(sym) {
   const box = document.getElementById("peers");
   if (!box) return;
+  const cached = auxCached("peers", sym);
+  if (cached) { if (sym === selectedSym) renderPeers(cached, sym); return; }
   try {
     const st = await api(`/api/symbol/${sym}/peers`);
     if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    auxStore("peers", sym, st);
     renderPeers(st, sym);
   } catch (e) { box.hidden = true; }
 }
@@ -624,9 +687,12 @@ function renderPeers(st, selfSym) {
 async function loadFlow(sym) {
   const box = document.getElementById("flow");
   if (!box) return;
+  const cached = auxCached("flow", sym);
+  if (cached) { if (sym === selectedSym) renderFlow(cached.data || {}, sym); return; }
   try {
     const st = await api(`/api/symbol/${sym}/flow`);
     if (sym !== selectedSym || st.status !== "ready") { box.hidden = true; return; }
+    auxStore("flow", sym, st);
     renderFlow(st.data || {}, sym);
   } catch (e) { box.hidden = true; }
 }

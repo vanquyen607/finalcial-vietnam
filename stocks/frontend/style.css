@@ -845,6 +845,8 @@ table.tbl tbody tr:focus-visible { outline: 2px solid var(--accent); outline-off
 .chart-head h4 { font-size: 13px; font-weight: 750; }
 .chart-legend { display: flex; gap: 13px; font-size: 11.5px; color: var(--muted); margin-left: auto; }
 .chart-legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+.chart-plan { display: flex; gap: 13px; flex-wrap: wrap; font-size: 11.5px; color: var(--muted); margin: -2px 0 8px; }
+.chart-plan i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
 #chart { width: 100%; height: 310px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--chart-bg); }
 
 /* news */
