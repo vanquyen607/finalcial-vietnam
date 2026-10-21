@@ -180,14 +180,27 @@ def answer(sym: str, question: str) -> dict:
                     + json.dumps(ctx, ensure_ascii=False, separators=(",", ":"))
                     + "\n\nCÂU HỎI: " + q
         }]}],
-        "generationConfig": {"temperature": 0.3, "topP": 0.9, "maxOutputTokens": 800},
+        "generationConfig": {
+            "temperature": 0.3, "topP": 0.9, "maxOutputTokens": 600,
+            "thinkingConfig": {"thinkingBudget": 0},   # tat thinking -> tra loi nhanh
+        },
     }
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
-    try:
-        r = requests.post(url, json=payload, headers={"x-goog-api-key": key}, timeout=45)
-    except Exception as e:
-        logging.getLogger("phan-tich").warning("gemini network: %s", type(e).__name__)
-        return {"status": "error", "message": "Không gọi được AI — thử lại sau."}
+    r = None
+    last = None
+    for _ in range(2):                      # thu lai 1 lan neu timeout/mat ket noi
+        try:
+            r = requests.post(url, json=payload,
+                              headers={"x-goog-api-key": key},
+                              timeout=(15, 90))
+            break
+        except Exception as e:
+            last = e
+            logging.getLogger("phan-tich").warning(
+                "gemini network: %s (%s)", type(e).__name__, e)
+    if r is None:
+        return {"status": "error",
+                "message": f"Không gọi được AI ({type(last).__name__}) — thử lại sau."}
 
     if r.status_code >= 400:
         logging.getLogger("phan-tich").warning(
