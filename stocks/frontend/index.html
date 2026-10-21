@@ -216,12 +216,33 @@
 
   <div id="toasts" aria-live="polite"></div>
 
+  <button class="ai-fab" id="aiFab" type="button" aria-expanded="false"
+          aria-controls="aiPanel" title="Hỏi AI về mã đang xem">
+    <span class="ai-fab-ico">✦</span> Hỏi AI
+  </button>
+
+  <div class="ai-panel" id="aiPanel" hidden role="dialog" aria-label="Trợ lý AI">
+    <div class="ai-head">
+      <h4 id="aiTitle">Hỏi AI</h4>
+      <span class="ai-badge">Gemini</span>
+      <button type="button" class="ai-clear" id="aiClear" title="Xoá hội thoại của mã này">Xoá</button>
+      <button type="button" class="ai-close" id="aiClose" aria-label="Đóng">✕</button>
+    </div>
+    <div class="ai-chips" id="aiChips"></div>
+    <div class="ai-log" id="aiLog"></div>
+    <form class="ai-form" id="aiForm">
+      <input id="aiInput" maxlength="500" autocomplete="off" placeholder="Chọn một mã để hỏi…">
+      <button class="btn primary" type="submit" id="aiSend">Gửi</button>
+    </form>
+    <div class="ai-note">AI trả lời từ dữ liệu cache của app — chỉ để tham khảo, không phải khuyến nghị đầu tư. Câu hỏi được gửi tới Google Gemini.</div>
+  </div>
+
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
 <script src="core.js"></script>
 <script src="overview.js"></script>
 <script src="screen.js"></script>
 <script src="detail.js"></script>
-<script src="ask.js"></script>
+<script src="ask.js?v=4"></script>
 <script src="alerts.js"></script>
 <script src="portfolio.js"></script>
 <script src="brief.js"></script>
