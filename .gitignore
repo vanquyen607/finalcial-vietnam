@@ -56,3 +56,5 @@ stocks/scripts/*_0929.json
 # Thu muc lam viec cua cong cu kilo (worktree scratch)
 .kilo/
 
+.neon
+.env.local
