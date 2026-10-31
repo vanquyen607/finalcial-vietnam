@@ -64,7 +64,8 @@ function renderDetail(d, stale) {
         <span class="name">${d.symbol}</span>
         <button class="star${watched ? " on" : ""}" data-star type="button"
                 aria-pressed="${watched}" title="Thêm/bỏ ${d.symbol} vào ⭐ Của tôi">${watched ? "★" : "☆"}</button>
-        <span class="price${priceFlash}">${fmt(d.close, d.close < 50 ? 1 : 0)}</span>
+        <span class="price${priceFlash}" data-q-price>${fmt(d.close, d.close < 50 ? 1 : 0)}</span>
+        <span class="dchg q-day" data-q-day></span>
         <span class="dchg ${cls(d.r5)}">5 phiên: ${sign(d.r5, 1)}%</span>
         <span class="date">phiên ${fmtDate(d.date)}${stale ? " · cache cũ" : ""}</span>
       </div>

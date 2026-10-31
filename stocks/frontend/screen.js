@@ -73,11 +73,19 @@ function visibleRows() {
 
 function rowHTML(r, i) {
   const tone = r.tone || "neutral";
+  const q = window.QUOTES && window.QUOTES[r.symbol];
+  const px = q && q.price ? q.price / 1000 : r.close;
+  const qchg = q && q.chg_pct != null
+    ? `<span class="q-chg ${cls(q.chg_pct)}">${sign(q.chg_pct, 1)}%</span>`
+    : "";
+  const qtitle = q && q.chg_pct != null
+    ? ` title="Hôm nay ${sign(q.chg_pct, 1)}% (tham chiếu ${fmt(q.ref / 1000, 1)}) - nguồn SSI"`
+    : "";
   return `<tr data-sym="${r.symbol}" tabindex="0" class="${r.symbol === selectedSym ? "sel" : ""}"
     aria-selected="${r.symbol === selectedSym}">
     <td class="rank">${i + 1}</td>
     <td><span class="sym">${inWatch(r.symbol) ? '<span class="star-inline" title="Trong ⭐ Của tôi">★</span>' : ""}${r.symbol}</span></td>
-    <td>${fmt(r.close, r.close < 50 ? 1 : 0)}</td>
+    <td class="qp" data-price="${px || ""}"${qtitle}>${fmt(px, px < 50 ? 1 : 0)}${qchg}</td>
     <td class="${cls(r.r20)}">${sign(r.r20, 1)}%</td>
     <td class="${r.rsi > 70 ? "down" : r.rsi < 30 ? "up" : ""}">${fmt(r.rsi, 0)}</td>
     <td>${fmt(r.vol_ratio, 2)}×</td>

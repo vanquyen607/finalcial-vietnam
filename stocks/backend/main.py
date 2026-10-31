@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import ai, alerts, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, regime, screen
+from backend import ai, alerts, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, quote, regime, screen
 from backend.auth import admin_guard, is_locked
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -114,6 +114,11 @@ def api_session():
 @app.get("/api/symbols")
 def api_symbols():
     return {"basket": market.BASKET}
+
+
+@app.get("/api/quote")
+def api_quote(symbols: str = Query("")):
+    return quote.get(symbols)
 
 
 @app.get("/api/symbol/{sym}")

@@ -1065,3 +1065,10 @@ footer b { color: var(--text-2); }
   .ai-fab { right: 12px; bottom: 12px; }
   .ai-msg { max-width: 100%; }
 }
+
+/* ---------------- gia gan realtime (SSI iBoard) ---------------- */
+.q-chg { margin-left: 4px; font-size: 10.5px; letter-spacing: -.01em; }
+.q-chg.up { color: var(--up); }
+.q-chg.down { color: var(--down); }
+.q-chg.flat { color: var(--muted); }
+.q-day:empty { display: none; }
