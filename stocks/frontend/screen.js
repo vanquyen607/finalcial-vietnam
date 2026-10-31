@@ -79,7 +79,7 @@ function rowHTML(r, i) {
     ? `<span class="q-chg ${cls(q.chg_pct)}">${sign(q.chg_pct, 1)}%</span>`
     : "";
   const qtitle = q && q.chg_pct != null
-    ? ` title="Hôm nay ${sign(q.chg_pct, 1)}% (tham chiếu ${fmt(q.ref / 1000, 1)}) - nguồn SSI"`
+    ? ` title="Hôm nay ${sign(q.chg_pct, 1)}% (tham chiếu ${fmt(q.ref / 1000, 1)}) - nguồn VCI"`
     : "";
   return `<tr data-sym="${r.symbol}" tabindex="0" class="${r.symbol === selectedSym ? "sel" : ""}"
     aria-selected="${r.symbol === selectedSym}">

@@ -1,9 +1,11 @@
-"""Bang gia gan realtime mien phi tu SSI iBoard (khong can API key).
+"""Bang gia gan realtime mien phi (khong can API key).
 
-Nguon: POST https://iboard-query.ssi.com.vn/stock/multiple
-       form: stocks=HPG&stocks=SSI&boardId=MAIN
-- Tra ve nhieu ma trong 1 request (~400ms/40 ma), du truong: khop, tham chieu,
+Nguon: POST https://trading.vietcap.com.vn/api/price/symbols/getList
+       json: {"symbols": ["HPG", "SSI"]}
+- Tra ve nhieu ma trong 1 request (~300ms/40 ma), du truong: khop, tham chieu,
   tran/san, bid/ask 3 muc, KL + gia tri khop, room ngoai, phien.
+- Cung nguon VCI ma app da dung cho OHLCV / do rong thi truong, nen hoat dong
+  ca tren Render (SSI iBoard chan IP datacenter: 403).
 - KHONG phai API chinh thuc: co the doi field / chan IP bat cu luc nao.
   Vi vay: cache ngan trong RAM, loi thi tra gia cu (stale=1), khong ghi Neon.
 
@@ -11,17 +13,18 @@ Cache: trong phien 5s/ma, ngoai phien 300s. Khong ghi Neon (tranh write 5s/lan).
 """
 import threading
 import time
+from datetime import datetime
 
 import requests
 
 from backend import market
 
-_URL = "https://iboard-query.ssi.com.vn/stock/multiple"
+_URL = "https://trading.vietcap.com.vn/api/price/symbols/getList"
 _HDRS = {
     "User-Agent": "Mozilla/5.0",
-    "Origin": "https://iboard.ssi.com.vn",
-    "Referer": "https://iboard.ssi.com.vn/",
-    "Content-Type": "application/x-www-form-urlencoded",
+    "Origin": "https://trading.vietcap.com.vn",
+    "Referer": "https://trading.vietcap.com.vn/",
+    "Content-Type": "application/json",
 }
 _TTL_IN = 5.0
 _TTL_OUT = 300.0
@@ -56,48 +59,63 @@ def _clean_syms(raw) -> list:
     return out
 
 
+def _ms(iso) -> int:
+    """'2026-10-30T08:33:11.423Z' -> epoch ms."""
+    try:
+        s = str(iso or "").replace("Z", "+00:00")
+        return int(datetime.fromisoformat(s).timestamp() * 1000)
+    except (TypeError, ValueError):
+        return 0
+
+
 def _norm(d: dict) -> dict:
-    sym = str(d.get("stockSymbol") or "").upper()
-    ref = _num(d.get("refPrice"))
-    price = _num(d.get("matchedPrice")) or _num(d.get("expectedMatchedPrice"))
-    openp = _num(d.get("openPrice")) or _num(d.get("priorClosePrice"))
+    lst = d.get("listingInfo") or {}
+    m = d.get("matchPrice") or {}
+    ba = d.get("bidAsk") or {}
+    sym = str(lst.get("symbol") or m.get("symbol") or "").upper()
+    ref = _num(m.get("referencePrice")) or _num(lst.get("refPrice"))
+    price = _num(m.get("matchPrice")) or _num(m.get("matchPriceATC"))
     chg = round(price - ref, 2) if price > 0 and ref > 0 else None
     pct = round(chg / ref * 100, 2) if chg is not None and ref else None
-    upd = _num(d.get("expectedLastUpdate"))
+    bids = ba.get("bidPrices") or []
+    asks = ba.get("askPrices") or []
+    b1 = bids[0] if bids else {}
+    a1 = asks[0] if asks else {}
+    # accumulatedValue/VND o don vi TRIEU dong (giong breadth.py)
+    val = _num(m.get("accumulatedValue")) * 1e6
+    upd = _ms(m.get("receivedTime") or lst.get("receivedTime"))
     return {
         "symbol": sym,
         "price": int(price) if price > 0 else None,
         "ref": int(ref) if ref > 0 else None,
         "chg": chg,
         "chg_pct": pct,
-        "open": int(openp) if openp > 0 else None,
-        "high": int(_num(d.get("highest"))) or None,
-        "low": int(_num(d.get("lowest"))) or None,
-        "avg": round(_num(d.get("avgPrice")), 1) or None,
-        "vol": int(_num(d.get("nmTotalTradedQty"))) or None,
-        "value": int(_num(d.get("nmTotalTradedValue"))) or None,
-        "bid": int(_num(d.get("best1Bid"))) or None,
-        "bid_vol": int(_num(d.get("best1BidVol"))) or None,
-        "ask": int(_num(d.get("best1Offer"))) or None,
-        "ask_vol": int(_num(d.get("best1OfferVol"))) or None,
-        "room": int(_num(d.get("remainForeignQtty"))) or None,
-        "ceil": int(_num(d.get("ceiling"))) or None,
-        "floor": int(_num(d.get("floor"))) or None,
-        "session": str(d.get("session") or ""),
+        "open": int(_num(m.get("openPrice"))) or None,
+        "high": int(_num(m.get("highest"))) or None,
+        "low": int(_num(m.get("lowest"))) or None,
+        "avg": round(_num(m.get("avgMatchPrice")), 1) or None,
+        "vol": int(_num(m.get("accumulatedVolume"))) or None,
+        "value": int(val) or None,
+        "bid": int(_num(b1.get("price"))) or None,
+        "bid_vol": int(_num(b1.get("volume"))) or None,
+        "ask": int(_num(a1.get("price"))) or None,
+        "ask_vol": int(_num(a1.get("volume"))) or None,
+        "room": int(_num(m.get("currentRoom"))) or None,
+        "ceil": int(_num(m.get("ceilingPrice")) or _num(lst.get("ceiling"))) or None,
+        "floor": int(_num(m.get("floorPrice")) or _num(lst.get("floor"))) or None,
+        "session": str(m.get("session") or ba.get("session") or ""),
         "live": price > 0,
-        "updated_at": int(upd) if upd > 0 else None,
+        "updated_at": upd or None,
         "stale": False,
     }
 
 
 def _fetch(syms: list) -> list:
-    body = "&".join("stocks=" + s for s in syms) + "&boardId=MAIN"
-    r = requests.post(_URL, data=body, headers=_HDRS, timeout=_TIMEOUT)
+    r = requests.post(_URL, json={"symbols": syms}, headers=_HDRS, timeout=_TIMEOUT)
     r.raise_for_status()
     js = r.json()
-    data = js.get("data") or []
     out = []
-    for d in data:
+    for d in js if isinstance(js, list) else []:
         if isinstance(d, dict):
             row = _norm(d)
             if row["symbol"]:
@@ -145,7 +163,7 @@ def get(symbols) -> dict:
                 data.append({"symbol": s, "price": None, "stale": True,
                              "live": False, "age": None})
         if any(s not in _rows for s in syms):
-            err = _state["err"] if now - _state["err_at"] < 120 else "SSI khong tra du lieu"
+            err = _state["err"] if now - _state["err_at"] < 120 else "Bang gia khong co ma nay"
         else:
             err = ""
 
@@ -154,8 +172,8 @@ def get(symbols) -> dict:
         "in_session": in_sess,
         "state": market.session_state(),
         "delay_s": int(_TTL_IN) if in_sess else 0,
-        "source": "ssi-iboard",
-        "note": "Gia tu bang gia SSI iBoard - chi de tham khao, khong phai API chinh thuc.",
+        "source": "vci-priceboard",
+        "note": "Gia tu bang gia VCI - chi de tham khao, khong phai API chinh thuc.",
         "error": err or None,
         "ts": int(now * 1000),
         "data": data,

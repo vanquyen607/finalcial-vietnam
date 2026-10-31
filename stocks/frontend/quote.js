@@ -1,4 +1,4 @@
-/* Giá gần realtime từ bảng giá SSI iBoard (miễn phí, không cần API key).
+/* Giá gần realtime từ bảng giá VCI (miễn phí, không cần API key).
    Poll 5s trong phiên, 15s ngoài phiên, 60s khi tab ẩn. Chỉ cập nhật DOM,
    không đụng dữ liệu EOD (screenRows/lastDetail giữ nguyên để tính chỉ báo). */
 window.QUOTES = window.QUOTES || {};
@@ -49,8 +49,8 @@ function applyQuotes() {
         : `<span class="q-chg ${cls(q.chg_pct)}">${sign(q.chg_pct, 1)}%</span>`;
       cell.innerHTML = fmt(q.price / 1000, q.price < 50000 ? 1 : 0) + chg;
       cell.title = q.chg_pct == null
-        ? "Giá khớp SSI"
-        : `Hôm nay ${sign(q.chg_pct, 1)}% (tham chiếu ${fmt(q.ref / 1000, 1)}) - nguồn SSI`;
+        ? "Giá khớp VCI"
+        : `Hôm nay ${sign(q.chg_pct, 1)}% (tham chiếu ${fmt(q.ref / 1000, 1)}) - nguồn VCI`;
     }
   });
 
@@ -73,7 +73,7 @@ function applyQuotes() {
     } else {
       day.textContent = `hôm nay ${sign(q.chg_pct, 1)}%`;
       day.className = `dchg q-day ${cls(q.chg_pct)}`;
-      day.title = `Giá khớp ${fmt(q.price / 1000, 1)} - tham chiếu ${fmt(q.ref / 1000, 1)} (SSI)`;
+      day.title = `Giá khớp ${fmt(q.price / 1000, 1)} - tham chiếu ${fmt(q.ref / 1000, 1)} (VCI)`;
     }
   }
 }
