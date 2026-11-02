@@ -153,7 +153,7 @@ try {
 function goldUrl() {
   const h = location.hostname;
   if (h === "localhost" || h === "127.0.0.1") return "http://127.0.0.1:8000/";
-  return "https://desktop-uco2224.tailfb154c.ts.net/";
+  return "https://finalcial-vietnam-1.onrender.com/";
 }
 try {
   const g = $("#navGold");
