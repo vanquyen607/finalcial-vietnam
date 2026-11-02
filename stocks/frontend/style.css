@@ -1135,3 +1135,35 @@ footer b { color: var(--text-2); }
 .q-chg.down { color: var(--down); }
 .q-chg.flat { color: var(--muted); }
 .q-day:empty { display: none; }
+/* ---------------- topbar more menu ---------------- */
+.tb-more { display: none; }
+.more-menu {
+  position: fixed; top: calc(var(--tb-h) + 6px); right: 10px; z-index: 40;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 6px; min-width: 200px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.more-menu[hidden] { display: none; }
+.mm-item {
+  background: none; border: none; color: var(--text); text-align: left;
+  padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 13px; font-family: inherit; font-weight: 600;
+}
+.mm-item:hover { background: var(--surface-2); }
+
+@media (max-width: 768px) {
+  .topbar { height: auto; min-height: var(--tb-h); padding: 8px 10px; gap: 8px; flex-wrap: wrap; }
+  .topbar h1 { font-size: 12.5px; }
+  .clock { display: none; }
+  .tb-sep { display: none; }
+  .btn { height: 28px; padding: 0 9px; font-size: 11.5px; }
+  .appnav-item { padding: 3px 9px; font-size: 11px; }
+  .live-count { font-size: 11px; }
+  .tb-more { display: inline-flex; }
+  .tb-sec { display: none; }
+  #btnRunScreen { display: none; }
+}
+@media (max-width: 480px) {
+  .brand h1 { font-size: 11.5px; }
+  .logo { width: 22px; height: 22px; font-size: 10px; }
+}

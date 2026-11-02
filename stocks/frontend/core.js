@@ -144,7 +144,31 @@ function cssVar(name, fallback) {
   return (getComputedStyle(document.documentElement).getPropertyValue(name) || "").trim() || fallback;
 }
 
-/* ---------------- notice ---------------- */
+/* ---------------- topbar more menu ---------------- */
+(function initMoreMenu() {
+  const btn = $("#btnMore");
+  const menu = $("#moreMenu");
+  if (!btn || !menu) return;
+  function close() { menu.hidden = true; }
+  btn.addEventListener("click", (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; if (!menu.hidden) {
+    const r = btn.getBoundingClientRect();
+    menu.style.top = (r.bottom + 12) + "px";
+    menu.style.right = (window.innerWidth - r.right) + "px";
+  } });
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) close();
+  });
+  menu.querySelectorAll("[data-mm]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const a = el.getAttribute("data-mm");
+      if (a === "live") $("#btnLive") && $("#btnLive").click();
+      else if (a === "brief") $("#btnBrief") && $("#btnBrief").click();
+      else if (a === "refresh") $("#btnRefreshOverview") && $("#btnRefreshOverview").click();
+      else if (a === "runscreen") $("#btnRunScreen") && $("#btnRunScreen").click();
+      close();
+    });
+  });
+})();
 try {
   if (localStorage.getItem("ck_notice") === "off") $("#notice").classList.add("hidden");
 } catch (e) {}
