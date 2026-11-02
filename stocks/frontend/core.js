@@ -149,3 +149,14 @@ try {
   if (localStorage.getItem("ck_notice") === "off") $("#notice").classList.add("hidden");
 } catch (e) {}
 
+/* ---------------- chuyển app: Cổ phiếu ↔ Vàng ---------------- */
+function goldUrl() {
+  const h = location.hostname;
+  if (h === "localhost" || h === "127.0.0.1") return "http://127.0.0.1:8000/";
+  return "https://desktop-uco2224.tailfb154c.ts.net/";
+}
+try {
+  const g = $("#navGold");
+  if (g) g.href = goldUrl();
+} catch (e) {}
+

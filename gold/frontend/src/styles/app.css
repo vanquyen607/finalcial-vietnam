@@ -125,6 +125,18 @@ select {
   background: var(--primary);
 }
 
+/* chuyển app: sang trang Cổ phiếu */
+.nav a.nav__ext {
+  color: var(--primary);
+  font-weight: 600;
+  margin-right: 6px;
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+}
+.nav a.nav__ext:hover {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+}
+
 .topbar__status {
   margin-left: auto;
   display: flex;
