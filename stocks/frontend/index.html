@@ -25,6 +25,7 @@
 <body>
   <a class="skip" href="#main">Chuyển đến nội dung chính</a>
   <header class="topbar">
+    <button class="btn icon ghost sb-toggle" id="btnSidebar" aria-label="Mở menu" aria-expanded="false">☰</button>
     <div class="brand">
       <span class="logo" aria-hidden="true">▲</span>
       <h1>Phân Tích <em>Cổ Phiếu VN</em></h1>
@@ -103,8 +104,27 @@
 
   <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker-track" id="tickerTrack"></div></div>
 
-  <main class="wrap" id="main">
-    <section class="cards" id="cards" aria-label="Chỉ số thị trường">
+  <div class="layout" id="layout">
+    <aside class="sidebar" id="sidebar" aria-label="Điều hướng">
+      <nav class="side-nav">
+        <a class="side-item" href="#sec-overview" data-scroll><span class="si">📊</span><span class="sl">Tổng quan</span></a>
+        <a class="side-item" href="#sec-screen" data-scroll><span class="si">🔎</span><span class="sl">Màn lọc 40 mã</span></a>
+        <a class="side-item" href="#detailPanel" data-scroll><span class="si">📈</span><span class="sl">Chi tiết mã</span></a>
+        <button class="side-item" type="button" data-action="portfolio"><span class="si">💼</span><span class="sl">Danh mục</span></button>
+        <button class="side-item" type="button" data-action="alerts"><span class="si">🔔</span><span class="sl">Alert</span></button>
+        <button class="side-item" type="button" data-action="brief"><span class="si">📰</span><span class="sl">Bản tin</span></button>
+        <button class="side-item" type="button" data-action="ai"><span class="si">✦</span><span class="sl">Hỏi AI</span></button>
+        <button class="side-item primary" type="button" data-action="runscreen"><span class="si">▶</span><span class="sl">Chạy lọc 40 mã</span></button>
+      </nav>
+      <div class="side-foot">
+        <a class="side-item" id="sideGold" href="https://finalcial-vietnam-1.onrender.com/"><span class="si">◆</span><span class="sl">App Vàng</span></a>
+        <button class="side-collapse" id="btnCollapseSide" type="button" title="Thu gọn sidebar" aria-label="Thu gọn sidebar">‹</button>
+      </div>
+    </aside>
+    <div class="sb-backdrop" id="sbBackdrop"></div>
+
+    <main class="wrap" id="main">
+    <section class="cards" id="sec-overview" aria-label="Chỉ số thị trường">
       <div class="card"><div class="skel" style="height:110px"></div></div>
       <div class="card"><div class="skel" style="height:110px"></div></div>
       <div class="card"><div class="skel" style="height:110px"></div></div>
@@ -123,7 +143,7 @@
       <button class="n-x" id="noticeClose" title="Ẩn thông báo" aria-label="Ẩn thông báo">×</button>
     </div>
 
-    <div class="sect-head">
+    <div class="sect-head" id="sec-screen">
       <h2>Màn lọc cổ phiếu</h2>
       <span class="meta" id="screenMeta">chưa có dữ liệu</span>
       <div class="progress" title="Tiến độ quét"><i id="screenBar"></i></div>
@@ -222,6 +242,7 @@
       Đây là công cụ hỗ trợ phân tích kỹ thuật, <b>không phải tư vấn đầu tư</b>. Cache lưu trong <b>stocks/data/</b>.
     </footer>
   </main>
+  </div>
 
   <div id="toasts" aria-live="polite"></div>
 

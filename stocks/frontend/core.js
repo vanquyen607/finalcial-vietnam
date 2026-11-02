@@ -149,6 +149,98 @@ try {
   if (localStorage.getItem("ck_notice") === "off") $("#notice").classList.add("hidden");
 } catch (e) {}
 
+/* ---------------- sidebar ---------------- */
+(function initSidebar() {
+  const side = $("#sidebar");
+  const backdrop = $("#sbBackdrop");
+  const btn = $("#btnSidebar");
+  const collapse = $("#btnCollapseSide");
+  if (!side) return;
+
+  // collapse state
+  try {
+    if (localStorage.getItem("ck_sidebar") === "collapsed") side.classList.add("collapsed");
+  } catch (e) {}
+  if (collapse) {
+    collapse.textContent = side.classList.contains("collapsed") ? "›" : "‹";
+    collapse.addEventListener("click", () => {
+      side.classList.toggle("collapsed");
+      collapse.textContent = side.classList.contains("collapsed") ? "›" : "‹";
+      try { localStorage.setItem("ck_sidebar", side.classList.contains("collapsed") ? "collapsed" : "open"); } catch (e) {}
+    });
+  }
+
+  // mobile drawer
+  function openDrawer() {
+    side.classList.add("open");
+    if (backdrop) backdrop.classList.add("show");
+    if (btn) btn.setAttribute("aria-expanded", "true");
+  }
+  function closeDrawer() {
+    side.classList.remove("open");
+    if (backdrop) backdrop.classList.remove("show");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  }
+  if (btn) btn.addEventListener("click", () => side.classList.contains("open") ? closeDrawer() : openDrawer());
+  if (backdrop) backdrop.addEventListener("click", closeDrawer);
+
+  // action buttons
+  side.querySelectorAll("[data-action]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const a = el.getAttribute("data-action");
+      if (a === "portfolio") $("#btnPortfolio") && $("#btnPortfolio").click();
+      else if (a === "alerts") $("#btnAlerts") && $("#btnAlerts").click();
+      else if (a === "brief") $("#btnBrief") && $("#btnBrief").click();
+      else if (a === "ai") $("#aiFab") && $("#aiFab").click();
+      else if (a === "runscreen") $("#btnRunScreen") && $("#btnRunScreen").click();
+      closeDrawer();
+    });
+  });
+
+  // scroll anchors
+  side.querySelectorAll("[data-scroll]").forEach((el) => {
+    el.addEventListener("click", (e) => {
+      const href = el.getAttribute("href");
+      if (href && href.startsWith("#")) {
+        const target = document.querySelector(href);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: "smooth", block: "start" });
+          closeDrawer();
+        }
+      }
+    });
+  });
+
+  // active highlight on scroll
+  const items = Array.from(side.querySelectorAll("[data-scroll]"));
+  const targets = items.map((it) => {
+    const t = document.querySelector(it.getAttribute("href"));
+    return t ? { item: it, el: t } : null;
+  }).filter(Boolean);
+  if (targets.length && "IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        const t = targets.find((x) => x.el === en.target);
+        if (t) {
+          if (en.isIntersecting) {
+            items.forEach((i) => i.classList.remove("active"));
+            t.item.classList.add("active");
+          }
+        }
+      });
+    }, { rootMargin: "-30% 0px -60% 0px", threshold: 0 });
+    targets.forEach((t) => io.observe(t.el));
+  }
+
+  // gold link url
+  const sg = $("#sideGold");
+  if (sg) {
+    const h = location.hostname;
+    sg.href = (h === "localhost" || h === "127.0.0.1") ? "http://127.0.0.1:8000/" : "https://finalcial-vietnam-1.onrender.com/";
+  }
+})();
+
 /* ---------------- chuyển app: Cổ phiếu ↔ Vàng ---------------- */
 function goldUrl() {
   const h = location.hostname;
