@@ -15,3 +15,18 @@ services:
         value: "1"
       - key: ADMIN_TOKEN
         sync: false   # dat trong Render Dashboard (Settings > Environment); de trong = mo
+
+  # App gia vang Aurum Terminal (frontend build + backend SPA tren cung service)
+  - type: web
+    name: aurum-gold
+    runtime: python
+    plan: free
+    rootDir: gold
+    buildCommand: cd frontend && npm ci && npm run build
+    startCommand: cd backend && GOLD_HOST=0.0.0.0 GOLD_PORT=$PORT python run.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: TZ
+        value: Asia/Ho_Chi_Minh
