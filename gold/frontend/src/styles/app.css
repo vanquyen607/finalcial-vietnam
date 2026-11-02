@@ -17,7 +17,7 @@ body {
   background-attachment: fixed;
   color: var(--on-surface);
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
@@ -1117,4 +1117,13 @@ select {
   letter-spacing: 0.5px;
   color: var(--outline);
   text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

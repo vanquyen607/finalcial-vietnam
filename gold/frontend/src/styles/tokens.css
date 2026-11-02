@@ -27,11 +27,11 @@
   --on-primary: #3c2f00;
   --primary-fixed-dim: #e9c349;
 
-  /* Colors — status (financial) */
-  --up: #30d158;
-  --up-soft: rgba(48, 209, 88, 0.15);
-  --down: #ff453a;
-  --down-soft: rgba(255, 69, 58, 0.15);
+  /* Colors — status (financial) — cùng bảng màu với app Cổ phiếu */
+  --up: #2ecf76;
+  --up-soft: rgba(46, 207, 118, 0.15);
+  --down: #ff5b5b;
+  --down-soft: rgba(255, 91, 91, 0.15);
   --flat: #8e8e93;
   --error: #ffb4ab;
 
@@ -49,15 +49,15 @@
   --sp-xl: 32px;
   --margin-mobile: 16px;
 
-  /* Radius — "Soft" */
-  --r-sm: 4px;
+  /* Radius — "Soft" (khớp stocks: 6/8/12) */
+  --r-sm: 6px;
   --r-md: 8px;
   --r-lg: 12px;
   --r-xl: 16px;
   --r-full: 9999px;
 
   --tabbar-h: 64px;
-  --header-h: 64px;
+  --header-h: 56px;
   --maxw: 1440px;
   --ticker-h: 36px;
 }

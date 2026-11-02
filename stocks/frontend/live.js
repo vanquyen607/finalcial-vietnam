@@ -43,7 +43,7 @@ function liveTick() {
     return;
   }
   const left = Math.max(0, Math.ceil((nextLive - Date.now()) / 1000));
-  el.textContent = `cập nhật sau ${left}s`;
+  el.textContent = `còn ${left}s`;
   if (left <= 0) { nextLive = Date.now() + LIVE_MS; doLive(); }
 }
 
