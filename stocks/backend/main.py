@@ -5,10 +5,10 @@ from collections import deque
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import ai, alerts, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, quote, regime, screen
+from backend import ai, alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, quote, regime, screen
 from backend.auth import admin_guard, is_locked
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -16,6 +16,87 @@ FRONTEND = ROOT / "frontend"
 
 app = FastAPI(title="Phan Tich Co Phieu VN", version="1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
+
+# ---- Pages ----
+@app.get("/")
+def landing_page():
+    return FileResponse(FRONTEND / "landing.html")
+
+@app.get("/app")
+def main_app():
+    return FileResponse(FRONTEND / "index.html")
+
+@app.get("/admin")
+def admin_page():
+    return FileResponse(FRONTEND / "admin.html")
+
+# ---- Auth API ----
+@app.post("/api/auth/register")
+async def api_register(request: Request):
+    body = await request.json()
+    try:
+        r = auth2.register(
+            username=body.get("username", ""),
+            email=body.get("email", ""),
+            password=body.get("password", ""),
+        )
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.post("/api/auth/login")
+async def api_login(request: Request):
+    body = await request.json()
+    try:
+        r = auth2.login(
+            username=body.get("username", ""),
+            password=body.get("password", ""),
+        )
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=401, content={"status": "error", "message": str(e)})
+
+@app.post("/api/auth/logout")
+async def api_logout(request: Request):
+    token = request.headers.get("x-session-token", "")
+    auth2.logout(token)
+    return {"status": "ok"}
+
+@app.get("/api/auth/me")
+def api_me(session: dict = Depends(auth2.require_session)):
+    return {"status": "ok", **session}
+
+# ---- Admin user management API ----
+@app.get("/api/admin/users")
+def api_admin_users(session: dict = Depends(auth2.require_admin)):
+    return {"status": "ok", "users": auth2.list_users()}
+
+@app.post("/api/admin/users/{username}/role")
+async def api_set_role(username: str, request: Request, session: dict = Depends(auth2.require_admin)):
+    body = await request.json()
+    try:
+        auth2.set_user_role(username, body.get("role", "user"))
+        return {"status": "ok"}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.post("/api/admin/users/{username}/active")
+async def api_set_active(username: str, request: Request, session: dict = Depends(auth2.require_admin)):
+    body = await request.json()
+    try:
+        auth2.set_user_active(username, bool(body.get("active", True)))
+        return {"status": "ok"}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.delete("/api/admin/users/{username}")
+def api_delete_user(username: str, session: dict = Depends(auth2.require_admin)):
+    try:
+        auth2.delete_user(username)
+        return {"status": "ok"}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
 
 
 @app.on_event("startup")
