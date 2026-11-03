@@ -1,17 +1,22 @@
 /* Phan Tich Co Phieu VN — overview.js (tach tu app.js) */
 /* ---------------- overview ---------------- */
+function overviewBox() {
+  return $("#sec-overview") || $("#cards");
+}
+
 async function loadOverview(refresh = false, silent = false) {
+  const box = overviewBox();
   try {
     const st = await api("/api/overview" + (refresh ? "?refresh=1" : ""));
     if (st.status === "fetching") {
-      if (!silent) $("#cards").innerHTML = `<div class="card"><div class="loading-line"><span class="spinner"></span> Đang tải chỉ số…</div></div>`;
+      if (!silent && box) box.innerHTML = `<div class="card"><div class="loading-line"><span class="spinner"></span> Đang tải chỉ số…</div></div>`;
       clearTimeout(pollTimers.overview);
       pollTimers.overview = setTimeout(() => loadOverview(false, silent), 4000);
       return;
     }
     if (st.status !== "ready") {
-      if (!silent) $("#cards").innerHTML = `<div class="card"><div class="err">Không tải được chỉ số: ${esc(st.message || "?")}</div></div>`;
-      else toast("Làm mới chỉ số thất bại", "err");
+      if (!silent && box) box.innerHTML = `<div class="card"><div class="err">Không tải được chỉ số: ${esc(st.message || "?")}</div></div>`;
+      else if (silent) toast("Làm mới chỉ số thất bại", "err");
       return;
     }
     renderCards(st);
@@ -22,12 +27,13 @@ async function loadOverview(refresh = false, silent = false) {
       setTimeout(() => loadOverview(true, true), 400);
     }
   } catch (e) {
-    if (!silent) $("#cards").innerHTML = `<div class="card"><div class="err">Lỗi: ${esc(e.message)}</div></div>`;
+    if (!silent && box) box.innerHTML = `<div class="card"><div class="err">Lỗi: ${esc(e.message)}</div></div>`;
   }
 }
 
 function renderCards(st) {
-  const box = $("#cards");
+  const box = overviewBox();
+  if (!box) return;
   box.innerHTML = "";
   (st.indices || []).forEach((ix) => {
     const el = document.createElement("div");

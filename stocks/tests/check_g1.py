@@ -27,14 +27,14 @@ with sync_playwright() as p:
     check("main có id=main", pg.locator("main#main").count() == 1)
 
     # 2. notice động (chờ overview xong)
-    pg.wait_for_selector("#cards .card .big", timeout=30000)
+    pg.wait_for_selector("#sec-overview .card .big", timeout=30000)
     pg.wait_for_timeout(500)
     nt = pg.locator("#noticeText").inner_text()
     check("noticeText động", nt.startswith("Thị trường") and "giải ngân từng phần" in nt, nt[:70])
     check("câu rate-limit vẫn còn", "20 req/phút" in pg.locator("#notice .n-txt").inner_text())
 
     # 3. ngày dd/mm/yyyy ở card
-    label = pg.locator("#cards .card .label").first.inner_text()
+    label = pg.locator("#sec-overview .card .label").first.inner_text()
     check("card date dd/mm/yyyy", bool(re.search(r"phiên \d{2}/\d{2}/\d{4}", label, re.I)), label)
 
     # 4. sort/filter persist: chọn Giá + Tránh → reload → giữ nguyên

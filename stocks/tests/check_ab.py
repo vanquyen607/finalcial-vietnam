@@ -26,15 +26,15 @@ with sync_playwright() as p:
     pg.click("#btnRefreshOverview")
     try:
         pg.wait_for_function(
-            "() => document.querySelectorAll('#cards .card').length >= 4"
-            " && document.querySelector('#cards').innerText.includes('UPCOM')",
+            "() => document.querySelectorAll('#sec-overview .card').length >= 4"
+            " && document.querySelector('#sec-overview').innerText.includes('UPCOM')",
             timeout=120000)
         ok3 = True
     except Exception:
         ok3 = False
-    cards = pg.locator("#cards .card").count()
+    cards = pg.locator("#sec-overview .card").count()
     check("overview >= 4 the (3 chi so + meta)", cards >= 4, str(cards))
-    ctxt = pg.locator("#cards").inner_text().lower()   # CSS text-transform -> innerText hoa
+    ctxt = pg.locator("#sec-overview").inner_text().lower()   # CSS text-transform -> innerText hoa
     check("co the UPCOM-Index", "upcom-index" in ctxt)
     check("MA200 UPCOM khong phai NaN", "nan" not in ctxt)
 

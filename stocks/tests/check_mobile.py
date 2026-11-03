@@ -20,7 +20,7 @@ with sync_playwright() as p:
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(BASE, wait_until="domcontentloaded")
-    pg.wait_for_selector("#cards .card .big", timeout=30000)
+    pg.wait_for_selector("#sec-overview .card .big", timeout=30000)
 
     # khong trang ngang (body)
     sw = pg.evaluate("document.documentElement.scrollWidth")
