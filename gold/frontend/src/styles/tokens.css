@@ -1,8 +1,12 @@
 /* ============================================================
    Aurum Terminal — design tokens
-   Nguồn: Stitch design system "Aurum Terminal" (export DESIGN.md)
+   Hỗ trợ Dark (mặc định) & Light  ·  [data-theme="dark"|"light"]
    ============================================================ */
-:root {
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
   /* Colors — surface */
   --background: #000000;
   --surface-0: #000000;
@@ -35,6 +39,52 @@
   --flat: #8e8e93;
   --error: #ffb4ab;
 
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Colors — surface */
+  --background: #f4f6fa;
+  --surface-0: #ffffff;
+  --surface-1: #ffffff;
+  --surface-2: #f0f3f8;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f8fafc;
+  --surface-container: #edf2f7;
+  --surface-container-high: #e2e8f0;
+  --surface-container-highest: #cbd5e1;
+
+  /* Colors — content */
+  --on-surface: #0f172a;
+  --on-surface-variant: #475569;
+  --outline: #64748b;
+  --outline-variant: #cbd5e1;
+  --border: #e2e8f0;
+
+  /* Colors — brand (gold) */
+  --primary: #b8860b;
+  --primary-container: #d4af37;
+  --on-primary: #ffffff;
+  --primary-fixed-dim: #996515;
+
+  /* Colors — status (financial) */
+  --up: #16a34a;
+  --up-soft: rgba(22, 163, 74, 0.12);
+  --down: #dc2626;
+  --down-soft: rgba(220, 38, 38, 0.12);
+  --flat: #64748b;
+  --error: #dc2626;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.08);
+}
+
+:root {
   /* Typography */
   --font-display: "Outfit", "Inter", system-ui, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;

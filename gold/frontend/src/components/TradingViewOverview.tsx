@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTheme } from "../lib/useTheme";
 
 interface Props {
   symbol: string;
@@ -6,10 +7,11 @@ interface Props {
   height?: number;
 }
 
-/** Nhúng widget Advanced Chart chính chủ của TradingView (dark, tiếng Việt, RSI+MACD). */
+/** Nhúng widget Advanced Chart chính chủ của TradingView (hỗ trợ Dark & Light, tiếng Việt, RSI+MACD). */
 export default function TradingViewOverview({ symbol, watchlist = [], height = 520 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const key = [symbol, ...watchlist].join("|");
+  const { theme } = useTheme();
+  const key = [symbol, ...watchlist, theme].join("|");
 
   useEffect(() => {
     const host = hostRef.current;
@@ -27,6 +29,7 @@ export default function TradingViewOverview({ symbol, watchlist = [], height = 5
     inner.style.width = "100%";
     wrap.appendChild(inner);
 
+    const isLight = theme === "light";
     const script = document.createElement("script");
     script.src =
       "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
@@ -45,10 +48,10 @@ export default function TradingViewOverview({ symbol, watchlist = [], height = 5
       save_image: true,
       style: "1",
       symbol,
-      theme: "dark",
+      theme: isLight ? "light" : "dark",
       timezone: "Asia/Ho_Chi_Minh",
-      backgroundColor: "rgba(0, 0, 0, 1)",
-      gridColor: "rgba(46, 46, 46, 0.6)",
+      backgroundColor: isLight ? "rgba(255, 255, 255, 1)" : "rgba(0, 0, 0, 1)",
+      gridColor: isLight ? "rgba(226, 232, 240, 0.8)" : "rgba(46, 46, 46, 0.6)",
       watchlist,
       withdateranges: true,
       compareSymbols: [],

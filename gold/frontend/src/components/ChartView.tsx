@@ -1,6 +1,7 @@
-﻿import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ColorType, createChart, CrosshairMode, LineStyle } from "lightweight-charts";
 import type { IChartApi, ISeriesApi } from "lightweight-charts";
+import { useTheme } from "../lib/useTheme";
 
 export interface ChartPoint {
   time: number | string;
@@ -36,6 +37,8 @@ export default function ChartView({
   const chartRef = useRef<IChartApi | null>(null);
   const mainRef = useRef<ISeriesApi<"Area"> | null>(null);
   const secRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   // undefined → lần set data đầu tiên luôn fit toàn bộ dữ liệu
   const fitRef = useRef<string | undefined>(undefined);
 
@@ -50,21 +53,21 @@ export default function ChartView({
       height,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#99907c",
+        textColor: isLight ? "#475569" : "#99907c",
         fontFamily: "'JetBrains Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#1c1c1e" },
-        horzLines: { color: "#1c1c1e" },
+        vertLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
+        horzLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: "#4d4635", width: 1, style: LineStyle.Dashed, labelBackgroundColor: "#2c2c2e" },
-        horzLine: { color: "#4d4635", width: 1, style: LineStyle.Dashed, labelBackgroundColor: "#2c2c2e" },
+        vertLine: { color: isLight ? "#cbd5e1" : "#4d4635", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
+        horzLine: { color: isLight ? "#cbd5e1" : "#4d4635", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
       },
-      rightPriceScale: { borderColor: "#2c2c2e" },
-      timeScale: { borderColor: "#2c2c2e", timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e" },
+      timeScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e", timeVisible: true, secondsVisible: false },
       handleScroll: false,
       handleScale: false,
     });
@@ -106,6 +109,24 @@ export default function ChartView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [height, Boolean(secondary), unit, positive]);
+
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const isLight = theme === "light";
+    chartRef.current.applyOptions({
+      layout: { textColor: isLight ? "#475569" : "#99907c" },
+      grid: {
+        vertLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
+        horzLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
+      },
+      crosshair: {
+        vertLine: { color: isLight ? "#cbd5e1" : "#4d4635", labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
+        horzLine: { color: isLight ? "#cbd5e1" : "#4d4635", labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
+      },
+      rightPriceScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e" },
+      timeScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e" },
+    });
+  }, [theme]);
 
   useEffect(() => {
     if (!mainRef.current) return;

@@ -48,9 +48,12 @@ select {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(6, 6, 7, 0.88);
+  background: color-mix(in srgb, var(--surface-0) 86%, transparent);
   backdrop-filter: saturate(170%) blur(18px);
+  -webkit-backdrop-filter: saturate(170%) blur(18px);
   border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .topbar__inner {
@@ -107,7 +110,7 @@ select {
 
 .nav a:hover {
   color: var(--on-surface);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-2);
 }
 
 .nav a.active {
@@ -152,10 +155,34 @@ select {
   color: var(--on-surface-variant);
 }
 
+.btn-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--on-surface);
+  cursor: pointer;
+  transition: all 0.16s ease;
+  flex: none;
+}
+.btn-theme-toggle:hover {
+  background: var(--surface-container-high);
+  border-color: var(--outline);
+  transform: translateY(-1px);
+}
+.btn-theme-toggle:active {
+  transform: translateY(1px);
+}
+
+
 /* ---------- ticker ---------- */
 .ticker {
-  border-top: 1px solid rgba(44, 44, 46, 0.6);
-  background: rgba(0, 0, 0, 0.35);
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-1) 85%, transparent);
   overflow: hidden;
   height: var(--ticker-h);
 }
@@ -289,7 +316,7 @@ select {
   gap: 12px;
   padding: 13px 16px;
   border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.015);
+  background: color-mix(in srgb, var(--surface-2) 40%, transparent);
 }
 
 .panel__title {

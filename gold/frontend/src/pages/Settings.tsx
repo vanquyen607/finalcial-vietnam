@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, getApiToken, setApiToken } from "../lib/api";
 import { fmtClock } from "../lib/format";
+import { useTheme } from "../lib/useTheme";
 import { useMarket } from "../state/Market";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -10,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function Settings() {
   const { status, connected, quoteList, refresh } = useMarket();
+  const { theme, setTheme } = useTheme();
   const [health, setHealth] = useState<{ clients: number; status: { polls?: number } } | null>(null);
   const [installEvt, setInstallEvt] = useState<BeforeInstallPromptEvent | null>(null);
   const [notify, setNotify] = useState<string>("—");
@@ -134,6 +136,36 @@ export default function Settings() {
         </section>
 
         <div>
+          <section className="panel" style={{ marginBottom: 16 }}>
+            <div className="panel__head">
+              <span className="panel__title">Giao diện (Theme)</span>
+            </div>
+            <div className="panel__body">
+              <div className="list-row">
+                <div>
+                  <div className="list-row__name">Chế độ hiển thị</div>
+                  <div className="list-row__meta">Đồng bộ với hệ thống và app Cổ phiếu</div>
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    className={`btn btn--sm ${theme === "dark" ? "btn--primary" : "btn--ghost"}`}
+                    onClick={() => setTheme("dark")}
+                  >
+                    🌙 Tối
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn--sm ${theme === "light" ? "btn--primary" : "btn--ghost"}`}
+                    onClick={() => setTheme("light")}
+                  >
+                    ☀️ Sáng
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section className="panel">
             <div className="panel__head">
               <span className="panel__title">Thông báo</span>

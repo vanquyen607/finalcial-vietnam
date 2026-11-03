@@ -207,6 +207,8 @@ try {
   }
   if (btn) btn.addEventListener("click", () => side.classList.contains("open") ? closeDrawer() : openDrawer());
   if (backdrop) backdrop.addEventListener("click", closeDrawer);
+  const closeBtn = $("#btnCloseSidebar");
+  if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
 
   // action buttons
   side.querySelectorAll("[data-action]").forEach((el) => {
@@ -274,5 +276,7 @@ function goldUrl() {
 try {
   const g = $("#navGold");
   if (g) g.href = goldUrl();
+  const mg = $("#mmGold");
+  if (mg) mg.href = goldUrl();
 } catch (e) {}
 
