@@ -314,28 +314,32 @@
   }
 
   async function doLogout(){
-    await fetch('/api/auth/logout',{method:'POST',headers:{'X-Session-Token':sessionToken}});
+    try{
+      await fetch('/api/auth/logout',{method:'POST',headers:sessionToken?{'X-Session-Token':sessionToken}:{}});
+    }catch{}
     localStorage.removeItem('ck_session');
+    localStorage.removeItem('ck_user');
+    localStorage.removeItem('ck_role');
     window.location.href='/';
   }
 
-  // ── Auto-check existing session ──
+  // ── Auto-check existing session (header token, fallback cookie) ──
   (async function(){
     const tok=localStorage.getItem('ck_session');
-    const role=localStorage.getItem('ck_role');
-    if(tok && role==='admin'){
-      try{
-        const r=await fetch('/api/auth/me',{headers:{'X-Session-Token':tok}});
-        const d=await r.json();
-        if(d.status==='ok'&&d.role==='admin'){
-          sessionToken=tok;
-          currentUser=d.uid||localStorage.getItem('ck_user')||'admin';
-          showApp();
-          return;
-        }
-      }catch{}
-    }
-    // show gate
+    try{
+      const r=await fetch('/api/auth/me',tok?{headers:{'X-Session-Token':tok}}:{});
+      const d=await r.json();
+      if(d.status==='ok'&&d.role==='admin'){
+        sessionToken=tok||'';
+        currentUser=d.uid||localStorage.getItem('ck_user')||'admin';
+        if(tok){localStorage.setItem('ck_user',currentUser);localStorage.setItem('ck_role','admin');}
+        showApp();
+        return;
+      }
+    }catch{}
+    // không có session hợp lệ → server cũng đã redirect, đây chỉ là lưới an toàn
+    localStorage.removeItem('ck_session');
+    localStorage.removeItem('ck_role');
   })();
 
   // ── Pages ──
@@ -492,3 +496,4 @@
 </script>
 </body>
 </html>
+

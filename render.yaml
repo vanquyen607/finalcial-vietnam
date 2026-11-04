@@ -15,6 +15,8 @@ services:
         value: "1"
       - key: ADMIN_TOKEN
         sync: false   # dat trong Render Dashboard (Settings > Environment); de trong = mo
+      - key: DATABASE_URL
+        sync: false   # Neon pooler URL — da set tu truoc trong Render Dashboard
 
   # App gia vang Aurum Terminal (frontend build + backend SPA tren cung service)
   - type: web

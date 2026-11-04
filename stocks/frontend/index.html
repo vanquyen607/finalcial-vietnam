@@ -83,6 +83,16 @@
         <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><polygon points="6 4 19 12 6 20 6 4"/></svg>
         <span>Chạy màn lọc 40 mã</span>
       </button>
+      <span class="tb-sep tb-sec" aria-hidden="true"></span>
+      <span class="user-box" id="userBox" hidden>
+        <span class="user-chip" id="userChip" title="Tài khoản đang đăng nhập">
+          <span class="user-avatar" id="userAvatar">A</span>
+          <span class="user-name" id="userName">—</span>
+        </span>
+        <button class="btn icon ghost" id="btnLogout" title="Đăng xuất" aria-label="Đăng xuất">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </span>
       <button class="btn icon ghost tb-more" id="btnMore" aria-label="Thêm" title="Thêm">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="12" r="2"/></svg>
       </button>
@@ -388,5 +398,50 @@
 <script src="brief.js"></script>
 <script src="live.js"></script>
   <script src="quote.js?v=2"></script>
+  <script>
+    /* ── Auth gate phía client: check session, hiện user + logout ── */
+    (async function () {
+      const box = document.getElementById("userBox");
+      const tok = localStorage.getItem("ck_session");
+      const check = async (headers) => {
+        try {
+          const r = await fetch("/api/auth/me", headers ? { headers } : {});
+          if (!r.ok) return null;
+          const d = await r.json();
+          return d.status === "ok" ? d : null;
+        } catch { return null; }
+      };
+      let me = await check(tok ? { "X-Session-Token": tok } : null);
+      if (!me && tok) {
+        /* token localStorage cũ → thử lại bằng cookie */
+        localStorage.removeItem("ck_session");
+        me = await check(null);
+      }
+      if (!me) {
+        /* cookie hết hạn / chưa đăng nhập → về landing (server cũng đã gate) */
+        localStorage.removeItem("ck_user");
+        localStorage.removeItem("ck_role");
+        window.location.replace("/");
+        return;
+      }
+      const name = me.uid || "user";
+      document.getElementById("userName").textContent = name;
+      document.getElementById("userAvatar").textContent = name.charAt(0).toUpperCase();
+      box.hidden = false;
+
+      document.getElementById("btnLogout").addEventListener("click", async function () {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: tok ? { "X-Session-Token": tok } : {},
+          });
+        } catch {}
+        localStorage.removeItem("ck_session");
+        localStorage.removeItem("ck_user");
+        localStorage.removeItem("ck_role");
+        window.location.href = "/";
+      });
+    })();
+  </script>
 </body>
 </html>

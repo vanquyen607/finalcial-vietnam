@@ -5,29 +5,45 @@ from collections import deque
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Query, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend import ai, alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, quote, regime, screen
 from backend.auth import admin_guard, is_locked
+from backend import db as _db
 
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
 
+COOKIE_NAME = "ck_session"
+COOKIE_MAX_AGE = auth2.SESSION_TTL  # 7 ngày
+
 app = FastAPI(title="Phan Tich Co Phieu VN", version="1.0",
               docs_url=None, redoc_url=None, openapi_url=None)
 
-# ---- Pages ----
+# ---- Pages (gate: chua dang nhap thi ve landing) ----
+def _page_session(request: Request) -> dict | None:
+    """Doc session tu cookie (truong hop trang HTML) hoac header."""
+    token = request.cookies.get(COOKIE_NAME) or request.headers.get("x-session-token", "")
+    return auth2.get_session(token)
+
 @app.get("/")
 def landing_page():
     return FileResponse(FRONTEND / "landing.html")
 
 @app.get("/app")
-def main_app():
+def main_app(request: Request):
+    if not _page_session(request):
+        return RedirectResponse("/", status_code=302)
     return FileResponse(FRONTEND / "index.html")
 
 @app.get("/admin")
-def admin_page():
+def admin_page(request: Request):
+    s = _page_session(request)
+    if not s:
+        return RedirectResponse("/", status_code=302)
+    if s.get("role") != "admin":
+        return RedirectResponse("/app", status_code=302)
     return FileResponse(FRONTEND / "admin.html")
 
 # ---- Auth API ----
@@ -52,19 +68,41 @@ async def api_login(request: Request):
             username=body.get("username", ""),
             password=body.get("password", ""),
         )
-        return {"status": "ok", **r}
+        resp = JSONResponse(content={"status": "ok", **r})
+        resp.set_cookie(
+            COOKIE_NAME, r["token"],
+            max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax", path="/",
+        )
+        return resp
     except ValueError as e:
         return JSONResponse(status_code=401, content={"status": "error", "message": str(e)})
 
 @app.post("/api/auth/logout")
 async def api_logout(request: Request):
-    token = request.headers.get("x-session-token", "")
-    auth2.logout(token)
-    return {"status": "ok"}
+    hdr = request.headers.get("x-session-token", "")
+    ck = request.cookies.get(COOKIE_NAME, "")
+    # xóa session của cả header lẫn cookie (tránh sót khi token header đã cũ)
+    if hdr:
+        auth2.logout(hdr)
+    if ck and ck != hdr:
+        auth2.logout(ck)
+    resp = JSONResponse(content={"status": "ok"})
+    resp.delete_cookie(COOKIE_NAME, path="/")
+    return resp
 
 @app.get("/api/auth/me")
-def api_me(session: dict = Depends(auth2.require_session)):
-    return {"status": "ok", **session}
+def api_me(request: Request, session: dict = Depends(auth2.require_session)):
+    resp = JSONResponse(content={"status": "ok", **session})
+    # neu gui token hop le qua header ma cookie chua co/thua → sync cookie
+    # (tranh loop: localStorage co token cu nhung cookie da mat khi vua deploy)
+    hdr = request.headers.get("x-session-token", "")
+    ck = request.cookies.get(COOKIE_NAME, "")
+    if hdr and hdr != ck:
+        resp.set_cookie(
+            COOKIE_NAME, hdr,
+            max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax", path="/",
+        )
+    return resp
 
 # ---- Admin user management API ----
 @app.get("/api/admin/users")
@@ -102,6 +140,7 @@ def api_delete_user(username: str, session: dict = Depends(auth2.require_admin))
 @app.on_event("startup")
 def _startup():
     alerts.start_scheduler()
+    auth2._bootstrap()   # init Neon schema + default admin
 
 # ---------------------------------------------------------------- rate limit
 _WINDOW = 60          # giay

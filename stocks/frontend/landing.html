@@ -370,8 +370,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <p style="margin-bottom:8px;">© 2026 VN·STOCK Terminal. Dữ liệu tham khảo — không phải lời khuyên đầu tư.</p>
-  <p><a href="/app">Vào app</a> · <a href="/admin">Admin</a></p>
+  <p>© 2026 VN·STOCK Terminal. Dữ liệu tham khảo — không phải lời khuyên đầu tư.</p>
 </footer>
 
 <!-- TOAST -->
@@ -556,16 +555,20 @@
   // ── Auto-redirect if already logged in ──
   (async function checkSession() {
     const token = localStorage.getItem('ck_session');
-    if (!token) return;
-    try {
-      const r = await fetch('/api/auth/me', { headers: {'X-Session-Token': token} });
-      const d = await r.json();
-      if (d.status === 'ok') {
-        window.location.href = d.role === 'admin' ? '/admin' : '/app';
-      } else {
-        localStorage.removeItem('ck_session');
-      }
-    } catch {}
+    const check = async (headers) => {
+      try {
+        const r = await fetch('/api/auth/me', headers ? { headers } : {});
+        if (!r.ok) return null;
+        const d = await r.json();
+        return d.status === 'ok' ? d : null;
+      } catch { return null; }
+    };
+    let me = await check(token ? {'X-Session-Token': token} : null);
+    if (!me && token) {
+      localStorage.removeItem('ck_session');
+      me = await check(null);  // thử bằng cookie
+    }
+    if (me) window.location.href = me.role === 'admin' ? '/admin' : '/app';
   })();
 
   // smooth scroll for nav links

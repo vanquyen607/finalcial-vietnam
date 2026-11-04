@@ -1,163 +1,195 @@
 # -*- coding: utf-8 -*-
 """
-Hệ thống xác thực người dùng cho VN·STOCK Terminal.
-- Lưu users vào users.json (relative to ROOT)
-- Password hashing với hashlib + salt
-- Session token (random, lưu trong memory + file)
-- Role: admin | user
+Hệ thống xác thực người dùng — dùng PostgreSQL (Neon) qua db.py
+
+Tables:
+  users    (username PK, email, role, salt, pw_hash, active, created_at)
+  sessions (token PK, uid FK, role, expires)
+
+Password: SHA-256 với per-user salt (16 bytes hex)
+Session : random 64-char hex token, TTL 7 ngày
 """
 from __future__ import annotations
+
 import hashlib
 import json
+import logging
 import os
 import secrets
 import time
 from pathlib import Path
+
 from fastapi import HTTPException, Request
 
-ROOT = Path(__file__).resolve().parent.parent
-USERS_FILE = ROOT / "data" / "users.json"
-SESSIONS_FILE = ROOT / "data" / "sessions.json"
-
-# Ensure data dir exists
-(ROOT / "data").mkdir(exist_ok=True)
-
-# In-memory session cache: token -> {uid, expires}
-_sessions: dict[str, dict] = {}
+from backend.db import get_conn, init_schema
 
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 ngày
+_USERS_JSON = Path(__file__).resolve().parent.parent / "data" / "users.json"
+log = logging.getLogger("vnstock.auth2")
 
 
-# ---------------------------------------------------------------- helpers
+# ── Khởi tạo schema + admin mặc định ──────────────────────────────────────
 def _hash_pw(password: str, salt: str) -> str:
     return hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
 
 
-def _load_users() -> dict:
-    if USERS_FILE.exists():
-        try:
-            return json.loads(USERS_FILE.read_text("utf-8"))
-        except Exception:
-            pass
-    return {}
+def _bootstrap() -> None:
+    """Gọi 1 lần khi startup: tạo schema + migrate users.json + admin mặc định."""
+    try:
+        init_schema()
+        _migrate_users_json()
+        _ensure_default_admin()
+    except Exception as e:
+        log.warning(f"Bootstrap lỗi (DATABASE_URL chưa set?): {e}")
 
 
-def _save_users(users: dict) -> None:
-    USERS_FILE.write_text(json.dumps(users, ensure_ascii=False, indent=2), "utf-8")
+def _migrate_users_json() -> None:
+    """Import data/users.json sang Postgres 1 lần (idempotent), rồi đổi tên .bak.
+
+    Giữ nguyên salt + pw_hash → mật khẩu cũ vẫn đăng nhập được.
+    """
+    if not _USERS_JSON.exists():
+        return
+    try:
+        data = json.loads(_USERS_JSON.read_text("utf-8"))
+    except Exception as e:
+        log.warning(f"users.json hỏng, bỏ qua migrate: {e}")
+        return
+    if not isinstance(data, dict) or not data:
+        _USERS_JSON.rename(_USERS_JSON.with_suffix(".json.bak"))
+        return
+
+    with get_conn() as conn:
+        n = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        if n == 0:
+            for u in data.values():
+                conn.execute(
+                    """INSERT INTO users (username, email, role, salt, pw_hash, active, created_at)
+                       VALUES (%s, %s, %s, %s, %s, %s, %s)
+                       ON CONFLICT (username) DO NOTHING""",
+                    (
+                        str(u.get("username", "")).lower().strip(),
+                        str(u.get("email", "")).lower().strip(),
+                        u.get("role", "user"),
+                        u.get("salt", ""),
+                        u.get("pw_hash", ""),
+                        bool(u.get("active", True)),
+                        float(u.get("created_at") or time.time()),
+                    ),
+                )
+            conn.commit()
+            log.info(f"Đã migrate {len(data)} user từ users.json sang Postgres")
+        # bảng đã có dữ liệu → không import lại, chỉ dọn file cũ
+    _USERS_JSON.rename(_USERS_JSON.with_suffix(".json.bak"))
 
 
-def _load_sessions() -> dict:
-    if SESSIONS_FILE.exists():
-        try:
-            data = json.loads(SESSIONS_FILE.read_text("utf-8"))
-            # purge expired
-            now = time.time()
-            data = {k: v for k, v in data.items() if v.get("expires", 0) > now}
-            return data
-        except Exception:
-            pass
-    return {}
-
-
-def _save_sessions(sessions: dict) -> None:
-    SESSIONS_FILE.write_text(json.dumps(sessions, ensure_ascii=False, indent=2), "utf-8")
-
-
-def _init_sessions() -> None:
-    global _sessions
-    _sessions = _load_sessions()
-
-
-_init_sessions()
-
-
-# ---------------------------------------------------------------- ensure default admin
-def ensure_default_admin():
-    """Tạo admin mặc định nếu chưa có."""
-    users = _load_users()
-    if not any(u.get("role") == "admin" for u in users.values()):
-        default_pw = os.environ.get("ADMIN_DEFAULT_PW", "admin123")
+def _ensure_default_admin() -> None:
+    default_pw = os.environ.get("ADMIN_DEFAULT_PW", "admin123")
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM users WHERE role = 'admin' LIMIT 1"
+        ).fetchone()
+        if row:
+            return
         salt = secrets.token_hex(16)
-        users["admin"] = {
-            "username": "admin",
-            "email": "admin@vnstock.local",
-            "role": "admin",
-            "salt": salt,
-            "pw_hash": _hash_pw(default_pw, salt),
-            "created_at": time.time(),
-            "active": True,
-        }
-        _save_users(users)
+        conn.execute(
+            """INSERT INTO users (username, email, role, salt, pw_hash, active, created_at)
+               VALUES (%s, %s, 'admin', %s, %s, TRUE, %s)
+               ON CONFLICT (username) DO NOTHING""",
+            ("admin", "admin@vnstock.local", salt, _hash_pw(default_pw, salt), time.time()),
+        )
+        conn.commit()
 
 
-ensure_default_admin()
-
-
-# ---------------------------------------------------------------- public API
+# ── Public API ─────────────────────────────────────────────────────────────
 def register(username: str, email: str, password: str) -> dict:
     if len(username) < 3 or len(username) > 32:
         raise ValueError("Tên đăng nhập phải từ 3–32 ký tự")
+    if not email or "@" not in email:
+        raise ValueError("Email không hợp lệ")
     if len(password) < 6:
         raise ValueError("Mật khẩu phải ít nhất 6 ký tự")
     username = username.lower().strip()
-    users = _load_users()
-    if username in users:
-        raise ValueError("Tên đăng nhập đã tồn tại")
-    if any(u.get("email", "").lower() == email.lower() for u in users.values()):
-        raise ValueError("Email đã được đăng ký")
-    salt = secrets.token_hex(16)
-    users[username] = {
-        "username": username,
-        "email": email.lower(),
-        "role": "user",
-        "salt": salt,
-        "pw_hash": _hash_pw(password, salt),
-        "created_at": time.time(),
-        "active": True,
-    }
-    _save_users(users)
+
+    with get_conn() as conn:
+        # check duplicate username
+        if conn.execute("SELECT 1 FROM users WHERE username=%s", (username,)).fetchone():
+            raise ValueError("Tên đăng nhập đã tồn tại")
+        # check duplicate email
+        if conn.execute("SELECT 1 FROM users WHERE lower(email)=lower(%s)", (email,)).fetchone():
+            raise ValueError("Email đã được đăng ký")
+
+        salt = secrets.token_hex(16)
+        conn.execute(
+            """INSERT INTO users (username, email, role, salt, pw_hash, active, created_at)
+               VALUES (%s, %s, 'user', %s, %s, TRUE, %s)""",
+            (username, email.lower(), salt, _hash_pw(password, salt), time.time()),
+        )
+        conn.commit()
+
     return {"username": username, "role": "user"}
 
 
 def login(username: str, password: str) -> dict:
     username = username.lower().strip()
-    users = _load_users()
-    user = users.get(username)
-    if not user or not user.get("active"):
-        raise ValueError("Tên đăng nhập hoặc mật khẩu không đúng")
-    expected = _hash_pw(password, user["salt"])
-    if not secrets.compare_digest(expected, user["pw_hash"]):
-        raise ValueError("Tên đăng nhập hoặc mật khẩu không đúng")
-    # create session
-    token = secrets.token_hex(32)
-    expires = time.time() + SESSION_TTL
-    _sessions[token] = {"uid": username, "role": user["role"], "expires": expires}
-    _save_sessions(_sessions)
-    return {"token": token, "username": username, "role": user["role"], "expires": int(expires)}
+
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT salt, pw_hash, role, active FROM users WHERE username=%s",
+            (username,),
+        ).fetchone()
+
+        if not row or not row[3]:  # not found or inactive
+            raise ValueError("Tên đăng nhập hoặc mật khẩu không đúng")
+
+        salt, pw_hash, role, active = row
+        if not secrets.compare_digest(_hash_pw(password, salt), pw_hash):
+            raise ValueError("Tên đăng nhập hoặc mật khẩu không đúng")
+
+        # xóa session cũ quá hạn của user này
+        conn.execute(
+            "DELETE FROM sessions WHERE uid=%s AND expires < %s",
+            (username, time.time()),
+        )
+
+        token = secrets.token_hex(32)
+        expires = time.time() + SESSION_TTL
+        conn.execute(
+            "INSERT INTO sessions (token, uid, role, expires) VALUES (%s, %s, %s, %s)",
+            (token, username, role, expires),
+        )
+        conn.commit()
+
+    return {"token": token, "username": username, "role": role, "expires": int(expires)}
 
 
 def logout(token: str) -> None:
-    _sessions.pop(token, None)
-    _save_sessions(_sessions)
+    if not token:
+        return
+    with get_conn() as conn:
+        conn.execute("DELETE FROM sessions WHERE token=%s", (token,))
+        conn.commit()
 
 
 def get_session(token: str) -> dict | None:
-    """Trả về session dict hoặc None nếu không hợp lệ."""
-    s = _sessions.get(token)
-    if not s:
-        # try reload from file
-        _init_sessions()
-        s = _sessions.get(token)
-    if not s:
+    if not token:
         return None
-    if s.get("expires", 0) < time.time():
-        _sessions.pop(token, None)
-        return None
-    return s
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT uid, role, expires FROM sessions WHERE token=%s",
+            (token,),
+        ).fetchone()
+        if not row:
+            return None
+        uid, role, expires = row
+        if expires < time.time():
+            conn.execute("DELETE FROM sessions WHERE token=%s", (token,))
+            conn.commit()
+            return None
+        return {"uid": uid, "role": role, "expires": int(expires)}
 
 
 def require_session(request: Request) -> dict:
-    """FastAPI dependency: trả về session hoặc 401."""
     token = (
         request.headers.get("x-session-token")
         or request.cookies.get("ck_session")
@@ -171,57 +203,67 @@ def require_session(request: Request) -> dict:
 
 
 def require_admin(request: Request) -> dict:
-    """FastAPI dependency: chỉ cho admin."""
     s = require_session(request)
     if s.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Chỉ admin mới được truy cập")
     return s
 
 
-# ---------------------------------------------------------------- admin actions
+# ── Admin actions ──────────────────────────────────────────────────────────
 def list_users() -> list:
-    users = _load_users()
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT username, email, role, active, created_at FROM users ORDER BY created_at DESC"
+        ).fetchall()
     return [
         {
-            "username": u["username"],
-            "email": u.get("email", ""),
-            "role": u.get("role", "user"),
-            "active": u.get("active", True),
-            "created_at": u.get("created_at", 0),
+            "username": r[0],
+            "email": r[1],
+            "role": r[2],
+            "active": r[3],
+            "created_at": r[4],
         }
-        for u in users.values()
+        for r in rows
     ]
 
 
 def set_user_active(username: str, active: bool) -> None:
-    users = _load_users()
-    if username not in users:
-        raise ValueError("Không tìm thấy user")
-    users[username]["active"] = active
-    _save_users(users)
+    with get_conn() as conn:
+        n = conn.execute(
+            "UPDATE users SET active=%s WHERE username=%s",
+            (active, username),
+        ).rowcount
+        if not n:
+            raise ValueError("Không tìm thấy user")
+        conn.commit()
 
 
 def set_user_role(username: str, role: str) -> None:
     if role not in ("admin", "user"):
         raise ValueError("Role không hợp lệ")
-    users = _load_users()
-    if username not in users:
-        raise ValueError("Không tìm thấy user")
-    users[username]["role"] = role
-    _save_users(users)
+    with get_conn() as conn:
+        n = conn.execute(
+            "UPDATE users SET role=%s WHERE username=%s",
+            (role, username),
+        ).rowcount
+        if not n:
+            raise ValueError("Không tìm thấy user")
+        conn.commit()
 
 
 def delete_user(username: str) -> None:
-    users = _load_users()
-    if username not in users:
-        raise ValueError("Không tìm thấy user")
-    if users[username].get("role") == "admin":
-        admins = [u for u in users.values() if u.get("role") == "admin"]
-        if len(admins) <= 1:
-            raise ValueError("Không thể xóa admin cuối cùng")
-    del users[username]
-    _save_users(users)
-    # revoke sessions
-    global _sessions
-    _sessions = {k: v for k, v in _sessions.items() if v.get("uid") != username}
-    _save_sessions(_sessions)
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT role FROM users WHERE username=%s", (username,)
+        ).fetchone()
+        if not row:
+            raise ValueError("Không tìm thấy user")
+        if row[0] == "admin":
+            count = conn.execute(
+                "SELECT COUNT(*) FROM users WHERE role='admin'"
+            ).fetchone()[0]
+            if count <= 1:
+                raise ValueError("Không thể xóa admin cuối cùng")
+        # sessions bị xóa cascade
+        conn.execute("DELETE FROM users WHERE username=%s", (username,))
+        conn.commit()

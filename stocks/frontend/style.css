@@ -180,6 +180,24 @@ b, strong { font-weight: 700; }
 .tb-actions { display: flex; align-items: center; gap: 8px; }
 .tb-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
 
+/* ---------------- user box (topbar account + logout) ---------------- */
+.user-box { display: inline-flex; align-items: center; gap: 6px; }
+.user-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 10px 3px 4px; max-width: 160px;
+}
+.user-avatar {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; flex: none;
+}
+.user-name {
+  font-size: 12px; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 .btn {
   background: var(--surface-2); color: var(--text);
   border: 1px solid var(--border); border-radius: var(--radius-sm);
@@ -1308,6 +1326,8 @@ footer b { color: var(--text-2); }
   .tb-more { display: inline-flex; }
   .tb-sec { display: none; }
   #btnRunScreen { display: none; }
+  .user-name { display: none; }
+  .user-chip { padding: 3px; }
 }
 @media (max-width: 480px) {
   .brand h1 { font-size: 11.5px; }
