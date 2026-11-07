@@ -39,6 +39,25 @@
       <div class="pp-cell"><div class="pp-k">Lãi/Lỗ</div><div class="pp-v ${cls(st.total_pl)}">${sign(st.total_pl)} (${st.total_pl_pct != null ? sign(st.total_pl_pct, 1) + "%" : "—"})</div></div>`;
   }
 
+  function parseNum(val) {
+    if (!val) return NaN;
+    // Chuẩn hóa: thay dấu phẩy thành dấu chấm nếu người dùng gõ theo kiểu VN (vd: 12,5)
+    // Nếu có cả chấm và phẩy (vd: 125,000.5 hoặc 125.000,5)
+    let s = String(val).trim();
+    if (s.includes(",") && s.includes(".")) {
+      if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
+        // Kiểu 125.000,5
+        s = s.replace(/\./g, "").replace(",", ".");
+      } else {
+        // Kiểu 125,000.5
+        s = s.replace(/,/g, "");
+      }
+    } else if (s.includes(",")) {
+      s = s.replace(",", ".");
+    }
+    return parseFloat(s);
+  }
+
   function renderPositions(items) {
     const box = $("#portPositions");
     if (!box) return;
@@ -48,7 +67,7 @@
     </tr></thead><tbody>` +
       items.map(p => `<tr>
         <td><b>${esc(p.symbol)}</b></td>
-        <td>${fmt(p.qty)}</td>
+        <td>${fmt(p.qty, Number.isInteger(p.qty) ? 0 : 2)}</td>
         <td>${fmt(p.avg_price, 1)}</td>
         <td>${fmt(p.close, 1)}</td>
         <td>${fmt(p.value)}</td>
@@ -92,9 +111,16 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const sym = ($("#portSym").value || "").toUpperCase().trim();
-      const qty = parseFloat($("#portQty").value);
-      const price = parseFloat($("#portPrice").value);
-      if (!sym || isNaN(qty) || isNaN(price)) return;
+      const qty = parseNum($("#portQty").value);
+      const price = parseNum($("#portPrice").value);
+      if (!sym || isNaN(qty) || isNaN(price)) {
+        alert("Vui lòng nhập số lượng và giá hợp lệ!");
+        return;
+      }
+      if (qty <= 0 || price <= 0) {
+        alert("Số lượng và giá phải lớn hơn 0!");
+        return;
+      }
       try {
         const sess = localStorage.getItem("ck_session");
         const postUrl = sess ? "/api/me/portfolio" : "/api/portfolio";
