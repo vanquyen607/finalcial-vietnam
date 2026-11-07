@@ -12,20 +12,15 @@ Session : random 64-char hex token, TTL 7 ngày
 from __future__ import annotations
 
 import hashlib
-import json
-import logging
 import os
 import secrets
 import time
-from pathlib import Path
 
 from fastapi import HTTPException, Request
 
 from backend.db import get_conn, init_schema
 
 SESSION_TTL = 60 * 60 * 24 * 7  # 7 ngày
-_USERS_JSON = Path(__file__).resolve().parent.parent / "data" / "users.json"
-log = logging.getLogger("vnstock.auth2")
 
 
 # ── Khởi tạo schema + admin mặc định ──────────────────────────────────────
@@ -34,53 +29,13 @@ def _hash_pw(password: str, salt: str) -> str:
 
 
 def _bootstrap() -> None:
-    """Gọi 1 lần khi startup: tạo schema + migrate users.json + admin mặc định."""
+    """Gọi 1 lần khi startup: tạo schema + admin mặc định nếu chưa có."""
     try:
         init_schema()
-        _migrate_users_json()
         _ensure_default_admin()
     except Exception as e:
-        log.warning(f"Bootstrap lỗi (DATABASE_URL chưa set?): {e}")
-
-
-def _migrate_users_json() -> None:
-    """Import data/users.json sang Postgres 1 lần (idempotent), rồi đổi tên .bak.
-
-    Giữ nguyên salt + pw_hash → mật khẩu cũ vẫn đăng nhập được.
-    """
-    if not _USERS_JSON.exists():
-        return
-    try:
-        data = json.loads(_USERS_JSON.read_text("utf-8"))
-    except Exception as e:
-        log.warning(f"users.json hỏng, bỏ qua migrate: {e}")
-        return
-    if not isinstance(data, dict) or not data:
-        _USERS_JSON.rename(_USERS_JSON.with_suffix(".json.bak"))
-        return
-
-    with get_conn() as conn:
-        n = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        if n == 0:
-            for u in data.values():
-                conn.execute(
-                    """INSERT INTO users (username, email, role, salt, pw_hash, active, created_at)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s)
-                       ON CONFLICT (username) DO NOTHING""",
-                    (
-                        str(u.get("username", "")).lower().strip(),
-                        str(u.get("email", "")).lower().strip(),
-                        u.get("role", "user"),
-                        u.get("salt", ""),
-                        u.get("pw_hash", ""),
-                        bool(u.get("active", True)),
-                        float(u.get("created_at") or time.time()),
-                    ),
-                )
-            conn.commit()
-            log.info(f"Đã migrate {len(data)} user từ users.json sang Postgres")
-        # bảng đã có dữ liệu → không import lại, chỉ dọn file cũ
-    _USERS_JSON.rename(_USERS_JSON.with_suffix(".json.bak"))
+        import logging
+        logging.getLogger("vnstock.auth2").warning(f"Bootstrap lỗi (DATABASE_URL chưa set?): {e}")
 
 
 def _ensure_default_admin() -> None:
