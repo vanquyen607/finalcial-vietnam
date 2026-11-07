@@ -29,7 +29,9 @@
 
   async function loadRules() {
     try {
-      const st = await api("/api/alerts/rules");
+      const sess = localStorage.getItem("ck_session");
+      const url = sess ? "/api/me/alerts/rules" : "/api/alerts/rules";
+      const st = await api(url);
       renderRules(st.rules || []);
     } catch (e) { /* ignore */ }
   }
@@ -79,7 +81,9 @@
       btn.addEventListener("click", async () => {
         const li = btn.closest(".ap-item");
         if (!li) return;
-        await apiAdmin(`/api/alerts/rules/${encodeURIComponent(li.dataset.id)}`, { method: "DELETE" });
+        const sess = localStorage.getItem("ck_session");
+        const delUrl = sess ? `/api/me/alerts/rules/${encodeURIComponent(li.dataset.id)}` : `/api/alerts/rules/${encodeURIComponent(li.dataset.id)}`;
+        await api(delUrl, { method: "DELETE" });
         loadRules();
       });
     });
@@ -97,7 +101,9 @@
       const note = ($("#ruleNote").value || "").trim();
       if (!sym || isNaN(th)) return;
       try {
-        const r = await apiAdmin("/api/alerts/rules", {
+        const sess = localStorage.getItem("ck_session");
+        const postUrl = sess ? "/api/me/alerts/rules" : "/api/alerts/rules";
+        const r = await api(postUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol: sym, type, threshold: th, note })

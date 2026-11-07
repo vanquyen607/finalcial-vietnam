@@ -195,6 +195,12 @@
         </a>
 
         <div class="side-group-lbl">CÔNG CỤ</div>
+        <button class="side-item" type="button" data-action="watchlist" id="btnSideWatchlist" title="Mã theo dõi yêu thích">
+          <span class="si" style="color:var(--gold)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </span>
+          <span class="sl">Yêu thích ⭐</span>
+        </button>
         <button class="side-item" type="button" data-action="portfolio" title="Danh mục đầu tư của tôi">
           <span class="si">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
@@ -299,6 +305,23 @@
       <button class="chip-btn" id="btnPortfolio" title="Danh mục đầu tư & P&L">💼 Danh mục</button>
     </div>
 
+    <!-- Watchlist panel -->
+    <div class="port-panel" id="watchlistPanel" hidden>
+      <div class="pp-head">
+        <strong>⭐ Danh sách theo dõi yêu thích</strong>
+        <button class="btn icon ghost" id="btnCloseWatchlist" aria-label="Đóng">✕</button>
+      </div>
+      <div class="wl-content" id="watchlistContent" style="padding:12px">
+        <div class="empty">Đang tải danh sách...</div>
+      </div>
+      <form class="pp-form" id="watchlistForm">
+        <input type="text" id="wlSym" placeholder="Thêm mã (VD: FPT)" maxlength="6" required>
+        <input type="text" id="wlNote" placeholder="Ghi chú (tùy chọn)">
+        <input type="number" id="wlTarget" placeholder="Giá mục tiêu" step="0.1">
+        <button type="submit" class="btn primary small">Thêm</button>
+      </form>
+    </div>
+
     <!-- Portfolio panel -->
     <div class="port-panel" id="portPanel" hidden>
       <div class="pp-head">
@@ -401,6 +424,7 @@
 <script src="alerts.js"></script>
 <script src="portfolio.js"></script>
 <script src="brief.js"></script>
+<script src="watchlist.js"></script>
 <script src="live.js"></script>
   <script src="quote.js?v=2"></script>
   <script>

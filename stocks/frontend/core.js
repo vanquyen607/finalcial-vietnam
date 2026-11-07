@@ -43,23 +43,56 @@ function saveFilterState() {
   try { localStorage.setItem("ck_filter", filterBy); } catch (e) {}
 }
 
-/* watchlist ⭐ — "Của tôi" */
+/* watchlist ⭐ — "Của tôi" (Đồng bộ Neon Server + fallback LocalStorage) */
 let watchList = [];
 try {
   watchList = JSON.parse(localStorage.getItem("ck_watch") || "[]")
     .filter((s) => typeof s === "string" && /^[A-Z]{2,6}$/.test(s));
 } catch (e) {}
+
+async function syncWatchListFromServer() {
+  const sess = localStorage.getItem("ck_session");
+  if (!sess) return;
+  try {
+    const res = await api("/api/me/watchlist");
+    if (res && res.status === "ok" && Array.isArray(res.watchlist)) {
+      watchList = res.watchlist.map((item) => item.symbol.toUpperCase());
+      try { localStorage.setItem("ck_watch", JSON.stringify(watchList)); } catch (e) {}
+      if (typeof renderScreen === "function") renderScreen();
+      if (typeof updateWatchlistPanel === "function") updateWatchlistPanel();
+    }
+  } catch (err) {}
+}
+
 const inWatch = (sym) => watchList.includes(sym);
-function toggleWatch(sym) {
+
+async function toggleWatch(sym) {
+  sym = (sym || "").toUpperCase().trim();
+  const sess = localStorage.getItem("ck_session");
   if (inWatch(sym)) {
     watchList = watchList.filter((s) => s !== sym);
     toast(`Đã bỏ ${sym} khỏi ⭐ Của tôi`);
+    if (sess) {
+      try { await api(`/api/me/watchlist/${encodeURIComponent(sym)}`, { method: "DELETE" }); } catch (e) {}
+    }
   } else {
     watchList.push(sym);
     toast(`Đã thêm ${sym} vào ⭐ Của tôi`, "ok");
+    if (sess) {
+      try {
+        await api("/api/me/watchlist", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ symbol: sym })
+        });
+      } catch (e) {}
+    }
   }
   try { localStorage.setItem("ck_watch", JSON.stringify(watchList)); } catch (e) {}
+  if (typeof updateWatchlistPanel === "function") updateWatchlistPanel();
 }
+// Khởi chạy đồng bộ khi có session
+syncWatchListFromServer();
 
 /* so sánh 2 mã */
 let compareMode = false;
