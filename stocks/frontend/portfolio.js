@@ -20,7 +20,9 @@
 
   async function loadPortfolio() {
     try {
-      const st = await api("/api/portfolio");
+      const sess = localStorage.getItem("ck_session");
+      const url = sess ? "/api/me/portfolio" : "/api/portfolio";
+      const st = await api(url);
       renderSummary(st);
       renderPositions(st.positions || []);
       renderAlloc(st.allocation || []);
@@ -59,7 +61,9 @@
     $$(".pp-del", box).forEach(btn => {
       btn.addEventListener("click", async () => {
         if (!confirm(`Xoá ${btn.dataset.sym} khỏi danh mục?`)) return;
-        await apiAdmin(`/api/portfolio/${encodeURIComponent(btn.dataset.sym)}`, { method: "DELETE" });
+        const sess = localStorage.getItem("ck_session");
+        const delUrl = sess ? `/api/me/portfolio/${encodeURIComponent(btn.dataset.sym)}` : `/api/portfolio/${encodeURIComponent(btn.dataset.sym)}`;
+        await api(delUrl, { method: "DELETE" });
         loadPortfolio();
       });
     });
@@ -92,7 +96,9 @@
       const price = parseFloat($("#portPrice").value);
       if (!sym || isNaN(qty) || isNaN(price)) return;
       try {
-        const r = await apiAdmin("/api/portfolio", {
+        const sess = localStorage.getItem("ck_session");
+        const postUrl = sess ? "/api/me/portfolio" : "/api/portfolio";
+        const r = await api(postUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol: sym, qty, avg_price: price })

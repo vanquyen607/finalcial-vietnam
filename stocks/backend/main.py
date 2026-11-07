@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import ai, alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, quote, regime, screen
+from backend import ai, alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, quote, regime, screen, user_data
 from backend.auth import admin_guard, is_locked
 from backend import db as _db
 
@@ -141,6 +141,11 @@ def api_delete_user(username: str, session: dict = Depends(auth2.require_admin))
 def _startup():
     alerts.start_scheduler()
     auth2._bootstrap()   # init Neon schema + default admin
+    try:
+        user_data.migrate_schema()
+    except Exception as e:
+        import logging
+        logging.getLogger("vnstock.user_data").warning(f"Schema migration error: {e}")
 
 # ---------------------------------------------------------------- rate limit
 _WINDOW = 60          # giay
@@ -370,6 +375,129 @@ def api_portfolio_delete(sym: str):
     if ok:
         return {"status": "ok"}
     return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy"})
+
+
+# ---------------- user-specific endpoints (/api/me/...) ----------------
+@app.get("/api/me/watchlist")
+def api_me_watchlist(session: dict = Depends(auth2.require_session)):
+    return {"status": "ok", "watchlist": user_data.watchlist_get(session["uid"])}
+
+@app.post("/api/me/watchlist")
+async def api_me_watchlist_add(request: Request, session: dict = Depends(auth2.require_session)):
+    body = await request.json()
+    try:
+        r = user_data.watchlist_add(
+            session["uid"],
+            body.get("symbol", ""),
+            body.get("note", ""),
+            float(body["price_target"]) if body.get("price_target") is not None else None,
+        )
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.delete("/api/me/watchlist/{sym}")
+def api_me_watchlist_delete(sym: str, session: dict = Depends(auth2.require_session)):
+    ok = user_data.watchlist_remove(session["uid"], sym)
+    return {"status": "ok", "removed": ok}
+
+@app.get("/api/me/portfolio")
+def api_me_portfolio(session: dict = Depends(auth2.require_session)):
+    return {"status": "ready", **user_data.portfolio_get(session["uid"])}
+
+@app.post("/api/me/portfolio")
+async def api_me_portfolio_add(request: Request, session: dict = Depends(auth2.require_session)):
+    body = await request.json()
+    try:
+        r = user_data.portfolio_add(
+            session["uid"],
+            body.get("symbol", ""),
+            float(body.get("qty", 0)),
+            float(body.get("avg_price", 0)),
+        )
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.put("/api/me/portfolio/{sym}")
+async def api_me_portfolio_update(sym: str, request: Request, session: dict = Depends(auth2.require_session)):
+    body = await request.json()
+    try:
+        r = user_data.portfolio_update(
+            session["uid"],
+            sym,
+            float(body.get("qty", 0)),
+            float(body.get("avg_price", 0)),
+        )
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.delete("/api/me/portfolio/{sym}")
+def api_me_portfolio_delete(sym: str, session: dict = Depends(auth2.require_session)):
+    ok = user_data.portfolio_remove(session["uid"], sym)
+    return {"status": "ok", "removed": ok}
+
+@app.post("/api/me/portfolio/sell")
+async def api_me_portfolio_sell(request: Request, session: dict = Depends(auth2.require_session)):
+    body = await request.json()
+    try:
+        r = user_data.portfolio_sell(
+            session["uid"],
+            body.get("symbol", ""),
+            float(body.get("qty", 0)),
+            float(body.get("price", 0)),
+            float(body.get("fee", 0)),
+            body.get("note", ""),
+        )
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.get("/api/me/transactions")
+def api_me_transactions(sym: str = Query(""), limit: int = Query(50), session: dict = Depends(auth2.require_session)):
+    return {"status": "ok", "transactions": user_data.transactions_get(session["uid"], sym, limit)}
+
+@app.get("/api/me/alerts/rules")
+def api_me_alert_rules(session: dict = Depends(auth2.require_session)):
+    return {"status": "ok", "rules": user_data.alert_rules_get(session["uid"])}
+
+@app.post("/api/me/alerts/rules")
+async def api_me_alert_rule_add(request: Request, session: dict = Depends(auth2.require_session)):
+    body = await request.json()
+    try:
+        r = user_data.alert_rule_add(
+            session["uid"],
+            body.get("symbol", ""),
+            body.get("type", ""),
+            float(body.get("threshold", 0)),
+            body.get("note", ""),
+        )
+        return {"status": "ok", **r}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.delete("/api/me/alerts/rules/{rule_id}")
+def api_me_alert_rule_delete(rule_id: str, session: dict = Depends(auth2.require_session)):
+    ok = user_data.alert_rule_delete(session["uid"], rule_id)
+    return {"status": "ok", "removed": ok}
+
+@app.get("/api/me/notes/{sym}")
+def api_me_note_get(sym: str, session: dict = Depends(auth2.require_session)):
+    return {"status": "ok", "symbol": sym.upper(), "content": user_data.note_get(session["uid"], sym)}
+
+@app.put("/api/me/notes/{sym}")
+async def api_me_note_save(sym: str, request: Request, session: dict = Depends(auth2.require_session)):
+    body = await request.json()
+    try:
+        user_data.note_save(session["uid"], sym, body.get("content", ""))
+        return {"status": "ok"}
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
+
+@app.get("/api/calc/breakeven")
+def api_calc_breakeven(price: float = Query(...), buy_fee: float = Query(0.25), sell_fee: float = Query(0.25), tax: float = Query(0.1)):
+    return {"status": "ok", **user_data.calc_breakeven(price, buy_fee, sell_fee, tax)}
 
 
 # ---------------- brief ----------------

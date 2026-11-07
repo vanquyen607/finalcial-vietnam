@@ -10,9 +10,14 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="icon.ico" />
   <script>
-    /* chọn theme trước khi paint — tránh nháy màn hình */
+    /* Auth Guard & Theme: kiểm tra đăng nhập trước khi load */
     (function () {
       try {
+        var sess = localStorage.getItem("ck_session");
+        if (!sess) {
+          window.location.replace("/");
+          return;
+        }
         var t = localStorage.getItem("ck_theme");
         if (t !== "light" && t !== "dark") {
           t = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";

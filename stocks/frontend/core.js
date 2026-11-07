@@ -101,12 +101,20 @@ function askAdminToken() {
 async function api(path, opts) {
   opts = opts || {};
   const headers = Object.assign({}, opts.headers || {});
+  const sess = localStorage.getItem("ck_session");
+  if (sess) headers["X-Session-Token"] = sess;
   if (adminToken) headers["X-Admin-Token"] = adminToken;
   opts.headers = headers;
   let r;
   try { r = await fetch(path, opts); }
   catch (e) { throw new Error("Mất kết nối máy chủ"); }
-  if (r.status === 401) { const e = new Error("Cần token quản trị"); e.code = 401; throw e; }
+  if (r.status === 401) {
+    if (path.startsWith("/api/me/")) {
+      localStorage.removeItem("ck_session");
+      window.location.replace("/");
+    }
+    const e = new Error("Cần quyền truy cập"); e.code = 401; throw e;
+  }
   if (!r.ok) throw new Error(HTTP_MSG[r.status] || `Lỗi máy chủ (HTTP ${r.status})`);
   return r.json();
 }
@@ -273,6 +281,35 @@ function goldUrl() {
   if (h === "localhost" || h === "127.0.0.1") return "http://127.0.0.1:8000/";
   return "https://finalcial-vietnam-1.onrender.com/";
 }
+
+/* ---------------- user box & logout ---------------- */
+(function setupUserHeader() {
+  const user = localStorage.getItem("ck_user");
+  const sess = localStorage.getItem("ck_session");
+  const ub = $("#userBox");
+  const un = $("#userName");
+  const ua = $("#userAvatar");
+  const btnOut = $("#btnLogout");
+
+  if (sess && user && ub) {
+    ub.hidden = false;
+    if (un) un.textContent = user;
+    if (ua) ua.textContent = (user.charAt(0) || "U").toUpperCase();
+  }
+
+  if (btnOut) {
+    btnOut.addEventListener("click", async () => {
+      try {
+        await api("/api/auth/logout", { method: "POST" });
+      } catch (e) {}
+      localStorage.removeItem("ck_session");
+      localStorage.removeItem("ck_user");
+      localStorage.removeItem("ck_role");
+      window.location.replace("/");
+    });
+  }
+})();
+
 try {
   const g = $("#navGold");
   if (g) g.href = goldUrl();
