@@ -12,7 +12,7 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(1100px 460px at 50% -240px, rgba(212, 175, 55, 0.12), transparent 70%),
+    radial-gradient(1200px 500px at 50% -200px, rgba(251, 191, 36, 0.10), transparent 75%),
     var(--surface-0);
   background-attachment: fixed;
   color: var(--on-surface);
@@ -48,11 +48,11 @@ select {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: color-mix(in srgb, var(--surface-0) 86%, transparent);
-  backdrop-filter: saturate(170%) blur(18px);
-  -webkit-backdrop-filter: saturate(170%) blur(18px);
+  background: color-mix(in srgb, var(--surface-0) 80%, transparent);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.25);
   transition: background 0.2s ease, border-color 0.2s ease;
 }
 

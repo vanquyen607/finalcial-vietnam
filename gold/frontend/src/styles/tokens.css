@@ -7,51 +7,51 @@
 [data-theme="dark"] {
   color-scheme: dark;
 
-  /* Colors — surface */
-  --background: #000000;
-  --surface-0: #000000;
-  --surface-1: #121212;
-  --surface-2: #1c1c1e;
-  --surface-container-lowest: #0d0e12;
-  --surface-container-low: #1a1b1f;
-  --surface-container: #1e1f23;
-  --surface-container-high: #292a2e;
-  --surface-container-highest: #343539;
+  /* Colors — surface (FinTech Obsidian & Slate) */
+  --background: #0b0e14;
+  --surface-0: #0b0e14;
+  --surface-1: #121721;
+  --surface-2: #18202c;
+  --surface-container-lowest: #0e121a;
+  --surface-container-low: #151b26;
+  --surface-container: #1b2332;
+  --surface-container-high: #242f42;
+  --surface-container-highest: #2d3b52;
 
   /* Colors — content */
-  --on-surface: #e3e2e7;
-  --on-surface-variant: #d0c5af;
-  --outline: #99907c;
-  --outline-variant: #4d4635;
-  --border: #2c2c2e;
+  --on-surface: #f1f5f9;
+  --on-surface-variant: #cbd5e1;
+  --outline: #8492a6;
+  --outline-variant: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.08);
 
-  /* Colors — brand (gold) */
-  --primary: #f2ca50;
-  --primary-container: #d4af37;
-  --on-primary: #3c2f00;
-  --primary-fixed-dim: #e9c349;
+  /* Colors — brand (Gold FinTech Luxury) */
+  --primary: #fbbf24;
+  --primary-container: #f59e0b;
+  --on-primary: #1e1302;
+  --primary-fixed-dim: #d97706;
 
-  /* Colors — status (financial) — cùng bảng màu với app Cổ phiếu */
-  --up: #2ecf76;
-  --up-soft: rgba(46, 207, 118, 0.15);
-  --down: #ff5b5b;
-  --down-soft: rgba(255, 91, 91, 0.15);
-  --flat: #8e8e93;
-  --error: #ffb4ab;
+  /* Colors — status (financial) — đồng bộ chuẩn với app Cổ phiếu */
+  --up: #10b981;
+  --up-soft: rgba(16, 185, 129, 0.14);
+  --down: #f43f5e;
+  --down-soft: rgba(244, 63, 94, 0.14);
+  --flat: #8492a6;
+  --error: #f43f5e;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Colors — surface */
-  --background: #f4f6fa;
+  /* Colors — surface (FinTech Crisp Light) */
+  --background: #f8fafc;
   --surface-0: #ffffff;
   --surface-1: #ffffff;
-  --surface-2: #f0f3f8;
+  --surface-2: #f1f5f9;
   --surface-container-lowest: #ffffff;
   --surface-container-low: #f8fafc;
   --surface-container: #edf2f7;
@@ -60,28 +60,28 @@
 
   /* Colors — content */
   --on-surface: #0f172a;
-  --on-surface-variant: #475569;
+  --on-surface-variant: #334155;
   --outline: #64748b;
   --outline-variant: #cbd5e1;
   --border: #e2e8f0;
 
   /* Colors — brand (gold) */
-  --primary: #b8860b;
-  --primary-container: #d4af37;
+  --primary: #d97706;
+  --primary-container: #f59e0b;
   --on-primary: #ffffff;
-  --primary-fixed-dim: #996515;
+  --primary-fixed-dim: #b45309;
 
   /* Colors — status (financial) */
-  --up: #16a34a;
-  --up-soft: rgba(22, 163, 74, 0.12);
-  --down: #dc2626;
-  --down-soft: rgba(220, 38, 38, 0.12);
+  --up: #059669;
+  --up-soft: rgba(5, 150, 105, 0.12);
+  --down: #e11d48;
+  --down-soft: rgba(225, 29, 72, 0.12);
   --flat: #64748b;
-  --error: #dc2626;
+  --error: #e11d48;
 
   /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08);
-  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.08);
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 12px 28px rgba(15, 23, 42, 0.08);
 }
 
 :root {
