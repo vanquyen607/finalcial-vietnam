@@ -1281,7 +1281,85 @@ footer b { color: var(--text-2); }
 .q-chg.down { color: var(--down); }
 .q-chg.flat { color: var(--muted); }
 .q-day:empty { display: none; }
-/* ---------------- topbar more menu ---------------- */
+/* ---------------- Mobile Bottom Nav Bar ---------------- */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--border);
+  z-index: 99;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 4px;
+}
+.mb-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  transition: var(--trans);
+  flex: 1;
+}
+.mb-nav-item svg { width: 18px; height: 18px; }
+.mb-nav-item.active, .mb-nav-item:hover {
+  color: var(--accent);
+}
+@media (max-width: 768px) {
+  .mobile-bottom-nav { display: flex; }
+  body { padding-bottom: 64px; }
+  .ai-fab { bottom: 70px; }
+  #toasts { bottom: 74px; }
+}
+
+/* ---------------- Calculator Panel ---------------- */
+.calc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 12px;
+}
+.calc-grid label {
+  font-size: 11.5px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.calc-grid input {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.calc-res-box {
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin: 0 12px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .tb-more { display: none; }
 .more-menu {
   position: fixed; top: calc(var(--tb-h) + 6px); right: 10px; z-index: 40;

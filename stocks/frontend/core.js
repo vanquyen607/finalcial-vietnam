@@ -102,7 +102,13 @@ let lastStale = false;
 /* báo giá — mỗi cảnh báo 1 lần / phiên */
 const firedAlerts = new Set();
 
-/* ---------------- clock ---------------- */
+/* ---------------- Đăng ký Service Worker (PWA) ---------------- */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 function tickClock() {
   const d = new Date();
   $("#clock").textContent = d.toLocaleString("vi-VN", { hour12: false });
