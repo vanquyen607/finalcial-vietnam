@@ -11,7 +11,7 @@ import time
 from backend.store import DATA, _cached
 
 
-def build_brief() -> dict:
+def build_brief(uid: str | None = None) -> dict:
     now = time.time()
 
     # 1. Overview — fields: label, close, chg_pct
@@ -102,29 +102,26 @@ def build_brief() -> dict:
         upcoming.sort(key=lambda x: x.get("date", ""))
         upcoming = upcoming[:10]
 
-    # 6. Portfolio P&L
-    port_obj = _cached(DATA / "portfolio.json")
+    # 6. Portfolio P&L (per-user — khong con portfolio.json global)
     port_summary = None
-    if port_obj and port_obj.get("positions"):
+    if uid:
         try:
-            from backend.portfolio import get_summary
-            s = get_summary()
-            port_summary = {"count": s["count"], "total_value": s["total_value"],
-                            "total_pl": s["total_pl"], "total_pl_pct": s["total_pl_pct"]}
+            from backend import user_data
+            s = user_data.portfolio_get(uid)
+            if s.get("count"):
+                port_summary = {"count": s["count"], "total_value": s["total_value"],
+                                "total_pl": s["total_pl"], "total_pl_pct": s["total_pl_pct"]}
         except Exception:
             pass
 
-    # 7. Alerts chua doc
+    # 7. Alerts chua doc (per-user)
     alert_count = 0
-    alert_dir = DATA / "alerts"
-    if alert_dir.exists():
-        for p in list(alert_dir.glob("*.json"))[-20:]:
-            try:
-                a = _cached(p)
-                if a and not a.get("read"):
-                    alert_count += 1
-            except Exception:
-                pass
+    if uid:
+        try:
+            from backend import user_data
+            alert_count = user_data.alert_events_unread_count(uid)
+        except Exception:
+            alert_count = 0
 
     # Tao text summary
     lines = []

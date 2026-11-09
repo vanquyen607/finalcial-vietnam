@@ -164,6 +164,17 @@ def require_admin(request: Request) -> dict:
     return s
 
 
+def optional_session(request: Request) -> dict | None:
+    """Session nếu có (header/cookie/query), không thì None — không ném 401."""
+    token = (
+        request.headers.get("x-session-token")
+        or request.cookies.get("ck_session")
+        or request.query_params.get("session_token")
+        or ""
+    )
+    return get_session(token)
+
+
 # ── Admin actions ──────────────────────────────────────────────────────────
 def list_users() -> list:
     with get_conn() as conn:

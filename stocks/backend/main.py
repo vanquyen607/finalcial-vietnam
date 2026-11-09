@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import ai, alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, portfolio, quote, regime, screen, user_data
+from backend import ai, alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, quote, regime, screen, user_data
 from backend.auth import admin_guard, is_locked
 from backend import db as _db
 
@@ -139,13 +139,14 @@ def api_delete_user(username: str, session: dict = Depends(auth2.require_admin))
 
 @app.on_event("startup")
 def _startup():
-    alerts.start_scheduler()
     auth2._bootstrap()   # init Neon schema + default admin
     try:
         user_data.migrate_schema()
     except Exception as e:
         import logging
         logging.getLogger("vnstock.user_data").warning(f"Schema migration error: {e}")
+    alerts.migrate_legacy()   # file legacy -> Postgres (admin), idempotent
+    alerts.start_scheduler()
 
 # ---------------------------------------------------------------- rate limit
 _WINDOW = 60          # giay
@@ -305,78 +306,6 @@ async def api_symbol_ask(sym: str, request: Request):
     return ai.answer(sym, str(q or "")[:ai.MAX_Q + 1])
 
 
-# ---------------- alerts ----------------
-@app.get("/api/alerts")
-def api_alerts(limit: int = Query(50, ge=1, le=200)):
-    return {"status": "ready", "alerts": alerts.list_alerts(limit)}
-
-
-@app.post("/api/alerts/rules", dependencies=[Depends(admin_guard)])
-async def api_add_alert_rule(request: Request):
-    body = await request.json()
-    try:
-        rule = alerts.add_rule(body)
-        return {"status": "ok", "rule": rule}
-    except ValueError as e:
-        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
-
-
-@app.get("/api/alerts/rules")
-def api_list_alert_rules():
-    return {"status": "ready", "rules": alerts.list_rules()}
-
-
-@app.delete("/api/alerts/rules/{rule_id}", dependencies=[Depends(admin_guard)])
-def api_delete_alert_rule(rule_id: str):
-    ok = alerts.delete_rule(rule_id)
-    if ok:
-        return {"status": "ok"}
-    return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy rule"})
-
-
-@app.post("/api/alerts/clear", dependencies=[Depends(admin_guard)])
-def api_clear_alerts():
-    n = alerts.clear_alerts()
-    return {"status": "ok", "cleared": n}
-
-
-# ---------------- portfolio ----------------
-@app.get("/api/portfolio")
-def api_portfolio():
-    return {"status": "ready", **portfolio.get_summary()}
-
-
-@app.post("/api/portfolio", dependencies=[Depends(admin_guard)])
-async def api_portfolio_add(request: Request):
-    body = await request.json()
-    try:
-        r = portfolio.add_position(body.get("symbol", ""),
-                                   float(body.get("qty", 0)),
-                                   float(body.get("avg_price", 0)))
-        return {"status": "ok", **r}
-    except ValueError as e:
-        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
-
-
-@app.put("/api/portfolio/{sym}", dependencies=[Depends(admin_guard)])
-async def api_portfolio_update(sym: str, request: Request):
-    body = await request.json()
-    try:
-        r = portfolio.update_position(sym, float(body.get("qty", 0)),
-                                      float(body.get("avg_price", 0)))
-        return {"status": "ok", **r}
-    except ValueError as e:
-        return JSONResponse(status_code=400, content={"status": "error", "message": str(e)})
-
-
-@app.delete("/api/portfolio/{sym}", dependencies=[Depends(admin_guard)])
-def api_portfolio_delete(sym: str):
-    ok = portfolio.remove_position(sym)
-    if ok:
-        return {"status": "ok"}
-    return JSONResponse(status_code=404, content={"status": "error", "message": "Không tìm thấy"})
-
-
 # ---------------- user-specific endpoints (/api/me/...) ----------------
 @app.get("/api/me/watchlist")
 def api_me_watchlist(session: dict = Depends(auth2.require_session)):
@@ -482,6 +411,16 @@ def api_me_alert_rule_delete(rule_id: str, session: dict = Depends(auth2.require
     ok = user_data.alert_rule_delete(session["uid"], rule_id)
     return {"status": "ok", "removed": ok}
 
+@app.get("/api/me/alerts/events")
+def api_me_alert_events(limit: int = Query(50, ge=1, le=200),
+                        session: dict = Depends(auth2.require_session)):
+    return {"status": "ready", "alerts": user_data.alert_events_get(session["uid"], limit=limit)}
+
+@app.post("/api/me/alerts/events/clear")
+def api_me_alert_events_clear(session: dict = Depends(auth2.require_session)):
+    n = user_data.alert_events_clear(session["uid"])
+    return {"status": "ok", "cleared": n}
+
 @app.get("/api/me/notes/{sym}")
 def api_me_note_get(sym: str, session: dict = Depends(auth2.require_session)):
     return {"status": "ok", "symbol": sym.upper(), "content": user_data.note_get(session["uid"], sym)}
@@ -502,8 +441,8 @@ def api_calc_breakeven(price: float = Query(...), buy_fee: float = Query(0.25), 
 
 # ---------------- brief ----------------
 @app.get("/api/brief")
-def api_brief():
-    return brief.build_brief()
+def api_brief(session: dict | None = Depends(auth2.optional_session)):
+    return brief.build_brief(session["uid"] if session else None)
 
 
 @app.exception_handler(Exception)

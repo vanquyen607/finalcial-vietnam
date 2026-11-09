@@ -75,10 +75,13 @@ def migrate_schema() -> None:
                 rule_id      TEXT,
                 symbol       TEXT NOT NULL,
                 message      TEXT NOT NULL,
+                type         TEXT NOT NULL DEFAULT '',
                 triggered_at DOUBLE PRECISION NOT NULL DEFAULT EXTRACT(EPOCH FROM NOW()),
                 read         BOOLEAN NOT NULL DEFAULT FALSE
             )
         """)
+        # DB đã tạo trước khi cột type tồn tại
+        conn.execute("ALTER TABLE alert_events ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT ''")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_prefs (
                 uid          TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
@@ -398,19 +401,48 @@ def alert_rule_delete(uid: str, rule_id: str) -> bool:
     return n > 0
 
 
+def alert_rules_active_all() -> list[dict]:
+    """Toàn bộ rule đang bật — scheduler nền kiểm tra tất cả user."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT id,uid,symbol,type,threshold,note FROM alert_rules WHERE active=TRUE"
+        ).fetchall()
+    return [{"id": r[0], "uid": r[1], "symbol": r[2], "type": r[3],
+             "threshold": r[4], "note": r[5], "active": True} for r in rows]
+
+
+def alert_rules_recent_rule_ids(since: float) -> set:
+    """rule_id đã nổ event sau `since` — dùng làm cooldown 30 phút."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT rule_id FROM alert_events WHERE triggered_at > %s AND rule_id IS NOT NULL",
+            (since,),
+        ).fetchall()
+    return {r[0] for r in rows}
+
+
 def alert_events_get(uid: str, unread_only: bool = False, limit: int = 50) -> list[dict]:
     with get_conn() as conn:
         if unread_only:
             rows = conn.execute(
-                "SELECT id,symbol,message,triggered_at,read FROM alert_events WHERE uid=%s AND read=FALSE ORDER BY triggered_at DESC LIMIT %s",
+                "SELECT id,symbol,message,type,triggered_at,read FROM alert_events WHERE uid=%s AND read=FALSE ORDER BY triggered_at DESC LIMIT %s",
                 (uid, limit),
             ).fetchall()
         else:
             rows = conn.execute(
-                "SELECT id,symbol,message,triggered_at,read FROM alert_events WHERE uid=%s ORDER BY triggered_at DESC LIMIT %s",
+                "SELECT id,symbol,message,type,triggered_at,read FROM alert_events WHERE uid=%s ORDER BY triggered_at DESC LIMIT %s",
                 (uid, limit),
             ).fetchall()
-    return [{"id": r[0], "symbol": r[1], "message": r[2], "triggered_at": r[3], "read": r[4]} for r in rows]
+    return [{"id": r[0], "symbol": r[1], "message": r[2], "type": r[3],
+             "triggered_at": r[4], "read": r[5]} for r in rows]
+
+
+def alert_events_unread_count(uid: str) -> int:
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM alert_events WHERE uid=%s AND read=FALSE", (uid,)
+        ).fetchone()
+    return int(row[0]) if row else 0
 
 
 def alert_events_mark_read(uid: str) -> int:
@@ -422,12 +454,16 @@ def alert_events_mark_read(uid: str) -> int:
     return n
 
 
-def alert_event_add(uid: str, symbol: str, message: str, rule_id: Optional[str] = None) -> None:
-    """Dùng bởi scheduler để ghi event."""
+def alert_event_add(uid: str, symbol: str, message: str,
+                    rule_id: Optional[str] = None, atype: str = "",
+                    is_read: bool = False,
+                    triggered_at: Optional[float] = None) -> None:
+    """Dùng bởi scheduler để ghi event (triggered_at=None -> now)."""
     with get_conn() as conn:
         conn.execute(
-            "INSERT INTO alert_events (uid,rule_id,symbol,message,triggered_at) VALUES (%s,%s,%s,%s,%s)",
-            (uid, rule_id, symbol, message, time.time()),
+            "INSERT INTO alert_events (uid,rule_id,symbol,message,type,triggered_at,read) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+            (uid, rule_id, symbol, message, atype,
+             time.time() if triggered_at is None else triggered_at, is_read),
         )
         # giữ tối đa 200 events/user
         conn.execute(

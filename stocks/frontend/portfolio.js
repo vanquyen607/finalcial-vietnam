@@ -20,9 +20,7 @@
 
   async function loadPortfolio() {
     try {
-      const sess = localStorage.getItem("ck_session");
-      const url = sess ? "/api/me/portfolio" : "/api/portfolio";
-      const st = await api(url);
+      const st = await api("/api/me/portfolio");
       renderSummary(st);
       renderPositions(st.positions || []);
       renderAlloc(st.allocation || []);
@@ -80,9 +78,7 @@
     $$(".pp-del", box).forEach(btn => {
       btn.addEventListener("click", async () => {
         if (!confirm(`Xoá ${btn.dataset.sym} khỏi danh mục?`)) return;
-        const sess = localStorage.getItem("ck_session");
-        const delUrl = sess ? `/api/me/portfolio/${encodeURIComponent(btn.dataset.sym)}` : `/api/portfolio/${encodeURIComponent(btn.dataset.sym)}`;
-        await api(delUrl, { method: "DELETE" });
+        await api(`/api/me/portfolio/${encodeURIComponent(btn.dataset.sym)}`, { method: "DELETE" });
         loadPortfolio();
       });
     });
@@ -122,9 +118,7 @@
         return;
       }
       try {
-        const sess = localStorage.getItem("ck_session");
-        const postUrl = sess ? "/api/me/portfolio" : "/api/portfolio";
-        const r = await api(postUrl, {
+        const r = await api("/api/me/portfolio", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol: sym, qty, avg_price: price })

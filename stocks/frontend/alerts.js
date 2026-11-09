@@ -20,7 +20,7 @@
   /* ---------------- fetch ---------------- */
   async function loadAlerts() {
     try {
-      const st = await api("/api/alerts?limit=50");
+      const st = await api("/api/me/alerts/events?limit=50");
       renderAlerts(st.alerts || []);
       unread = (st.alerts || []).filter(a => !a.read).length;
       updateBadge();
@@ -29,9 +29,7 @@
 
   async function loadRules() {
     try {
-      const sess = localStorage.getItem("ck_session");
-      const url = sess ? "/api/me/alerts/rules" : "/api/alerts/rules";
-      const st = await api(url);
+      const st = await api("/api/me/alerts/rules");
       renderRules(st.rules || []);
     } catch (e) { /* ignore */ }
   }
@@ -55,7 +53,7 @@
         <span class="ap-ico">${ICONS[a.type] || "🔔"}</span>
         <div class="ap-content">
           <div class="ap-msg">${esc(a.message)}</div>
-          <div class="ap-meta">${fmtTs(a.ts)} · ${esc(a.type)}</div>
+          <div class="ap-meta">${fmtTs(a.triggered_at ?? a.ts)}${a.type ? " · " + esc(a.type) : ""}</div>
         </div>
       </li>`).join("") + `</ul>`;
   }
@@ -81,9 +79,7 @@
       btn.addEventListener("click", async () => {
         const li = btn.closest(".ap-item");
         if (!li) return;
-        const sess = localStorage.getItem("ck_session");
-        const delUrl = sess ? `/api/me/alerts/rules/${encodeURIComponent(li.dataset.id)}` : `/api/alerts/rules/${encodeURIComponent(li.dataset.id)}`;
-        await api(delUrl, { method: "DELETE" });
+        await api(`/api/me/alerts/rules/${encodeURIComponent(li.dataset.id)}`, { method: "DELETE" });
         loadRules();
       });
     });
@@ -101,9 +97,7 @@
       const note = ($("#ruleNote").value || "").trim();
       if (!sym || isNaN(th)) return;
       try {
-        const sess = localStorage.getItem("ck_session");
-        const postUrl = sess ? "/api/me/alerts/rules" : "/api/alerts/rules";
-        const r = await api(postUrl, {
+        const r = await api("/api/me/alerts/rules", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ symbol: sym, type, threshold: th, note })
@@ -147,7 +141,7 @@
 
     const clearBtn = $("#btnClearAlerts");
     if (clearBtn) clearBtn.addEventListener("click", async () => {
-      await apiAdmin("/api/alerts/clear", { method: "POST" });
+      await api("/api/me/alerts/events/clear", { method: "POST" });
       unread = 0;
       updateBadge();
       loadAlerts();

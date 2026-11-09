@@ -1,142 +1,189 @@
 # -*- coding: utf-8 -*-
-"""Alert chu dong — server scheduler kiem tra dieu kien, luu su kien.
+"""Alert chu dong — server scheduler kiem tra dieu kien, luu su kien per-user.
 
 Loai alert:
   price_above / price_below  — gia cham muc
-  volume_spipe               — khoi luong bat thuong (> n x TB20)
+  volume_spike               — khoi luong bat thuong (> n x TB20)
   score_at_least             — diem dat nguong
   rsi_above / rsi_below      — RSI qua mua / qua ban
 
 Scheduler chay moi 5 phut trong gio giao dich (is_session).
-Rules luu persistent; alerts luu 30 ngay.
+Rules luu trong bang alert_rules (per-user, Postgres); events trong
+alert_events (per-user, toi da 200/user, cooldown 30 phut/rule).
+File legacy (alert_rules.json, alerts/*.json) duoc migrate cho admin lan
+dau startup roi doi ten thanh .bak.
 """
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
-from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
-from backend.store import DATA, _cached, _save
+from backend import user_data
+from backend.db import get_conn
 from backend.session import is_session
+from backend.store import DATA
 
-_VN = ZoneInfo("Asia/Ho_Chi_Minh")
+_VN_NAME = "vnstock.alerts"
 
-ALERT_DIR = DATA / "alerts"
+CHECK_INTERVAL = 300   # 5 phut
+COOLDOWN = 1800        # khong trigger lai trong 30 phut cung 1 rule
+
 RULES_PATH = DATA / "alert_rules.json"
-ALERT_DIR.mkdir(parents=True, exist_ok=True)
+ALERT_DIR = DATA / "alerts"
 
-CHECK_INTERVAL = 300  # 5 phut
-ALERT_TTL = 30 * 24 * 3600  # giu alert 30 ngay
-
-_rules_lock = threading.Lock()
-_alerts_lock = threading.Lock()
 _scheduler_started = False
 
 
-# ---------------- rules ----------------
-def _load_rules() -> list[dict]:
-    obj = _cached(RULES_PATH)
-    if not obj:
-        return []
-    return obj.get("rules", [])
+# ---------------- migrate legacy (file + cache table -> bang per-user, admin) ----------------
+CACHE_RULES_KEY = "data/alert_rules.json"
+CACHE_ALERTS_PREFIX = "data/alerts/"
 
 
-def _save_rules(rules: list[dict]) -> None:
-    _save(RULES_PATH, {"updated_at": time.time(), "rules": rules})
+def _admin_exists() -> bool:
+    with get_conn() as conn:
+        row = conn.execute("SELECT 1 FROM users WHERE username='admin'").fetchone()
+    return row is not None
 
 
-def list_rules() -> list[dict]:
-    with _rules_lock:
-        return _load_rules()
-
-
-def add_rule(rule: dict) -> dict:
-    """Them rule. rule: {symbol, type, threshold, note?}"""
-    sym = str(rule.get("symbol", "")).strip().upper()
-    rtype = str(rule.get("type", "")).strip()
-    valid_types = {"price_above", "price_below", "volume_spike",
-                   "score_at_least", "rsi_above", "rsi_below"}
-    if not sym.isalpha() or not 2 <= len(sym) <= 6:
-        raise ValueError("Mã không hợp lệ")
-    if rtype not in valid_types:
-        raise ValueError(f"Loại alert không hợp lệ: {rtype}. Chọn: {valid_types}")
+def _cache_delete(key: str) -> None:
     try:
-        threshold = float(rule.get("threshold"))
-    except (TypeError, ValueError):
-        raise ValueError("Ngưỡng phải là số")
-    if rtype == "volume_spike" and threshold <= 0:
-        raise ValueError("volume_spike cần n > 0 (ví dụ 2 = 2× TB20)")
-
-    with _rules_lock:
-        rules = _load_rules()
-        # trung rule cung symbol+type+threshold -> bo qua
-        for r in rules:
-            if (r["symbol"] == sym and r["type"] == rtype
-                    and abs(r["threshold"] - threshold) < 1e-9):
-                return r
-        new_rule = {
-            "id": f"{sym}_{rtype}_{int(threshold * 100)}",
-            "symbol": sym,
-            "type": rtype,
-            "threshold": threshold,
-            "note": str(rule.get("note", ""))[:120],
-            "created_at": time.time(),
-            "active": True,
-            "last_triggered": None,
-        }
-        rules.append(new_rule)
-        _save_rules(rules)
-        return new_rule
+        with get_conn() as conn:
+            conn.execute("DELETE FROM cache WHERE key=%s", (key,))
+            conn.commit()
+    except Exception:
+        pass
 
 
-def delete_rule(rule_id: str) -> bool:
-    with _rules_lock:
-        rules = _load_rules()
-        before = len(rules)
-        rules = [r for r in rules if r.get("id") != rule_id]
-        if len(rules) == before:
-            return False
-        _save_rules(rules)
-        return True
-
-
-# ---------------- alerts ----------------
-def _load_alerts() -> list[dict]:
-    alerts = []
-    for p in sorted(ALERT_DIR.glob("*.json"), reverse=True)[:200]:
-        try:
-            obj = json.loads(p.read_text(encoding="utf-8"))
-            if time.time() - obj.get("ts", 0) < ALERT_TTL:
-                alerts.append(obj)
-        except Exception:
-            continue
-    alerts.sort(key=lambda x: x.get("ts", 0), reverse=True)
-    return alerts
-
-
-def _push_alert(alert: dict) -> None:
-    ts = int(time.time() * 1000)
-    _save(ALERT_DIR / f"{ts}_{alert['symbol']}.json", alert)
-
-
-def list_alerts(limit: int = 50) -> list[dict]:
-    with _alerts_lock:
-        return _load_alerts()[:limit]
-
-
-def clear_alerts() -> int:
-    with _alerts_lock:
-        n = 0
-        for p in ALERT_DIR.glob("*.json"):
+def _legacy_alert_objs() -> list[tuple[str, dict]]:
+    """Legacy alerts trong cache table (Render khong con file JSON)."""
+    out: list[tuple[str, dict]] = []
+    try:
+        with get_conn() as conn:
+            rows = conn.execute(
+                "SELECT key, value FROM cache WHERE key LIKE %s",
+                (CACHE_ALERTS_PREFIX + "%",),
+            ).fetchall()
+        for k, v in rows:
             try:
-                p.unlink()
-                n += 1
+                out.append((k, v if isinstance(v, dict) else json.loads(v)))
             except Exception:
-                pass
-    return n
+                continue
+    except Exception:
+        pass
+    return out
+
+
+def _migrate_rules() -> None:
+    """alert_rules.json (file + cache table) -> bang alert_rules (uid=admin)."""
+    src = RULES_PATH
+    tmp = DATA / "alert_rules.json.migrating"
+    dst = DATA / "alert_rules.json.bak"
+    if src.exists() and not tmp.exists() and not dst.exists():
+        src.rename(tmp)
+    obj = None
+    if tmp.exists():
+        try:
+            obj = json.loads(tmp.read_text(encoding="utf-8"))
+        except Exception:
+            obj = None
+    if obj is None:
+        from backend.store import _read_raw
+        obj = _read_raw(RULES_PATH)   # DB cache truoc, file fallback
+    if obj:
+        rules = obj.get("rules", []) if isinstance(obj, dict) else []
+        existing = {(r["symbol"], r["type"], round(r["threshold"], 6))
+                    for r in user_data.alert_rules_get("admin")}
+        for r in rules:
+            try:
+                sym = str(r.get("symbol", "")).upper()
+                rtype = str(r.get("type", ""))
+                th = round(float(r.get("threshold", 0)), 6)
+            except (TypeError, ValueError):
+                continue
+            key = (sym, rtype, th)
+            if not sym or rtype not in user_data.VALID_ALERT_TYPES or key in existing:
+                continue
+            try:
+                user_data.alert_rule_add("admin", sym, rtype, float(r.get("threshold", 0)),
+                                         str(r.get("note", ""))[:120])
+                existing.add(key)
+            except ValueError:
+                continue  # legacy rule khong hop le -> bo qua vinh vien
+            # Exception khac (DB): propagate -> khong cleanup -> lan sau chay lai (dedupe)
+        logging.getLogger(_VN_NAME).info("Migrated legacy alert rules -> Postgres (admin)")
+    # cleanup ca hai luong (chi chay khi insert khong raise)
+    if tmp.exists():
+        tmp.rename(dst)
+    elif src.exists() and not dst.exists():
+        src.rename(dst)
+    _cache_delete(CACHE_RULES_KEY)
+
+
+def _migrate_alert_dir() -> None:
+    """Legacy alerts (files + cache table) -> bang alert_events (uid=admin)."""
+    entries: list[tuple[str, dict]] = []   # (locator, obj) — locator = file path hay cache key
+    if ALERT_DIR.exists():
+        for p in sorted(ALERT_DIR.glob("*.json")):
+            try:
+                entries.append((str(p), json.loads(p.read_text(encoding="utf-8"))))
+            except Exception:
+                continue
+    entries.extend(_legacy_alert_objs())
+    if not entries:
+        return
+    known = {(e["symbol"], e["message"], round(e["triggered_at"]))
+             for e in user_data.alert_events_get("admin", limit=200)}
+    done_files: list[Path] = []
+    done_keys: list[str] = []
+    for locator, a in entries:
+        try:
+            key = (a.get("symbol", ""), a.get("message", ""), round(float(a.get("ts", 0))))
+            if key not in known:
+                try:
+                    ts = float(a.get("ts") or 0) or None
+                except (TypeError, ValueError):
+                    ts = None
+                user_data.alert_event_add(
+                    "admin", a.get("symbol", ""), a.get("message", ""),
+                    a.get("rule_id"), a.get("type", ""), bool(a.get("read", False)),
+                    ts,
+                )
+                known.add(key)
+        except Exception:
+            continue  # that bai -> giu lai (file/cache), lan sau chay lai (dedupe)
+        if locator.startswith(CACHE_ALERTS_PREFIX):
+            done_keys.append(locator)
+        else:
+            done_files.append(Path(locator))
+    for p in done_files:
+        try:
+            p.unlink(missing_ok=True)
+        except Exception:
+            pass
+    for k in done_keys:
+        _cache_delete(k)
+    try:
+        if ALERT_DIR.exists() and not any(ALERT_DIR.glob("*.json")):
+            dst = DATA / "alerts.bak"
+            if not dst.exists():
+                ALERT_DIR.rename(dst)
+    except Exception:
+        pass
+    logging.getLogger(_VN_NAME).info("Migrated legacy alert events -> Postgres (admin)")
+
+
+def migrate_legacy() -> None:
+    """Idempotent. Bo qua neu admin chua ton tai (bootstrap chua chay)."""
+    try:
+        if not _admin_exists():
+            return
+        _migrate_rules()
+        _migrate_alert_dir()
+    except Exception as e:
+        logging.getLogger(_VN_NAME).warning(f"Legacy alert migration error: {e}")
 
 
 # ---------------- check logic ----------------
@@ -192,19 +239,20 @@ def _eval_rule(rule: dict, q: dict) -> str | None:
 
 
 def check_once() -> int:
-    """Kiem tra tat ca rules. Tra ve so alert moi."""
+    """Kiem tra toan bo rule trong DB (moi user). Tra ve so alert moi."""
     if not is_session():
         return 0
-    rules = list_rules()
-    if not rules:
+    try:
+        rules = user_data.alert_rules_active_all()
+        if not rules:
+            return 0
+        recent = user_data.alert_rules_recent_rule_ids(time.time() - COOLDOWN)
+    except Exception as e:
+        logging.getLogger(_VN_NAME).warning(f"check_once load rules error: {e}")
         return 0
     fired = 0
-    now = time.time()
     for rule in rules:
-        if not rule.get("active"):
-            continue
-        # khong trigger lai trong 30 phut cung 1 rule
-        if rule.get("last_triggered") and now - rule["last_triggered"] < 1800:
+        if rule["id"] in recent:
             continue
         try:
             q = _get_quote_data(rule["symbol"])
@@ -212,25 +260,8 @@ def check_once() -> int:
                 continue
             msg = _eval_rule(rule, q)
             if msg:
-                alert = {
-                    "symbol": rule["symbol"],
-                    "rule_id": rule.get("id"),
-                    "type": rule["type"],
-                    "threshold": rule["threshold"],
-                    "message": msg,
-                    "close": q.get("close"),
-                    "ts": now,
-                    "read": False,
-                }
-                with _alerts_lock:
-                    _push_alert(alert)
-                # cap nhat last_triggered
-                with _rules_lock:
-                    rules2 = _load_rules()
-                    for r in rules2:
-                        if r.get("id") == rule.get("id"):
-                            r["last_triggered"] = now
-                    _save_rules(rules2)
+                user_data.alert_event_add(rule["uid"], rule["symbol"], msg,
+                                          rule["id"], rule.get("type", ""))
                 fired += 1
         except Exception:
             continue
