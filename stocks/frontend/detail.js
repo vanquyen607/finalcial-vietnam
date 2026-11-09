@@ -159,7 +159,6 @@ function renderDetail(d, stale) {
   loadFundtrend(d.symbol);
   loadPeers(d.symbol);
   loadFlow(d.symbol);          /* lazy — khong block phan tich ky thuat */
-  if (window.setAISymbol) setAISymbol(d.symbol);
 }
 
 /* ---------------- báo giá ---------------- */

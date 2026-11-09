@@ -228,14 +228,6 @@
           <span class="sl">Bản tin</span>
         </button>
 
-        <div class="side-group-lbl">TRỢ LÝ</div>
-        <button class="side-item" type="button" data-action="ai" title="AI Phân tích trợ lý">
-          <span class="si" style="color:var(--accent)">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></svg>
-          </span>
-          <span class="sl">Hỏi AI</span>
-          <span class="side-badge">AI</span>
-        </button>
         <button class="side-item primary" type="button" data-action="runscreen" title="Quét lọc toàn bộ 40 mã">
           <span class="si">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
@@ -472,33 +464,11 @@
     </button>
   </nav>
 
-  <button class="ai-fab" id="aiFab" type="button" aria-expanded="false"
-          aria-controls="aiPanel" title="Hỏi AI về mã đang xem">
-    <span class="ai-fab-ico">✦</span> Hỏi AI
-  </button>
-
-  <div class="ai-panel" id="aiPanel" hidden role="dialog" aria-label="Trợ lý AI">
-    <div class="ai-head">
-      <h4 id="aiTitle">Hỏi AI</h4>
-      <span class="ai-badge">Gemini</span>
-      <button type="button" class="ai-clear" id="aiClear" title="Xoá hội thoại của mã này">Xoá</button>
-      <button type="button" class="ai-close" id="aiClose" aria-label="Đóng">✕</button>
-    </div>
-    <div class="ai-chips" id="aiChips"></div>
-    <div class="ai-log" id="aiLog"></div>
-    <form class="ai-form" id="aiForm">
-      <input id="aiInput" maxlength="500" autocomplete="off" placeholder="Chọn một mã để hỏi…">
-      <button class="btn primary" type="submit" id="aiSend">Gửi</button>
-    </form>
-    <div class="ai-note">AI trả lời từ dữ liệu cache của app — chỉ để tham khảo, không phải khuyến nghị đầu tư. Câu hỏi được gửi tới Google Gemini.</div>
-  </div>
-
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
 <script src="core.js"></script>
 <script src="overview.js"></script>
 <script src="screen.js"></script>
 <script src="detail.js"></script>
-<script src="ask.js?v=4"></script>
 <script src="alerts.js"></script>
 <script src="portfolio.js"></script>
 <script src="brief.js"></script>

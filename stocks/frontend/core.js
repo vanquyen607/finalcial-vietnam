@@ -264,7 +264,6 @@ try {
       if (a === "portfolio") $("#btnPortfolio") && $("#btnPortfolio").click();
       else if (a === "alerts") $("#btnAlerts") && $("#btnAlerts").click();
       else if (a === "brief") $("#btnBrief") && $("#btnBrief").click();
-      else if (a === "ai") $("#aiFab") && $("#aiFab").click();
       else if (a === "runscreen") $("#btnRunScreen") && $("#btnRunScreen").click();
       closeDrawer();
     });

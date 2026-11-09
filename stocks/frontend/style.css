@@ -1226,88 +1226,6 @@ footer b { color: var(--text-2); }
   .bp-table th, .bp-table td { padding: 3px 3px; }
 }
 
-/* ---------------- hoi dap AI (floating) ---------------- */
-.ai-fab {
-  position: fixed; right: 16px; bottom: 16px; z-index: 72;
-  display: inline-flex; align-items: center; gap: 7px;
-  padding: 10px 15px; border-radius: 999px;
-  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
-  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .28);
-}
-.ai-fab:hover { filter: brightness(1.07); }
-.ai-fab-ico { font-size: 14px; line-height: 1; }
-.ai-fab.open { background: var(--surface-3); color: var(--text); border-color: var(--border-strong); }
-.ai-panel {
-  position: fixed; right: 16px; bottom: 70px; z-index: 71;
-  width: 380px; max-width: calc(100vw - 32px);
-  max-height: min(560px, calc(100vh - 96px));
-  display: flex; flex-direction: column;
-  padding: 12px; border: 1px solid var(--border-strong); border-radius: 12px;
-  background: var(--surface-2); box-shadow: 0 18px 48px rgba(0, 0, 0, .38);
-}
-.ai-panel[hidden] { display: none; }
-.ai-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.ai-head h4 { margin: 0; font-size: 13px; }
-.ai-badge {
-  font-size: 10px; letter-spacing: .05em; padding: 2px 7px;
-  border-radius: 999px; border: 1px solid var(--border);
-  background: var(--surface-3); color: var(--muted);
-}
-.ai-clear {
-  margin-left: auto; padding: 2px 4px; border: none; background: none;
-  color: var(--muted); font: inherit; font-size: 11.5px; cursor: pointer;
-}
-.ai-clear:hover { color: var(--text); }
-.ai-close {
-  padding: 2px 4px; border: none; background: none;
-  color: var(--muted); font: inherit; font-size: 13px; line-height: 1; cursor: pointer;
-}
-.ai-close:hover { color: var(--text); }
-.ai-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.ai-chip {
-  padding: 3px 9px; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--border); background: var(--surface-3);
-  color: var(--text-2); font: inherit; font-size: 11.5px;
-}
-.ai-chip:hover { border-color: var(--accent); color: var(--text); }
-.ai-log {
-  flex: 1; min-height: 56px; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 8px;
-}
-.ai-log:empty { display: none; }
-.ai-empty { padding: 8px 2px; color: var(--muted); font-size: 12px; line-height: 1.5; }
-.ai-msg { display: flex; flex-direction: column; gap: 2px; max-width: 92%; }
-.ai-msg.user { align-self: flex-end; align-items: flex-end; }
-.ai-who { font-size: 10px; color: var(--muted); letter-spacing: .04em; }
-.ai-text {
-  padding: 7px 10px; border-radius: 9px;
-  border: 1px solid var(--border); background: var(--surface-3);
-  font-size: 12.5px; line-height: 1.55;
-  white-space: pre-wrap; overflow-wrap: anywhere;
-}
-.ai-msg.user .ai-text { border-color: var(--accent); }
-.ai-msg.pending .ai-text { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-.ai-form { display: flex; gap: 7px; margin-top: 9px; }
-.ai-form input {
-  flex: 1; min-width: 0; padding: 7px 10px;
-  border: 1px solid var(--border); border-radius: 8px;
-  background: var(--bg); color: var(--text);
-  font: inherit; font-size: 13px;
-}
-.ai-form input:focus { outline: none; border-color: var(--accent); }
-.ai-form .btn { padding: 7px 13px; font-size: 12.5px; }
-.ai-note { margin-top: 6px; font-size: 10.5px; color: var(--muted); line-height: 1.45; }
-#toasts { bottom: 84px; }
-@media (max-width: 560px) {
-  .ai-panel {
-    left: 8px; right: 8px; width: auto; bottom: 68px;
-    max-height: 72vh; padding: 10px;
-  }
-  .ai-fab { right: 12px; bottom: 12px; }
-  .ai-msg { max-width: 100%; }
-}
-
 /* ---------------- gia gan realtime (SSI iBoard) ---------------- */
 .q-chg { margin-left: 4px; font-size: 10.5px; letter-spacing: -.01em; }
 .q-chg.up { color: var(--up); }
@@ -1356,7 +1274,6 @@ footer b { color: var(--text-2); }
 @media (max-width: 768px) {
   .mobile-bottom-nav { display: flex; }
   body { padding-bottom: 64px; }
-  .ai-fab { bottom: 70px; }
   #toasts { bottom: 74px; }
 }
 

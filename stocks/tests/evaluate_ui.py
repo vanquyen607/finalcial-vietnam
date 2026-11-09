@@ -124,7 +124,7 @@ def main():
         page.click("#btnCollapseSide")
         page.wait_for_timeout(300)
         
-        # Test Panels: Brief, Alerts, AI
+        # Test Panels: Brief, Alerts
         page.click("#btnBrief")
         page.wait_for_selector("#briefPanel:not([hidden])", timeout=5000)
         page.screenshot(path=str(SHOTS_DIR / "desktop_brief_panel.png"), full_page=False)
@@ -134,11 +134,6 @@ def main():
         page.wait_for_selector("#alertPanel:not([hidden])", timeout=5000)
         page.screenshot(path=str(SHOTS_DIR / "desktop_alerts_panel.png"), full_page=False)
         page.click("#btnCloseAlerts")
-        
-        page.click("#aiFab")
-        page.wait_for_selector("#aiPanel:not([hidden])", timeout=5000)
-        page.screenshot(path=str(SHOTS_DIR / "desktop_ai_panel.png"), full_page=False)
-        page.click("#aiClose")
         
         # ----------------- 2. DESKTOP THEME TOGGLE -----------------
         print("--- Testing Desktop Theme Toggle ---", flush=True)
