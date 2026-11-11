@@ -58,3 +58,6 @@ stocks/scripts/*_0929.json
 
 .neon
 .env.local
+
+# Graphify output (regenerate via /graphify)
+graphify-out/
