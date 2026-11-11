@@ -17,6 +17,15 @@ class _OffHours(Exception):
     """Bang gia dang reset (gio nghi) — giu cache cu thay vi ghi de bang 0."""
 
 
+def _board_debug(msg: str) -> None:
+    """Tam thong diep loi chup board.json — xoa sau khi fix."""
+    try:
+        with open(DATA / "_board_debug.log", "a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
+    except Exception:
+        pass
+
+
 def _exchange_bucket(v) -> str | None:
     v = (str(v) if v is not None else "").strip().upper()
     if v in ("HSX", "HOSE"):
@@ -101,8 +110,14 @@ def _breadth_build() -> dict:
             ]
             if rows:
                 _save(DATA / "board.json", {"fetched_at": time.time(), "rows": rows})
+            else:
+                _board_debug(f"rows empty: nrows={len(df)} live={int(live.sum())} "
+                             f"bucket_ok={int(bucket.notna().sum())} val_pos={int((val > 0).sum())}")
+        else:
+            _board_debug(f"no symbol col: ncols={len(df.columns)} sample={list(df.columns[:5])}")
     except Exception:
-        pass
+        import traceback
+        _board_debug(traceback.format_exc())
 
     exch = {}
     for b in ("hose", "hnx", "upcom"):

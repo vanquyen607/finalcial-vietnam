@@ -28,6 +28,7 @@ async function loadScreen() {
       const nxt = st.auto && st.next_in ? ` · quét lại sau ${st.next_in}s` : "";
       $("#screenMeta").textContent = `${st.results.length} mã · ${t ? "lúc " + t.toLocaleTimeString("vi-VN") : ""} · ${auto}${nxt}${src}`;
       renderScreen(st.results);
+      try { localStorage.setItem("ck_screen_cache", JSON.stringify(st.results)); } catch (e) {}
     } else {
       $("#screenMeta").textContent = "chưa có dữ liệu — bấm Chạy màn lọc";
       $("#screenBody").innerHTML = `<tr><td colspan="8" class="empty">Chưa có dữ liệu. Bấm <b>Chạy màn lọc</b> (lần đầu ~15–20 phút).</td></tr>`;
@@ -35,7 +36,14 @@ async function loadScreen() {
     clearTimeout(pollTimers.screen);
     pollTimers.screen = setTimeout(loadScreen, screenPollDelay(false));
   } catch (e) {
-    $("#screenMeta").textContent = "lỗi: " + e.message;
+    let localRows = null;
+    try { localRows = JSON.parse(localStorage.getItem("ck_screen_cache")); } catch (err) {}
+    if (localRows && localRows.length) {
+      $("#screenMeta").textContent = `${localRows.length} mã (chế độ offline)`;
+      renderScreen(localRows);
+    } else {
+      $("#screenMeta").textContent = "lỗi hoặc ngoại tuyến";
+    }
     clearTimeout(pollTimers.screen);
     pollTimers.screen = setTimeout(loadScreen, 15000);
   }
