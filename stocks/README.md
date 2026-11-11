@@ -46,7 +46,9 @@ Mở `http://127.0.0.1:8100`
 | **Alert chủ động** | 6 loại rule (giá, volume, điểm, RSI), scheduler 5 phút |
 | **Portfolio tracking** | CRUD vị thế, P&L, phân bổ vốn |
 | **Morning brief** | Bản tin tổng hợp từ cache — chỉ số, regime, top screen, sự kiện |
-| **Màn lọc (screener)** | Lọc 40 mã theo điểm, tải CSV |
+| **Màn lọc (screener)** | Lọc rổ 40 mã + top 150 HOSE theo thanh khoản (từ ảnh chụp bảng giá), tải CSV |
+| **Bollinger Bands** | Dải 20/2 trên biểu đồ nến, %B trong chấm điểm (+1 khi bám dải trên với MACD ủng hộ) |
+| **Bản đồ nhiệt ngành** | % thay đổi gia quyền GTGD theo ngành, mã biến động mạnh nhất từng ngành (từ bảng giá độ rộng) |
 
 ---
 

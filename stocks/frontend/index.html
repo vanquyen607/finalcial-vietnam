@@ -88,7 +88,7 @@
       </button>
       <button class="btn primary" id="btnRunScreen">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><polygon points="6 4 19 12 6 20 6 4"/></svg>
-        <span>Chạy màn lọc 40 mã</span>
+        <span>Chạy màn lọc</span>
       </button>
       <span class="tb-sep tb-sec" aria-hidden="true"></span>
       <span class="user-box" id="userBox" hidden>
@@ -111,7 +111,7 @@
     <button class="mm-item" type="button" data-mm="live">Live (tự làm mới 60s)</button>
     <button class="mm-item" type="button" data-mm="brief">📰 Bản tin tổng hợp</button>
     <button class="mm-item" type="button" data-mm="refresh">⟳ Cập nhật chỉ số</button>
-    <button class="mm-item" type="button" data-mm="runscreen">▶ Chạy màn lọc 40 mã</button>
+    <button class="mm-item" type="button" data-mm="runscreen">▶ Chạy màn lọc</button>
   </div>
 
   <!-- Brief panel -->
@@ -187,7 +187,7 @@
           <span class="si">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
           </span>
-          <span class="sl">Màn lọc 40 mã</span>
+          <span class="sl">Màn lọc</span>
         </a>
         <a class="side-item" href="#detailPanel" data-scroll title="Chi tiết kỹ thuật & tài chính">
           <span class="si">
@@ -228,11 +228,11 @@
           <span class="sl">Bản tin</span>
         </button>
 
-        <button class="side-item primary" type="button" data-action="runscreen" title="Quét lọc toàn bộ 40 mã">
+        <button class="side-item primary" type="button" data-action="runscreen" title="Quét lọc rổ + top thanh khoản HOSE">
           <span class="si">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3"/></svg>
           </span>
-          <span class="sl">Chạy lọc 40 mã</span>
+          <span class="sl">Chạy lọc</span>
         </button>
       </nav>
 
@@ -264,12 +264,19 @@
 
     <section class="breadth" id="breadthCard" hidden aria-label="Tăng giảm theo sàn"></section>
 
+    <section class="sectors" id="sectorCard" hidden aria-label="Bản đồ nhiệt theo ngành">
+      <div class="card">
+        <div class="label"><b>Bản đồ nhiệt theo ngành</b><span id="sectorMeta"></span></div>
+        <div class="heatmap" id="heatmap"></div>
+      </div>
+    </section>
+
     <div class="regime-banner" id="regimeBanner" hidden></div>
 
     <div class="notice" id="notice">
       <span class="n-ico">⚠</span>
       <span class="n-txt"><span id="noticeText">Thị trường đang ở xu hướng điều chỉnh ngắn hạn (dưới MA20/MA200) và khối ngoại bán ròng liên tục —
-      giải ngân từng phần, luôn đặt cắt Lỗ.</span> Nguồn vnstock giới hạn 20 req/phút nên lần chạy màn lọc đầu tiên mất ~6 phút,
+      giải ngân từng phần, luôn đặt cắt Lỗ.</span> Nguồn vnstock giới hạn 20 req/phút nên lần chạy màn lọc đầu tiên mất ~15–20 phút,
       các lần sau dùng cache.</span>
       <button class="n-x" id="noticeClose" title="Ẩn thông báo" aria-label="Ẩn thông báo">×</button>
     </div>

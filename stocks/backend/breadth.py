@@ -87,6 +87,23 @@ def _breadth_build() -> dict:
     value_t = (val / 1e9).groupby(bucket).sum()
     fnet_t = ((fbv - fsv) / 1e9).groupby(bucket).sum()
 
+    # Anh chup bang gia theo ma — dung chung cho ban do nhiet nganh (sectors.py)
+    # va vu tru man loc (screen.py). Loi thi bo qua, khong anh huong do rong.
+    try:
+        if ("listing", "symbol") in df.columns:
+            rows = [
+                {"s": s, "ex": b, "chg": round(float(ch), 2),
+                 "val_t": round(float(vv) / 1e9, 1), "last": round(float(lp), 2)}
+                for s, b, ch, vv, lp, lv in zip(
+                    df[("listing", "symbol")].astype(str).str.strip().str.upper(),
+                    bucket, chg, val, last, live)
+                if b and bool(lv) and float(vv) > 0
+            ]
+            if rows:
+                _save(DATA / "board.json", {"fetched_at": time.time(), "rows": rows})
+    except Exception:
+        pass
+
     exch = {}
     for b in ("hose", "hnx", "upcom"):
         exch[b] = {
