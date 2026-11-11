@@ -88,6 +88,10 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
     sig = macd_line.ewm(span=9, adjust=False).mean()
     hist = macd_line - sig
     hist_val, hist_prev = float(hist.iloc[-1]), float(hist.iloc[-5])
+    bb_sd = float(c.rolling(20).std().iloc[-1]) or 0.0
+    bb_mid = float(c.rolling(20).mean().iloc[-1])
+    bb_up, bb_lo = bb_mid + 2 * bb_sd, bb_mid - 2 * bb_sd
+    bb_pctb = (last - bb_lo) / (bb_up - bb_lo) if bb_up > bb_lo else 0.5
     vol20 = float(v.rolling(20).mean().iloc[-1]) or 1.0
     vr = float(v.iloc[-1]) / vol20
     r5 = (last / float(c.iloc[-6]) - 1) * 100
@@ -102,6 +106,7 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
     score += 2 if ma20 > ma50 else -2
     score += 2 if last > ma200 else -2
     score += 2 if hist_val > 0 and hist_val > hist_prev else (-2 if hist_val < 0 else 0)
+    score += 1 if (bb_pctb >= 0.8 and hist_val > 0) else 0
     score += 1 if 45 <= rsi <= 72 else (-2 if rsi > 75 else 0)
     score += 1 if vr >= 1.0 else 0
     score += 2 if r20 > 0 else -1
@@ -134,7 +139,8 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
     vol_txt = "thanh khoản thấp" if vr < 0.8 else ("thanh khoản cao" if vr >= 1.3 else "thanh khoản trung bình")
 
     narrative = (f"Giá {last:,.1f} đang {trend}. RSI {rsi:.0f}, MACD "
-                 f"{'tích cực' if hist_val > 0 else 'tiêu cực'}, {vol_txt} ({vr:.2f}× TB20 phiên), "
+                 f"{'tích cực' if hist_val > 0 else 'tiêu cực'}, "
+                 f"Bollinger %B {bb_pctb:.2f} (dải {bb_lo:,.1f}–{bb_up:,.1f}), {vol_txt} ({vr:.2f}× TB20 phiên), "
                  f"20 phiên thay đổi {r20:+.1f}%. {entry_note}. Cắt lỗ {stop:.1f} "
                  f"(rủi ro {risk:.1f}%) — backtest 3 năm cho thấy stop giảm thiệt hại nặng "
                  f"(tối đa -43% → -15%) nhưng có thể bỏ lỡ lệnh thắng lớn; đây là công cụ "
@@ -155,11 +161,13 @@ def compute(sym: str, df: pd.DataFrame) -> dict | None:
         "rsi": round(rsi, 1),
         "ma20": round(ma20, 2), "ma50": round(ma50, 2), "ma200": round(ma200, 2),
         "macd_hist": round(hist_val, 3),
+        "bb_upper": round(bb_up, 2), "bb_lower": round(bb_lo, 2),
+        "bb_mid": round(bb_mid, 2), "bb_pctb": round(bb_pctb, 2),
         "vol_ratio": round(vr, 2),
         "r5": round(r5, 1), "r20": round(r20, 1),
         "sup": round(sup, 2), "res": round(res, 2),
         "hi52": round(hi52, 2), "lo52": round(lo52, 2),
-        "score": score, "max_score": 13,
+        "score": score, "max_score": 14,
         "verdict": verdict, "tone": tone, "trend": trend,
         "entry": entry, "entry_note": entry_note,
         "stop": stop, "t1": t1, "t2": t2,

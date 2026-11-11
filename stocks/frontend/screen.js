@@ -30,7 +30,7 @@ async function loadScreen() {
       renderScreen(st.results);
     } else {
       $("#screenMeta").textContent = "chưa có dữ liệu — bấm Chạy màn lọc";
-      $("#screenBody").innerHTML = `<tr><td colspan="8" class="empty">Chưa có dữ liệu. Bấm <b>Chạy màn lọc 40 mã</b> (lần đầu ~6 phút).</td></tr>`;
+      $("#screenBody").innerHTML = `<tr><td colspan="8" class="empty">Chưa có dữ liệu. Bấm <b>Chạy màn lọc</b> (lần đầu ~15–20 phút).</td></tr>`;
     }
     clearTimeout(pollTimers.screen);
     pollTimers.screen = setTimeout(loadScreen, screenPollDelay(false));
@@ -149,7 +149,7 @@ async function runScreen() {
     if (r && r.status === "cooldown") {
       toast(r.message || "Vừa chạy xong — đợi chút rồi thử lại", "warn");
     } else {
-      toast("Đã bắt đầu quét 40 mã — lần đầu ~6 phút", "ok");
+      toast("Đã bắt đầu quét — lần đầu ~15–20 phút", "ok");
     }
     clearTimeout(pollTimers.screen);
     loadScreen();

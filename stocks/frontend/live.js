@@ -269,6 +269,7 @@ loadSession();
 setInterval(loadSession, 60000);
 setInterval(liveTick, 1000);
 loadOverview();
+if (typeof loadSectors === "function") loadSectors();
 loadBreadth();
 loadScreen();
 

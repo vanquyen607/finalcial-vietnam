@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
-from backend import alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, quote, regime, screen, user_data
+from backend import alerts, auth2, brief, events, flow, fund, fundtrend, market, news, peers, quote, regime, screen, sectors, user_data
 from backend.auth import admin_guard, is_locked
 from backend import db as _db
 
@@ -263,6 +263,11 @@ def api_symbol_news(sym: str, refresh: int = Query(0)):
 @app.get("/api/breadth")
 def api_breadth(refresh: int = Query(0)):
     return market.breadth(refresh=bool(refresh))
+
+
+@app.get("/api/sectors")
+def api_sectors():
+    return sectors.sector_heatmap()
 
 
 @app.get("/api/regime")

@@ -84,6 +84,7 @@ function renderDetail(d, stale) {
         <div class="metric"><div class="k">MA200</div><div class="v">${fmt(d.ma200, 1)}</div></div>
         <div class="metric"><div class="k">KL / TB20</div><div class="v">${fmt(d.vol_ratio, 2)}×</div></div>
         <div class="metric"><div class="k">MACD hist</div><div class="v ${cls(d.macd_hist)}">${fmt(d.macd_hist, 3)}</div></div>
+        <div class="metric"><div class="k">Bollinger %B</div><div class="v">${d.bb_pctb != null ? fmt(d.bb_pctb, 2) : "—"}</div></div>
         <div class="metric"><div class="k">20 phiên</div><div class="v ${cls(d.r20)}">${sign(d.r20, 1)}%</div></div>
         <div class="metric"><div class="k">Hỗ trợ</div><div class="v">${fmt(d.sup, 1)}</div></div>
         <div class="metric"><div class="k">Kháng cự</div><div class="v">${fmt(d.res, 1)}</div></div>
@@ -109,6 +110,7 @@ function renderDetail(d, stale) {
         <div class="chart-legend">
           <span><i style="background:#f0b423"></i>MA20</span>
           <span><i style="background:#4d8dff"></i>MA50</span>
+          <span><i style="background:#a78bfa"></i>Bollinger 20/2</span>
           <span><i style="background:#4d8dff66"></i>KL</span>
           <span><i style="background:var(--up)"></i>Tăng</span>
           <span><i style="background:var(--down)"></i>Giảm</span>
@@ -350,6 +352,22 @@ function sma(vals, n) {
   return out;
 }
 
+/* Bollinger Bands — do lech chuan mau (n-1) de khop pandas rolling std o backend */
+function bollinger(vals, n, mult) {
+  const upper = [], lower = [];
+  for (let i = n - 1; i < vals.length; i++) {
+    let m = 0;
+    for (let j = i - n + 1; j <= i; j++) m += vals[j];
+    m /= n;
+    let s = 0;
+    for (let j = i - n + 1; j <= i; j++) s += (vals[j] - m) ** 2;
+    const sd = Math.sqrt(s / (n - 1));
+    upper.push(m + mult * sd);
+    lower.push(m - mult * sd);
+  }
+  return { upper, lower };
+}
+
 function drawChart(ohlcv, d) {
   const box = document.getElementById("chart");
   if (!box || !window.LightweightCharts) return;
@@ -403,6 +421,13 @@ function drawChart(ohlcv, d) {
   l20.setData(ma20);
   const l50 = chart.addLineSeries({ color: "#4d8dff", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
   l50.setData(ma50);
+
+  const bb = bollinger(closes, 20, 2);
+  const bbStyle = (LightweightCharts.LineStyle && LightweightCharts.LineStyle.Dashed) || 2;
+  const bUp = chart.addLineSeries({ color: "#a78bfa", lineWidth: 1, lineStyle: bbStyle, priceLineVisible: false, lastValueVisible: false });
+  bUp.setData(bb.upper.map((v, i) => ({ time: ohlcv[i + 19].time, value: v })));
+  const bLo = chart.addLineSeries({ color: "#a78bfa", lineWidth: 1, lineStyle: bbStyle, priceLineVisible: false, lastValueVisible: false });
+  bLo.setData(bb.lower.map((v, i) => ({ time: ohlcv[i + 19].time, value: v })));
 
   if (d) {
     const entryMid = Array.isArray(d.entry) && d.entry.length === 2 ? (d.entry[0] + d.entry[1]) / 2 : null;

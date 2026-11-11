@@ -64,6 +64,42 @@ function renderCards(st) {
   box.appendChild(meta);
   updateNotice(st);
   loadRegime(st);
+  loadSectors();
+}
+
+/* ---------------- sector heatmap ---------------- */
+async function loadSectors() {
+  const card = document.getElementById("sectorCard");
+  if (!card) return;
+  try {
+    const st = await api("/api/sectors");
+    if (st.status !== "ready" || !(st.sectors || []).length) { card.hidden = true; return; }
+    renderSectors(st);
+  } catch (e) { card.hidden = true; /* phu — im lang khi loi */ }
+}
+
+function renderSectors(st) {
+  const card = document.getElementById("sectorCard");
+  const box = document.getElementById("heatmap");
+  const meta = document.getElementById("sectorMeta");
+  if (!card || !box) return;
+  card.hidden = false;
+  if (meta) meta.textContent = ` · cập nhật ${st.updated_at || "—"}${st.stale ? " · dữ liệu cũ" : ""}`;
+  box.innerHTML = "";
+  (st.sectors || []).forEach((g) => {
+    const a = Math.min(0.12 + Math.abs(g.chg) / 3 * 0.45, 0.6);
+    const bg = g.chg >= 0 ? `rgba(16,185,129,${a})` : `rgba(244,63,94,${a})`;
+    const el = document.createElement("div");
+    el.className = "hm-tile";
+    el.style.background = bg;
+    const movers = (g.movers || []).map((m) => `${m.symbol} ${sign(m.chg, 1)}%`).join(" · ");
+    el.innerHTML = `
+      <div class="hm-name">${esc(g.name)}</div>
+      <div class="hm-chg ${cls(g.chg)}">${sign(g.chg, 2)}%</div>
+      <div class="hm-sub">GTGD ${fmt(g.value_t, 0)} tỷ · ${g.n} mã · <span class="up">${g.up}↑</span> <span class="down">${g.down}↓</span></div>
+      <div class="hm-sub">${esc(movers)}</div>`;
+    box.appendChild(el);
+  });
 }
 
 /* ---------------- regime banner ---------------- */

@@ -6,6 +6,7 @@ import time
 from backend.calc import verdict_of
 from backend.market import (BASKET, DATA, ROOT, _cached, _save,
                             get_symbol, is_session)
+from backend.sectors import screen_universe
 
 _screen_lock = threading.Lock()
 screen_state = {"status": "idle", "done": 0, "total": 0, "current": "", "results": [],
@@ -118,7 +119,7 @@ def start_screen(auto: bool = False) -> dict:
             if not auto and screen_state["status"] != "running":
                 screen_state["_kick"] = True
             return {"status": screen_state["status"], "auto": screen_state["auto"]}
-        screen_state.update({"status": "running", "done": 0, "total": len(BASKET),
+        screen_state.update({"status": "running", "done": 0, "total": len(screen_universe()),
                              "current": "", "_abort": False, "_kick": False,
                              "worker_alive": True, "message": ""})
     threading.Thread(target=_screen_worker, daemon=True).start()
@@ -146,9 +147,10 @@ def _run_pass() -> list[dict] | None:
         screen_state["_kick"] = False
         base = screen_state.get("results") or _screen_file_rows()
         merged = {r["symbol"]: dict(r) for r in base}
-        screen_state.update({"status": "running", "done": 0, "total": len(BASKET),
+        universe = screen_universe()
+        screen_state.update({"status": "running", "done": 0, "total": len(universe),
                              "results": sorted(merged.values(), key=lambda x: -x.get("score", 0))})
-    for i, sym in enumerate(BASKET, 1):
+    for i, sym in enumerate(universe, 1):
         with _screen_lock:
             if screen_state["_abort"]:
                 return None
@@ -158,7 +160,7 @@ def _run_pass() -> list[dict] | None:
             d = res["data"]
             merged[sym] = {k: d.get(k) for k in (
                 "symbol", "close", "date", "rsi", "ma20", "ma50", "ma200", "vol_ratio",
-                "r5", "r20", "sup", "res", "hi52", "lo52", "score", "verdict", "tone",
+                "r5", "r20", "sup", "res", "hi52", "lo52", "bb_pctb", "score", "verdict", "tone",
                 "stop", "t1", "t2", "risk_pct", "rr")}
             threading.Thread(target=_prefetch_fund, args=(sym,), daemon=True).start()
         with _screen_lock:
