@@ -134,9 +134,9 @@ def _parse_is_annual(df) -> list[dict]:
 
 def _fetch_and_save(sym: str) -> dict | None:
     from vnstock import Fundamental
-    eq = paced(lambda: Fundamental().equity(sym), priority=True)
-    ratio_df = paced(lambda: eq.ratio(frequency="quarter"), priority=True)
-    is_df = paced(lambda: eq.income_statement(frequency="annual"), priority=True)
+    eq = paced(lambda: Fundamental("ssi").equity(sym), priority=True)
+    ratio_df = paced(lambda: eq.ratio(period="quarter"), priority=True)
+    is_df = paced(lambda: eq.income_statement(period="annual"), priority=True)
     quarters = _parse_ratio_quarterly(ratio_df)
     years = _parse_is_annual(is_df)
     if not quarters and not years:

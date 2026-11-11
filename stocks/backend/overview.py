@@ -10,11 +10,11 @@ from backend.vnrate import paced
 
 
 def _index_df(code: str) -> pd.DataFrame:
-    from vnstock import Quote
+    from vnstock import Market
     end = pd.Timestamp.today().normalize()
     start = end - pd.Timedelta(days=430)
-    df = Quote(symbol=code, source="VCI").history(
-        start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1D")
+    m = Market("ssi").index(code)
+    df = m.ohlcv(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1D")
     df = df.rename(columns={"time": "Date", "close": "Close", "high": "High", "low": "Low", "volume": "Volume"})
     df["Date"] = pd.to_datetime(df["Date"])
     return df.set_index("Date").sort_index()

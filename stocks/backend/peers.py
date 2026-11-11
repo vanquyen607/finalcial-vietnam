@@ -25,7 +25,7 @@ _ind_inflight = False
 def _fetch_industry_map() -> dict[str, dict] | None:
     """symbol -> {industry_code, industry_name}."""
     from vnstock import Reference
-    df = Reference().industry.sectors()
+    df = Reference("ssi").industry.sectors()
     if df is None or getattr(df, "empty", True):
         return None
     out = {}

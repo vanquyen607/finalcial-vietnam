@@ -17,11 +17,11 @@ _inflight_lock = threading.Lock()
 
 
 def _quote_history(sym: str) -> pd.DataFrame:
-    from vnstock import Quote
+    from vnstock import Market
     end = pd.Timestamp.today().normalize()
     start = end - pd.Timedelta(days=430)
-    df = Quote(symbol=sym, source="VCI").history(
-        start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1D")
+    m = Market("ssi").equity(sym)
+    df = m.ohlcv(start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"), interval="1D")
     if df is None or df.empty:
         return pd.DataFrame()
     df = df.rename(columns={"time": "Date", "open": "Open", "high": "High",

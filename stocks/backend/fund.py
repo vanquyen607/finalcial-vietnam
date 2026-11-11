@@ -57,7 +57,7 @@ def _flatten_ratio(df) -> dict:
 
 def _fetch_and_save(sym: str) -> dict | None:
     from vnstock import Fundamental
-    df = market.paced(lambda: Fundamental().equity(sym).ratio(), priority=True)
+    df = market.paced(lambda: Fundamental("ssi").equity(sym).ratio(), priority=True)
     data = _flatten_ratio(df)
     if not data:
         return None

@@ -48,7 +48,7 @@ def _fetch_flow(sym: str) -> dict:
 def _fetch_leverage(sym: str) -> dict:
     """Vay/con + ty le no tu balance sheet (annual, gan nhat)."""
     from vnstock import Fundamental
-    bs = paced(lambda: Fundamental().equity(sym).balance_sheet(frequency="annual"),
+    bs = paced(lambda: Fundamental("ssi").equity(sym).balance_sheet(period="annual"),
                priority=True)
     out: dict = {}
     if bs is None or getattr(bs, "empty", True) or "item_id" not in bs.columns:
