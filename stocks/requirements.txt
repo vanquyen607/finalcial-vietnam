@@ -1,4 +1,4 @@
---extra-index-url https://vnstocks.com/api/simple
+--extra-index-url https://vnstocks.com/api/packages
 fastapi==0.142.1
 uvicorn[standard]==0.53.0
 pandas==2.3.3
@@ -6,4 +6,4 @@ psycopg[binary]==3.3.6
 psycopg-pool==3.3.3
 requests==2.34.2
 tzdata==2026.3
-vnstock==4.0.8
+vnstock==6.0.0
