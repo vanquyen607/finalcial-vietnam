@@ -11,32 +11,49 @@ export function getInitialTheme(): Theme {
     : "dark";
 }
 
+// Theme dùng chung toàn app: mọi component gọi useTheme() đều thấy cùng giá trị.
+// Trước đây mỗi hook giữ state riêng nên bấm toggle ở Header không cập nhật biểu đồ
+// (grid/crosshair vẫn màu theme cũ tới khi reload).
+let current: Theme = getInitialTheme();
+const listeners = new Set<(t: Theme) => void>();
+
+function applyTheme(next: Theme) {
+  current = next;
+  document.documentElement.setAttribute("data-theme", next);
+  try {
+    localStorage.setItem("ck_theme", next);
+    localStorage.setItem("aurum_theme", next);
+  } catch {}
+  listeners.forEach((l) => l(next));
+}
+
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [theme, setThemeState] = useState<Theme>(current);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    try {
-      localStorage.setItem("ck_theme", theme);
-      localStorage.setItem("aurum_theme", theme);
-    } catch {}
+    if (document.documentElement.getAttribute("data-theme") !== current) {
+      applyTheme(current);
+    }
+    const listener = (t: Theme) => setThemeState(t);
+    listeners.add(listener);
 
     const onStorage = (e: StorageEvent) => {
       if (
         (e.key === "ck_theme" || e.key === "aurum_theme") &&
         (e.newValue === "light" || e.newValue === "dark")
       ) {
-        setTheme(e.newValue);
+        applyTheme(e.newValue);
       }
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, [theme]);
+    return () => {
+      listeners.delete(listener);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, []);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
+  const setTheme = (t: Theme) => applyTheme(t);
+  const toggleTheme = () => applyTheme(current === "dark" ? "light" : "dark");
 
   return { theme, setTheme, toggleTheme };
 }
-

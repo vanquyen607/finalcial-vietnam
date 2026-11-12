@@ -19,7 +19,20 @@ const SHELL_FILES = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL).then((cache) => cache.addAll(SHELL_FILES).catch(() => undefined)).then(() => self.skipWaiting()),
+    caches
+      .open(SHELL)
+      // cache: "reload" để bỏ qua HTTP cache — tránh precache index.html cũ
+      // trỏ tới asset hash đã bị xoá sau khi build lại.
+      .then((cache) =>
+        Promise.all(
+          SHELL_FILES.map((url) =>
+            fetch(new Request(url, { cache: "reload" }))
+              .then((res) => (res.ok ? cache.put(url, res) : undefined))
+              .catch(() => undefined),
+          ),
+        ),
+      )
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -51,6 +64,25 @@ self.addEventListener("fetch", (event) => {
           return res;
         })
         .catch(() => caches.match(request)),
+    );
+    return;
+  }
+
+  // HTML (điều hướng): network trước để index.html luôn khớp asset hash mới,
+  // fallback cache khi offline. Asset tĩnh có hash nên vẫn cache-first bên dưới.
+  if (request.mode === "navigate" || url.pathname === "/" || url.pathname === "/index.html") {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(SHELL).then((cache) => cache.put(request, copy)).catch(() => undefined);
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || caches.match("/index.html")),
+        ),
     );
     return;
   }

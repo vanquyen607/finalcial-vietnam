@@ -79,7 +79,8 @@ export default function PriceChart({
   const secondary: ChartPoint[] | undefined = useMemo(() => {
     if (!hist || range === "24h" || !quote || quote.sell <= 0) return undefined;
     const days = range === "7d" ? 7 : 30;
-    return hist.daily.slice(-days).map((d) => ({ time: d.date, value: d.sell }));
+    const rows = hist.daily.slice(-days).filter((d) => d.sell > 0);
+    return rows.length > 1 ? rows.map((d) => ({ time: d.date, value: d.sell })) : undefined;
   }, [hist, range, quote]);
 
   const stats = useMemo(() => {
@@ -99,7 +100,7 @@ export default function PriceChart({
 
   return (
     <div>
-      <div className="range-tabs">
+      <div className="range-tabs range-tabs--chips">
         {(compact ? symbols.filter((s) => s.featured) : symbols).map((s) => (
           <button
             key={s.code}
@@ -133,14 +134,20 @@ export default function PriceChart({
 
       {error ? (
         <div className="empty">{error}</div>
-      ) : points.length < 2 ? (
+      ) : !hist ? (
         <div className="empty">Đang tải dữ liệu biểu đồ…</div>
+      ) : points.length < 2 ? (
+        <div className="empty">
+          Chưa có dữ liệu biểu đồ cho loại này.
+          <br />
+          <span className="meta">Dữ liệu sẽ xuất hiện sau vài lần cập nhật giá.</span>
+        </div>
       ) : (
         <div className="card" style={{ padding: 6 }}>
           <ChartView
             points={points}
             secondary={secondary}
-            positive={pct >= 0}
+            positive={stats ? stats.change >= 0 : pct >= 0}
             height={height}
             unit={unit}
             fitKey={`${active}:${range}:${hist ? "ready" : "wait"}`}

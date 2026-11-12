@@ -76,6 +76,20 @@ class Database:
             pass
         with self._conn:
             self._conn.executescript(_SCHEMA)
+            # Nguồn có thể trả cùng updated_at qua nhiều vòng poll -> trước đây mỗi
+            # vòng lại chèn thêm bản ghi trùng (code, ts). Dọn một lần rồi chặn bằng
+            # unique index để bảng quotes không phình và series không lặp điểm.
+            dup = self._conn.execute(
+                "SELECT 1 FROM quotes GROUP BY code, ts HAVING COUNT(1) > 1 LIMIT 1"
+            ).fetchone()
+            if dup:
+                self._conn.execute(
+                    "DELETE FROM quotes WHERE rowid NOT IN"
+                    " (SELECT MIN(rowid) FROM quotes GROUP BY code, ts)"
+                )
+            self._conn.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_quotes_code_ts ON quotes(code, ts)"
+            )
 
     # --- quotes ---
     def insert_quotes(self, rows: list[dict]) -> None:
@@ -83,7 +97,7 @@ class Database:
             return
         with self._lock, self._conn:
             self._conn.executemany(
-                "INSERT INTO quotes(ts,code,name,buy,sell,change_buy,change_sell,unit,per,source)"
+                "INSERT OR IGNORE INTO quotes(ts,code,name,buy,sell,change_buy,change_sell,unit,per,source)"
                 " VALUES(:ts,:code,:name,:buy,:sell,:change_buy,:change_sell,:unit,:per,:source)",
                 rows,
             )

@@ -15,11 +15,6 @@ const LINKS = [
   { to: "/settings", label: "Cài đặt", end: false },
 ];
 
-const STOCKS_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://127.0.0.1:8100/"
-    : "https://finalcial-vietnam.onrender.com/";
-
 export default function Header() {
   const { status, connected, quoteList } = useMarket();
   const { theme, toggleTheme } = useTheme();
@@ -47,7 +42,6 @@ export default function Header() {
         </NavLink>
 
         <nav className="nav">
-          <a href={STOCKS_URL} className="nav__ext" title="App phân tích cổ phiếu VN">⟨ Cổ phiếu</a>
           {LINKS.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end}>
               {l.label}
@@ -59,7 +53,7 @@ export default function Header() {
           <span className="meta hide-sm">
             {quoteList.length} LOẠI · {source || "…"}
           </span>
-          <span className="meta hide-sm">
+          <span className="meta hide-sm hide-md">
             LẤY DỮ LIỆU {age !== null ? fmtAgo(age).toUpperCase() : "…"}
           </span>
           <span className="row" style={{ gap: 6 }}>

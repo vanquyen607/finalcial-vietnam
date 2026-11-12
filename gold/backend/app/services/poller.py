@@ -154,9 +154,9 @@ class Poller:
             await hub.broadcast(ev, topic="alert")
         await hub.broadcast({"type": "status", **self.status}, topic="status")
 
-        # Dọn tick cũ
+        # Dọn tick cũ (giữ 7 ngày intraday; daily giữ riêng theo history_days)
         if self.status["polls"] % 20 == 0:
-            db.prune_quotes(now - settings.history_days * 86_400)
+            db.prune_quotes(now - 7 * 86_400)
             db.prune_fx(now - 7 * 86_400)
 
         await self._maybe_refresh_aux(now)

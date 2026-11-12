@@ -31,7 +31,7 @@ export default function ChartPage() {
           <p className="page__sub">
             {tvTabs
               ? "Tab TradingView: biểu đồ chuyên sâu của TradingView · Tab Aurum: giá mua/bán realtime của app"
-              : "Đường màu sáng là giá mua vào (realtime), đường đứt nét vàng là giá bán ra · kéo/zoom bằng chuột"}
+              : "Đường nét liền là giá mua vào (xanh khi tăng, đỏ khi giảm), đường đứt nét vàng là giá bán ra · kéo/zoom bằng chuột"}
           </p>
         </div>
         {tvTabs && (
@@ -56,7 +56,7 @@ export default function ChartPage() {
         <div className="panel__body">
           {effective === "tv" && tvTabs ? (
             <div>
-              <div className="range-tabs">
+              <div className="range-tabs range-tabs--chips">
                 {symbols.map((s) => (
                   <button
                     key={s.code}

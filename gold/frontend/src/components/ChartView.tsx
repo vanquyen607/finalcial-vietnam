@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ColorType, createChart, CrosshairMode, LineStyle } from "lightweight-charts";
-import type { IChartApi, ISeriesApi } from "lightweight-charts";
+import type { AutoscaleInfo, IChartApi, ISeriesApi } from "lightweight-charts";
 import { useTheme } from "../lib/useTheme";
 
 export interface ChartPoint {
@@ -35,7 +35,7 @@ export default function ChartView({
 }: Props) {
   const boxRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const mainRef = useRef<ISeriesApi<"Area"> | null>(null);
+  const mainRef = useRef<ISeriesApi<"Line"> | null>(null);
   const secRef = useRef<ISeriesApi<"Line"> | null>(null);
   const { theme } = useTheme();
   const isLight = theme === "light";
@@ -49,8 +49,28 @@ export default function ChartView({
       unit === "USD"
         ? ({ type: "price", precision: 2, minMove: 0.01 } as const)
         : ({ type: "price", precision: 0, minMove: 1000 } as const);
+    // Nhãn trục giá gọn: 140.500.000 -> "140,5 tr", 4.183,2 -> "4.183,20".
+    const priceFormatter = (p: number) =>
+      unit === "USD"
+        ? p.toLocaleString("vi-VN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : `${(p / 1_000_000).toFixed(1).replace(".", ",")} tr`;
+    // Giá vàng đứng yên vài giờ khiến trục co về ±vài nghìn đồng; ép tối thiểu
+    // để biểu đồ không "phóng to nhiễu" và không thành một khối màu.
+    const minRange = unit === "USD" ? 2 : 400_000;
+    const autoscaleInfoProvider = (original: () => AutoscaleInfo | null): AutoscaleInfo | null => {
+      const res = original();
+      const range = res?.priceRange;
+      if (!range) return res;
+      if (range.maxValue - range.minValue >= minRange) return res;
+      const mid = (range.maxValue + range.minValue) / 2;
+      return {
+        ...res,
+        priceRange: { minValue: mid - minRange / 2, maxValue: mid + minRange / 2 },
+      };
+    };
     const chart = createChart(el, {
       height,
+      localization: { priceFormatter },
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: isLight ? "#475569" : "#99907c",
@@ -73,16 +93,15 @@ export default function ChartView({
     });
     chartRef.current = chart;
 
-    mainRef.current = chart.addAreaSeries({
+    mainRef.current = chart.addLineSeries({
       priceFormat,
-      lineColor: positive ? UP : DOWN,
-      topColor: positive ? "rgba(48,209,88,0.28)" : "rgba(255,69,58,0.28)",
-      bottomColor: "rgba(48,209,88,0)",
+      color: positive ? UP : DOWN,
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: true,
       crosshairMarkerBorderColor: GOLD,
       crosshairMarkerBackgroundColor: GOLD,
+      autoscaleInfoProvider,
     });
     if (secondary) {
       secRef.current = chart.addLineSeries({
@@ -96,7 +115,11 @@ export default function ChartView({
       });
     }
 
-    const ro = new ResizeObserver(() => chart.applyOptions({ width: el.clientWidth }));
+    const ro = new ResizeObserver(() => {
+      chart.applyOptions({ width: el.clientWidth });
+      // Đổi bề rộng (xoay máy/zoom) phải fit lại, nếu không chỉ thấy vài ngày cuối.
+      chart.timeScale().fitContent();
+    });
     ro.observe(el);
     // chart mới → lần set data kế tiếp phải fit lại
     fitRef.current = undefined;
@@ -130,8 +153,11 @@ export default function ChartView({
 
   useEffect(() => {
     if (!mainRef.current) return;
-    // time đã là GIÂY (số) hoặc "YYYY-MM-DD" — không quy đổi thêm ở đây
-    const data = points.map((p) => ({ time: p.time as never, value: p.value }));
+    // lightweight-charts hiển thị mốc giờ theo UTC; cộng bù offset để trục giờ
+    // khớp giờ Việt Nam (UTC+7) thay vì lệch 7 tiếng.
+    const tzShift = -new Date().getTimezoneOffset() * 60;
+    const toTime = (t: number | string) => (typeof t === "number" ? t + tzShift : t);
+    const data = points.map((p) => ({ time: toTime(p.time) as never, value: p.value }));
     if (data.length) {
       mainRef.current.setData(data);
       const shouldFit = fitRef.current !== fitKey;
@@ -139,7 +165,7 @@ export default function ChartView({
       if (shouldFit) chartRef.current?.timeScale().fitContent();
     }
     if (secRef.current && secondary) {
-      secRef.current.setData(secondary.map((p) => ({ time: p.time as never, value: p.value })));
+      secRef.current.setData(secondary.map((p) => ({ time: toTime(p.time) as never, value: p.value })));
     }
   }, [points, secondary, fitKey]);
 

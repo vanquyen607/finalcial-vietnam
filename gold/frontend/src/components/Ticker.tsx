@@ -18,7 +18,7 @@ export default function Ticker() {
         className="ticker__item"
         onClick={() => navigate(`/detail/${metaByCode[q.code]?.alias || q.code}`)}
       >
-        <b>{q.code}</b>
+        <b>{metaByCode[q.code]?.product || q.name}</b>
         <span>{fmtPrice(q.buy, q.unit)}</span>
         <span className={tone}>{fmtPct(pct)}</span>
       </span>

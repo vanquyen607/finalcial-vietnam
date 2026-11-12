@@ -9,7 +9,7 @@ from app.db import Database
 from app.providers.base import GoldProvider, ProviderQuote
 from app.providers.composite import MergedProvider
 from app.providers.ngoctham import NgocThamProvider, parse_nt_time
-from app.providers.simplize import SimplizeProvider
+from app.providers.simplize import PRODUCTS, SimplizeProvider
 
 HTML = '<html><script>{"buildId":"abc123"}</script></html>'
 
@@ -61,7 +61,7 @@ def test_simplize_parses_products_and_caches():
     finally:
         asyncio.run(p._client.aclose())
 
-    assert {q.code for q in quotes} == {"MH_SJC", "MH_9999", "BTMH_9999", "PQ_SJC", "PQ_9999"}
+    assert {q.code for q in quotes} == set(PRODUCTS)
     mh = next(q for q in quotes if q.code == "MH_9999")
     assert (mh.buy, mh.sell, mh.change_buy) == (141_500_000, 142_500_000, 500_000)
     assert mh.source == "simplize"

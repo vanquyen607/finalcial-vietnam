@@ -128,24 +128,16 @@ select {
   background: var(--primary);
 }
 
-/* chuyển app: sang trang Cổ phiếu */
-.nav a.nav__ext {
-  color: var(--primary);
-  font-weight: 600;
-  margin-right: 6px;
-  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
-}
-.nav a.nav__ext:hover {
-  color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 16%, transparent);
-}
-
 .topbar__status {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 16px;
   min-width: 0;
+}
+
+.topbar__status .meta {
+  white-space: nowrap;
 }
 
 .topbar__clock {
@@ -373,6 +365,12 @@ select {
   }
   .kpi-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1180px) {
+  .hide-md {
+    display: none !important;
   }
 }
 
@@ -895,6 +893,25 @@ select {
   font-weight: 700;
 }
 
+/* Danh sách mã dài (52 loại): cuộn ngang một hàng thay vì chiếm 9 hàng dọc. */
+.range-tabs--chips {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+.range-tabs--chips button {
+  flex: none;
+}
+.range-tabs--chips::-webkit-scrollbar {
+  height: 6px;
+}
+.range-tabs--chips::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
 /* ============================================================
    Lists
    ============================================================ */
@@ -1144,6 +1161,270 @@ select {
   letter-spacing: 0.5px;
   color: var(--outline);
   text-transform: uppercase;
+}
+
+/* ============================================================
+   Home — bảng giá kiểu webgia
+   ============================================================ */
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin: 8px 0 20px;
+}
+
+.hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -1.2px;
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+
+.hero__title span {
+  color: var(--primary);
+}
+
+.hero__sub {
+  color: var(--on-surface-variant);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+  max-width: 640px;
+}
+
+.hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hero-stat {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.hero-stat--primary {
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--primary) 10%, var(--surface-1)),
+    var(--surface-1)
+  );
+}
+
+.hero-stat__label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--outline);
+}
+
+.hero-stat strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hero-stat--primary strong {
+  font-size: 28px;
+}
+
+.hero-stat__hint {
+  font-size: 12px;
+  color: var(--on-surface-variant);
+}
+
+.hero-stat .chip {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.panel--chart {
+  margin-bottom: 16px;
+}
+
+.footer-note {
+  margin-top: 20px;
+}
+
+.footer-link {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.footer-link:hover {
+  text-decoration: underline;
+}
+
+/* bảng giá phẳng */
+.gold-table-wrap {
+  overflow-x: auto;
+}
+
+.gold-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.gold-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-2);
+  color: var(--on-surface-variant);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.gold-table thead th.num,
+.gold-table td.num {
+  text-align: right;
+}
+
+.gold-table__group td {
+  background: color-mix(in srgb, var(--surface-2) 65%, transparent);
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.gold-table__brand {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.gold-table__count {
+  margin-left: 8px;
+  font-size: 11px;
+  color: var(--outline);
+}
+
+.gold-table__row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.gold-table__row:hover {
+  background: color-mix(in srgb, var(--primary) 7%, transparent);
+}
+
+.gold-table tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.gold-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.gt-brand {
+  color: var(--on-surface-variant);
+  font-weight: 600;
+}
+
+.gt-name {
+  display: block;
+  font-weight: 600;
+}
+
+.gt-code {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--outline);
+  margin-top: 1px;
+}
+
+.gold-table .bid,
+.gold-table .ask {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.gold-table .num {
+  font-variant-numeric: tabular-nums;
+}
+
+.gold-table .up {
+  color: var(--up);
+}
+
+.gold-table .down {
+  color: var(--down);
+}
+
+.gold-table .flat,
+.gold-table .muted {
+  color: var(--outline);
+}
+
+@media (max-width: 900px) {
+  .hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hero__title {
+    font-size: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px 14px 56px;
+  }
+  .hero-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .hero-stat {
+    padding: 11px 12px;
+  }
+  .hero-stat strong {
+    font-size: 18px;
+  }
+  .hero-stat--primary strong {
+    font-size: 22px;
+  }
+  .gold-table {
+    font-size: 12px;
+  }
+  .gold-table thead th,
+  .gold-table tbody td {
+    padding: 9px 10px;
+  }
+  .gold-table thead th:first-child,
+  .gold-table tbody td.gt-brand {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
