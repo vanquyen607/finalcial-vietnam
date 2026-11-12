@@ -16,6 +16,9 @@ def day_change_pct(buy: float, change: float) -> float:
 def evaluate(quotes: dict[str, dict]) -> list[dict[str, Any]]:
     """Đánh giá cảnh báo; trả về danh sách sự kiện vừa kích hoạt.
 
+    Hỗ trợ 2 chế độ:
+      - % thay đổi trong ngày (threshold > 0, không có target_price)
+      - giá tuyệt đối (target_price != None): kích hoạt khi giá mua vượt ngưỡng
     Mỗi alert chỉ kích hoạt một lần rồi tự tắt để tránh spam.
     """
     events: list[dict[str, Any]] = []
@@ -24,7 +27,13 @@ def evaluate(quotes: dict[str, dict]) -> list[dict[str, Any]]:
         if not q:
             continue
         pct = day_change_pct(q["buy"], q["change_buy"])
-        hit = pct >= alert["threshold"] if alert["direction"] == "up" else pct <= -alert["threshold"]
+        target = alert.get("target_price")
+        if target is not None:
+            hit = (q["buy"] >= target) if alert["direction"] == "up" else (q["buy"] <= target)
+            label = f'giá mua {q["buy"]:,.0f} {"≥" if alert["direction"] == "up" else "≤"} {target:,.0f}'
+        else:
+            hit = pct >= alert["threshold"] if alert["direction"] == "up" else pct <= -alert["threshold"]
+            label = f'{abs(pct):.2f}% (ngưỡng {alert["threshold"]:.2f}%)'
         if not hit:
             continue
         db.mark_triggered(alert["id"])
@@ -36,6 +45,7 @@ def evaluate(quotes: dict[str, dict]) -> list[dict[str, Any]]:
             "name": q["name"],
             "direction": alert["direction"],
             "threshold": alert["threshold"],
+            "target_price": target,
             "pct": pct,
             "buy": q["buy"],
             "sell": q["sell"],
@@ -44,6 +54,9 @@ def evaluate(quotes: dict[str, dict]) -> list[dict[str, Any]]:
             "message": (
                 f'{q["name"]} {"tăng" if alert["direction"] == "up" else "giảm"} '
                 f'{abs(pct):.2f}% (ngưỡng {alert["threshold"]:.2f}%)'
+                if target is None else
+                f'{q["name"]} {"tăng" if alert["direction"] == "up" else "giảm"}: '
+                f'giá mua {q["buy"]:,.0f} {"≥" if alert["direction"] == "up" else "≤"} {target:,.0f}'
             ),
         })
     return events

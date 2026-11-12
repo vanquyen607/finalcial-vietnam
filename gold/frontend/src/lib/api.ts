@@ -56,7 +56,8 @@ export const api = {
   history: (ref: string, days = 30) =>
     request<HistoryPayload>(`/history/${encodeURIComponent(ref)}?days=${days}`),
   alerts: () => request<{ items: Alert[] }>("/alerts"),
-  createAlert: (body: { code: string; direction: "up" | "down"; threshold: number; note: string }) =>
+  createAlert: (body: { code: string; direction: "up" | "down"; threshold: number; note: string;
+                        target_price?: number }) =>
     request<Alert>("/alerts", { method: "POST", body: JSON.stringify(body) }),
   deleteAlert: (id: number) => request<{ deleted: number }>(`/alerts/${id}`, { method: "DELETE" }),
   toggleAlert: (id: number, active: boolean) =>

@@ -5,6 +5,7 @@ import threading
 import time
 from pathlib import Path
 
+import os
 from .config import settings
 
 _SCHEMA = """
@@ -76,6 +77,10 @@ class Database:
             pass
         with self._conn:
             self._conn.executescript(_SCHEMA)
+            # Migration: thêm cột target_price cho cảnh báo theo giá tuyệt đối (tùy chọn).
+            cols = {r["name"] for r in self._conn.execute("PRAGMA table_info(alerts)").fetchall()}
+            if "target_price" not in cols:
+                self._conn.execute("ALTER TABLE alerts ADD COLUMN target_price REAL")
             # Nguồn có thể trả cùng updated_at qua nhiều vòng poll -> trước đây mỗi
             # vòng lại chèn thêm bản ghi trùng (code, ts). Dọn một lần rồi chặn bằng
             # unique index để bảng quotes không phình và series không lặp điểm.
@@ -117,6 +122,35 @@ class Database:
                 (code, since_ts),
             )
             return [dict(r) for r in cur.fetchall()]
+
+    def sparklines(self, since_ts: int, codes: list[str], max_points: int = 60) -> dict[str, list[dict]]:
+        """Chuỗi giá intraday cho nhiều mã trong MỘT truy vấn, downsample bằng SQL.
+
+        Trước đây mỗi mã một query rồi cắt trong Python: 71 mã × toàn bộ 24h
+        (~200k dòng/request). Ở đây SQLite chỉ trả ~max_points điểm/mã.
+        """
+        if not codes:
+            return {}
+        marks = ",".join("?" for _ in codes)
+        with self._lock:
+            cur = self._conn.execute(
+                f"""
+                SELECT code, ts, buy FROM (
+                    SELECT code, ts, buy,
+                           ROW_NUMBER() OVER (PARTITION BY code ORDER BY ts) - 1 AS rn,
+                           COUNT(*) OVER (PARTITION BY code) AS cnt
+                    FROM quotes
+                    WHERE ts >= ? AND code IN ({marks})
+                )
+                WHERE rn % MAX(1, cnt / ?) = 0
+                ORDER BY code, ts
+                """,
+                (since_ts, *codes, max_points),
+            )
+            out: dict[str, list[dict]] = {}
+            for row in cur.fetchall():
+                out.setdefault(row["code"], []).append({"ts": row["ts"], "buy": row["buy"]})
+            return out
 
     def prune_quotes(self, older_than_ts: int) -> int:
         with self._lock, self._conn:
@@ -163,16 +197,19 @@ class Database:
             )
 
     # --- alerts ---
-    def add_alert(self, code: str, direction: str, threshold: float, note: str) -> dict:
+    def add_alert(self, code: str, direction: str, threshold: float, note: str,
+                  target_price: float | None = None) -> dict:
         now = int(time.time())
         with self._lock, self._conn:
             cur = self._conn.execute(
-                "INSERT INTO alerts(code,direction,threshold,note,created_at) VALUES(?,?,?,?,?)",
-                (code, direction, threshold, note, now),
+                "INSERT INTO alerts(code,direction,threshold,note,created_at,target_price)"
+                " VALUES(?,?,?,?,?,?)",
+                (code, direction, threshold, note, now, target_price),
             )
             alert_id = cur.lastrowid
         return {"id": alert_id, "code": code, "direction": direction, "threshold": threshold,
-                "note": note, "active": 1, "created_at": now, "triggered_at": None}
+                "note": note, "active": 1, "created_at": now, "triggered_at": None,
+                "target_price": target_price}
 
     def list_alerts(self) -> list[dict]:
         with self._lock:
@@ -249,4 +286,29 @@ class Database:
             self._conn.close()
 
 
-db = Database(settings.ensure_dirs)
+def _resolve_db_url() -> str:
+    u = os.environ.get("DATABASE_URL", "").strip()
+    if u:
+        return u
+    try:
+        root = __import__("pathlib").Path(__file__).resolve().parents[3]
+        for line in (root / ".env.local").read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            if s.startswith("DATABASE_URL="):
+                return s.split("=", 1)[1].strip().strip('"').strip("'")
+    except Exception:  # noqa: BLE001
+        pass
+    return ""
+
+
+_url = _resolve_db_url()
+if _url:
+    try:
+        from .db_postgres import PostgresDatabase
+        db = PostgresDatabase(_url)
+    except Exception as exc:  # noqa: BLE001 - fallback SQLite khi thiếu psycopg
+        import logging
+        logging.getLogger("aurum.db").warning("Postgres không khả dụng (%s) -> dùng SQLite", exc)
+        db = Database(settings.ensure_dirs)
+else:
+    db = Database(settings.ensure_dirs)

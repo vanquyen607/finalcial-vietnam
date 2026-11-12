@@ -88,7 +88,7 @@ export default function Detail() {
           <Link to={`/chart?m=${meta?.alias ?? ref}`} className="btn btn--ghost">
             Biểu đồ đầy đủ
           </Link>
-          <Link to="/alerts" className="btn btn--primary">
+          <Link to={`/alerts?code=${meta?.alias ?? ref}`} className="btn btn--primary">
             + Tạo cảnh báo
           </Link>
         </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { fmtClock, fmtPct, tone } from "../lib/format";
 import type { Alert } from "../lib/types";
@@ -19,10 +20,12 @@ function tokenHint(err: unknown): string {
 
 export default function Alerts() {
   const { symbols, quotes } = useMarket();
+  const [params] = useSearchParams();
   const [items, setItems] = useState<Alert[]>([]);
-  const [code, setCode] = useState("sjc");
+  const [code, setCode] = useState(() => params.get("code") || "sjc");
   const [direction, setDirection] = useState<"up" | "down">("up");
   const [threshold, setThreshold] = useState("1");
+  const [targetPrice, setTargetPrice] = useState("");
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -42,6 +45,13 @@ export default function Alerts() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbols.length]);
 
+  // Link từ trang chi tiết có thể truyền code (HT_24K) thay vì alias -> chuẩn hoá.
+  useEffect(() => {
+    if (!symbols.length) return;
+    const found = symbols.find((s) => s.alias === code || s.code === code);
+    if (found && found.alias !== code) setCode(found.alias);
+  }, [symbols, code]);
+
   const askNotify = async () => {
     if (!("Notification" in window)) {
       setMsg("Trình duyệt này không hỗ trợ notification.");
@@ -59,8 +69,9 @@ export default function Alerts() {
       await api.createAlert({
         code,
         direction,
-        threshold: Number(threshold) || 1,
+        threshold: Number(threshold) || 0,
         note: note.trim(),
+        target_price: targetPrice ? Number(targetPrice) : undefined,
       });
       setNote("");
       setMsg("Đã tạo cảnh báo.");
@@ -151,8 +162,20 @@ export default function Alerts() {
                 </label>
               </div>
 
-              <label className="field">
-                <span>Ghi chú (không bắt buộc)</span>
+               <label className="field">
+                 <span>Giá mục tiêu (tùy chọn, VND/USD)</span>
+                 <input
+                   type="number"
+                   step="1"
+                   min="0"
+                   value={targetPrice}
+                   onChange={(e) => setTargetPrice(e.target.value)}
+                   placeholder="vd: 145000000 — nếu điền thì bỏ qua %"
+                 />
+               </label>
+
+               <label className="field">
+                 <span>Ghi chú (không bắt buộc)</span>
                 <input
                   value={note}
                   onChange={(e) => setNote(e.target.value)}

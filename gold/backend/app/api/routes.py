@@ -32,7 +32,7 @@ async def health() -> dict:
     }
 
 
-@router.get("/metrics")
+@router.get("/metrics", dependencies=[Depends(require_token)])
 async def metrics() -> dict:
     """Quan sát vận hành: nhịp poll, lỗi từng nguồn, tỷ giá/tin, streak lỗi."""
     return {
@@ -80,16 +80,26 @@ async def quote_one(ref: str) -> dict:
 
 
 # ---------- history ----------
+_SPARK_TTL = 60
+_spark_cache: dict[int, tuple[int, dict]] = {}
+_HIST_FAIL_TTL = 600
+_hist_fail: dict[str, int] = {}
+
+
 @router.get("/sparklines")
 async def sparklines(hours: int = Query(24, ge=1, le=168)) -> dict:
-    """Chuỗi giá intraday cho sparkline của từng mã (một truy vấn/n mã, đọc từ SQLite)."""
-    since = int(time.time()) - hours * 3600
-    out: dict[str, list[dict]] = {}
-    for meta in GOLD_TYPES:
-        rows = db.series(meta["code"], since)
-        if rows:
-            out[meta["code"]] = [{"ts": r["ts"], "buy": r["buy"]} for r in rows[:: max(1, len(rows) // 60)]]
-    return {"since": since, "series": out, "count": sum(len(v) for v in out.values())}
+    """Chuỗi giá intraday cho sparkline của từng mã (1 truy vấn cho mọi mã + cache 60s)."""
+    now = int(time.time())
+    cached = _spark_cache.get(hours)
+    if cached and now - cached[0] < _SPARK_TTL:
+        return cached[1]
+
+    since = now - hours * 3600
+    series = db.sparklines(since, [m["code"] for m in GOLD_TYPES])
+    payload = {"since": since, "series": series,
+               "count": sum(len(v) for v in series.values())}
+    _spark_cache[hours] = (now, payload)
+    return payload
 
 
 @router.get("/history/{ref}")
@@ -100,14 +110,22 @@ async def history(ref: str, days: int = Query(30, ge=1, le=30)) -> dict:
     code = meta["code"]
 
     daily = db.daily(code, days)
-    if len(daily) < min(days, 3):
-        try:
-            rows = await poller.provider.fetch_history(code, days)
-            db.upsert_daily([{"code": code, **r} for r in rows if r.get("date")])
-            daily = db.daily(code, days)
-        except Exception as exc:  # noqa: BLE001
+    now = int(time.time())
+    # Chỉ gọi mạng khi nguồn thật sự có history và chưa fail gần đây.
+    if len(daily) < min(days, 3) and poller.provider.supports_history(code):
+        if now - _hist_fail.get(code, 0) <= _HIST_FAIL_TTL:
             if not daily:
-                raise HTTPException(502, f"Không lấy được lịch sử: {exc}") from exc
+                raise HTTPException(502, "Nguồn lịch sử đang lỗi, thử lại sau")
+        else:
+            try:
+                rows = await poller.provider.fetch_history(code, days)
+                db.upsert_daily([{"code": code, **r} for r in rows if r.get("date")])
+                daily = db.daily(code, days)
+                _hist_fail.pop(code, None)
+            except Exception as exc:  # noqa: BLE001
+                _hist_fail[code] = now
+                if not daily:
+                    raise HTTPException(502, f"Không lấy được lịch sử: {exc}") from exc
 
     since = int(time.time()) - 24 * 3600
     ticks = db.series(code, since)
@@ -158,8 +176,9 @@ async def news(limit: int = Query(30, ge=1, le=100)) -> dict:
 class AlertIn(BaseModel):
     code: str = Field(description="type_code hoặc alias, ví dụ: sjc | SJL1L10 | xauusd")
     direction: str = Field(pattern="^(up|down)$")
-    threshold: float = Field(gt=0, le=100, description="% thay đổi trong ngày")
+    threshold: float = Field(default=0, ge=0, le=100, description="% thay đổi trong ngày (0 = dùng giá tuyệt đối)")
     note: str = ""
+    target_price: float | None = Field(default=None, gt=0, description="Giá mua mục tiêu (VND/USD); nếu có thì bỏ qua %")
 
 
 @router.get("/alerts")
@@ -172,7 +191,10 @@ async def create_alert(body: AlertIn) -> dict:
     meta = resolve(body.code)
     if meta is None:
         raise HTTPException(404, f"Không tìm thấy loại vàng: {body.code}")
-    row = db.add_alert(meta["code"], body.direction, round(body.threshold, 4), body.note.strip())
+    if body.target_price is None and body.threshold <= 0:
+        raise HTTPException(422, "Cần ngưỡng % > 0 hoặc giá mục tiêu > 0")
+    row = db.add_alert(meta["code"], body.direction, round(body.threshold, 4),
+                       body.note.strip(), body.target_price)
     row["name"] = meta["name"]
     return row
 

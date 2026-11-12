@@ -68,5 +68,9 @@ class GoldProvider(ABC):
         """Lấy lịch sử theo ngày: [{'date': 'YYYY-MM-DD', 'buy': .., 'sell': ..}]."""
         raise NotImplementedError
 
+    def supports_history(self, code: str) -> bool:
+        """Provider có lịch sử ngày cho mã này không (tránh gọi mạng vô ích)."""
+        return False
+
     async def aclose(self) -> None:  # pragma: no cover
         return None

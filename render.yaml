@@ -24,7 +24,7 @@ services:
     runtime: python
     plan: free
     rootDir: gold
-    buildCommand: cd frontend && npm ci && npm run build
+    buildCommand: pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build
     startCommand: cd backend && GOLD_HOST=0.0.0.0 GOLD_PORT=$PORT python run.py
     healthCheckPath: /api/health
     envVars:
@@ -32,3 +32,7 @@ services:
         value: 3.11.9
       - key: TZ
         value: Asia/Ho_Chi_Minh
+      - key: GOLD_API_TOKEN
+        sync: false   # dat trong Render Dashboard; de trong = API ghi mo (khong nen)
+      - key: DATABASE_URL
+        sync: false   # Neon pooler URL (tuy chon; de trong = SQLite ephemeral)

@@ -29,6 +29,9 @@ def client(tmp_path, monkeypatch):
     temp_db = Database(tmp_path / "routes.db")
     monkeypatch.setattr(routes, "db", temp_db)
     monkeypatch.setattr(poller, "latest", {})
+    # cache module-level không được rò giữa các test
+    routes._spark_cache.clear()
+    routes._hist_fail.clear()
     app = FastAPI()
     app.include_router(routes.router)
     yield TestClient(app, raise_server_exceptions=False), temp_db
@@ -102,6 +105,65 @@ def test_quotes_from_poller_latest(client, monkeypatch):
     r = c.get("/api/quotes")
     assert r.status_code == 200
     assert r.json()["count"] == 1
+
+
+def test_sparklines_downsampled_in_one_pass(client):
+    c, temp_db = client
+    now = int(time.time())
+    temp_db.insert_quotes([
+        {"ts": now - 3600 + i, "code": "SJL1L10", "name": "SJC 9999", "buy": 100 + i,
+         "sell": 0, "change_buy": 0, "change_sell": 0, "unit": "VND", "per": "lượng",
+         "source": "test"}
+        for i in range(300)
+    ])
+    body = c.get("/api/sparklines?hours=1").json()
+    pts = body["series"]["SJL1L10"]
+    assert 1 < len(pts) <= 60
+    assert body["count"] == len(pts)
+    assert pts[0]["buy"] == 100
+    assert pts[-1]["buy"] == 395
+
+
+class _NoHistoryProvider:
+    name = "nohist"
+
+    def supports_history(self, code: str) -> bool:
+        return False
+
+    async def fetch_history(self, code: str, days: int) -> list[dict]:
+        raise AssertionError("không được gọi mạng cho mã không hỗ trợ history")
+
+
+def test_history_skips_network_when_provider_has_no_history(client, monkeypatch):
+    c, _temp_db = client
+    monkeypatch.setattr(poller, "provider", _NoHistoryProvider())
+    r = c.get("/api/history/HT_24K")
+    assert r.status_code == 200
+    assert r.json()["daily"] == []
+
+
+class _FailingHistoryProvider:
+    name = "failing"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def supports_history(self, code: str) -> bool:
+        return True
+
+    async def fetch_history(self, code: str, days: int) -> list[dict]:
+        self.calls += 1
+        raise RuntimeError("boom")
+
+
+def test_history_negative_cache_avoids_repeat_calls(client, monkeypatch):
+    c, _temp_db = client
+    provider = _FailingHistoryProvider()
+    monkeypatch.setattr(poller, "provider", provider)
+
+    assert c.get("/api/history/SJL1L10").status_code == 502
+    assert c.get("/api/history/SJL1L10").status_code == 502
+    assert provider.calls == 1
 
 
 def test_symbols_returns_ordered_brands(client):

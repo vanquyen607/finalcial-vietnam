@@ -52,7 +52,15 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
                   <tr
                     key={q.code}
                     className="gold-table__row"
+                    role="button"
+                    tabIndex={0}
                     onClick={() => navigate(`/detail/${meta?.alias || q.code}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(`/detail/${meta?.alias || q.code}`);
+                      }
+                    }}
                   >
                     <td className="gt-brand">{g.label}</td>
                     <td>

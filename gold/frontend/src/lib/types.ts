@@ -47,6 +47,7 @@ export interface Alert {
   name?: string;
   direction: "up" | "down";
   threshold: number;
+  target_price?: number | null;
   note: string;
   active: number;
   created_at: number;

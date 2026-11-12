@@ -13,6 +13,12 @@ BASE_URL = "https://vang.today/api/prices"
 # vang.today yêu cầu UA hợp lệ, không thì trả rỗng.
 HEADERS = {"User-Agent": "Mozilla/5.0 (AurumTerminal/1.0)", "Accept": "application/json"}
 
+# Các mã vang.today thực sự có dữ liệu (history trả success=false cho mã khác).
+HISTORY_CODES = frozenset({
+    "BT9999NTT", "BTSJC", "DOHCML", "DOHNL", "DOJINHTV", "PQHN24NTT",
+    "PQHNVM", "SJ9999", "SJL1L10", "VIETTINMSJC", "VNGSJC", "XAUUSD",
+})
+
 
 def clean_rows(rows: object) -> list[dict]:
     """Lọc hàng giá hợp lệ: type_code chuỗi + buy là số hữu hạn.
@@ -78,6 +84,9 @@ class VangTodayProvider(GoldProvider):
                 q.source = "spot"
                 q.updated_at = now
                 return
+
+    def supports_history(self, code: str) -> bool:
+        return code in HISTORY_CODES
 
     async def fetch_history(self, code: str, days: int) -> list[dict]:
         """Một lần gọi trả lịch sử của toàn bộ mã theo ngày (<=30 ngày)."""

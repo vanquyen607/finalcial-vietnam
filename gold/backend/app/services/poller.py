@@ -9,10 +9,14 @@ import httpx
 
 from ..config import settings
 from ..db import db
-from ..providers import GoldProvider, MockProvider, VangTodayProvider
+from ..providers import (
+    GoldProvider,
+    MockProvider,
+    PrivateShopsProvider,
+    VangTodayProvider,
+)
 from ..providers.composite import MergedProvider
 from ..providers.ngoctham import NgocThamProvider
-from ..providers.privateshops import PrivateShopsProvider
 from ..providers.simplize import SimplizeProvider
 from ..providers.fx import fetch_usd_vnd
 from ..symbols import GOLD_TYPES
@@ -31,9 +35,12 @@ def build_provider(name: str) -> GoldProvider:
         return MockProvider()
     # Chế độ thường: gộp vang.today (12 mã) + Simplize (MH/BTMH/PQ) + Ngọc Thẩm chính chủ
     # + bảng giá các tiệm vàng tư nhân (Huy Thanh, Kim Tín, Kim Thành H, Kim Ngân Phúc).
-    return MergedProvider([
-        VangTodayProvider(), SimplizeProvider(), NgocThamProvider(), PrivateShopsProvider(),
-    ])
+    subs: list[GoldProvider] = [VangTodayProvider(), SimplizeProvider(), NgocThamProvider()]
+    if PrivateShopsProvider is not None:
+        subs.append(PrivateShopsProvider())
+    else:  # thiếu beautifulsoup4/lxml -> vẫn chạy các nguồn còn lại
+        log.warning("bỏ qua bảng giá tiệm vàng tư nhân: thiếu beautifulsoup4/lxml")
+    return MergedProvider(subs)
 
 
 class Poller:
@@ -54,11 +61,15 @@ class Poller:
         self._aux = httpx.AsyncClient(headers=AUX_HEADERS, follow_redirects=True)
         self._last_fx = 0
         self._last_news = 0
+        # Giá mở ngày để tự tính change cho nguồn không trả change (4 tiệm tư nhân).
+        self._day_key = ""
+        self._day_open: dict[str, tuple[float, float]] = {}
         # Quan sát vận hành cho /api/metrics + báo Telegram.
         self.metrics: dict[str, Any] = {
             "poll_errors": 0,
             "last_poll_ms": None,
             "provider_errors": {},
+            "provider_health": {"errors": {}, "ok": {}},
             "fx": {"ok": 0, "err": 0, "last_ok": None, "last_err": None},
             "news": {"ok": 0, "err": 0, "last_ok": None, "last_err": None},
             "error_since": None,
@@ -108,18 +119,44 @@ class Poller:
         return None
 
     # --- main loop ---
+    def _apply_day_change(self, rows: list[dict], now: int) -> None:
+        """Nguồn không trả change (tiệm tư nhân) -> tính so với tick đầu ngày."""
+        day = time.strftime("%Y-%m-%d", time.localtime(now))
+        if day != self._day_key:
+            self._day_key = day
+            self._day_open.clear()
+        for r in rows:
+            open_buy, open_sell = self._day_open.setdefault(
+                r["code"], (r["buy"], r["sell"]),
+            )
+            if not r["change_buy"] and r["buy"] != open_buy:
+                r["change_buy"] = r["buy"] - open_buy
+            if not r["change_sell"] and r["sell"] and open_sell and r["sell"] != open_sell:
+                r["change_sell"] = r["sell"] - open_sell
+
     async def tick(self) -> dict[str, Any]:
         started = time.perf_counter()
         rows, source = await self._fetch()
         now = int(time.time())
-        prev = self.latest
-        changed = [r for r in rows if r["code"] not in prev
-                   or prev[r["code"]]["buy"] != r["buy"]
-                   or prev[r["code"]]["sell"] != r["sell"]]
+
+        # Health từng nguồn (MergedProvider ghi nhận lỗi/timeout riêng từng sub).
+        last_errors = getattr(self.provider, "last_errors", None)
+        if last_errors is not None:
+            self.metrics["provider_health"] = {
+                "errors": dict(last_errors),
+                "ok": dict(getattr(self.provider, "last_ok", {})),
+            }
 
         # Dữ liệu mock chỉ để UI không chết — KHÔNG persist vào DB, KHÔNG đánh alert,
         # để lịch sử/biểu đồ không bao giờ lẫn giá giả.
         is_mock = source == self.fallback.name
+        if not is_mock:
+            self._apply_day_change(rows, now)
+
+        prev = self.latest
+        changed = [r for r in rows if r["code"] not in prev
+                   or prev[r["code"]]["buy"] != r["buy"]
+                   or prev[r["code"]]["sell"] != r["sell"]]
         self.latest = self._snapshot(rows)
         if not is_mock:
             db.insert_quotes(rows)
@@ -223,10 +260,14 @@ class Poller:
         total = 0
         for meta in GOLD_TYPES:
             code = meta["code"]
+            # Chỉ gọi mã nguồn thực sự có history -> tránh ~8k request vô ích/ngày
+            # (19 mã tiệm tư nhân không có history trên vang.today).
+            if not self.provider.supports_history(code):
+                continue
             try:
                 rows = await self.provider.fetch_history(code, settings.history_days)
             except NotImplementedError:
-                break
+                continue
             except Exception as exc:  # noqa: BLE001
                 log.debug("history %s lỗi: %s", code, exc)
                 continue
