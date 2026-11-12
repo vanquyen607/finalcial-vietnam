@@ -113,12 +113,16 @@ class PostgresDatabase:
             )
             conn.commit()
 
+    def _executemany(self, conn, sql, rows):
+        with conn.cursor() as cur:
+            cur.executemany(sql, rows)
+
     # --- quotes ---
     def insert_quotes(self, rows: list[dict]) -> None:
         if not rows:
             return
         with self._lock, self._conn() as conn:
-            conn.executemany(
+            self._executemany(conn, 
                 """INSERT INTO quotes(ts,code,name,buy,sell,change_buy,change_sell,unit,per,source)
                    VALUES(%(ts)s,%(code)s,%(name)s,%(buy)s,%(sell)s,%(change_buy)s,
                           %(change_sell)s,%(unit)s,%(per)s,%(source)s)
@@ -178,7 +182,7 @@ class PostgresDatabase:
         if not rows:
             return
         with self._lock, self._conn() as conn:
-            conn.executemany(
+            self._executemany(conn, 
                 """INSERT INTO daily(code,date,buy,sell,day_change_buy,day_change_sell,updates)
                    VALUES(%(code)s,%(date)s,%(buy)s,%(sell)s,%(day_change_buy)s,
                           %(day_change_sell)s,%(updates)s)
@@ -204,7 +208,7 @@ class PostgresDatabase:
         if not rows:
             return
         with self._lock, self._conn() as conn:
-            conn.executemany(
+            self._executemany(conn, 
                 """INSERT INTO daily(code,date,buy,sell,day_change_buy,day_change_sell,updates)
                    VALUES(%(code)s,%(date)s,%(buy)s,%(sell)s,%(day_change_buy)s,
                           %(day_change_sell)s,0)
@@ -285,7 +289,7 @@ class PostgresDatabase:
         if not rows:
             return
         with self._lock, self._conn() as conn:
-            conn.executemany(
+            self._executemany(conn, 
                 """INSERT INTO news(link,title,source,published,image,fetched_at)
                    VALUES(%(link)s,%(title)s,%(source)s,%(published)s,%(image)s,%(fetched_at)s)
                    ON CONFLICT (link) DO UPDATE SET title=excluded.title,
