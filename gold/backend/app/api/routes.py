@@ -213,36 +213,6 @@ async def toggle_alert(alert_id: int, active: bool = Query(...)) -> dict:
     return {"id": alert_id, "active": active}
 
 
-# ---------- debug (chẩn đoán nguồn) ----------
-@router.get("/debug/kimtin", dependencies=[Depends(require_token)])
-async def debug_kimtin() -> dict:
-    import httpx
-    from bs4 import BeautifulSoup
-    url = "https://kimtin.com.vn/"
-    try:
-        async with httpx.AsyncClient(headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                          "(KHTML, like Gecko) Chrome/124.0 Safari/537.36",
-            "Accept-Language": "vi,en;q=0.8",
-        }, timeout=30.0, follow_redirects=True) as client:
-            resp = await client.get(url)
-        html = resp.text
-        soup = BeautifulSoup(html, "lxml")
-        panels = [p.get("id") for p in soup.select("[id^='gold-area-panel']")]
-        tables = soup.find_all("table")
-        has_sjc = "VÀNG MIẾNG SJC" in html.upper()
-        return {
-            "status_code": resp.status_code,
-            "content_length": len(html),
-            "panels": panels,
-            "table_count": len(tables),
-            "has_sjc_text": has_sjc,
-            "final_url": str(resp.url),
-        }
-    except Exception as exc:  # noqa: BLE001
-        return {"error": f"{type(exc).__name__}: {exc}"}
-
-
 # ---------- WebSocket ----------
 @router.websocket("/ws")
 async def ws_endpoint(ws: WebSocket, topics: str = "quote,status,alert") -> None:
