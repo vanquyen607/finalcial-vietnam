@@ -12,6 +12,7 @@ from ..db import db
 from ..providers import GoldProvider, MockProvider, VangTodayProvider
 from ..providers.composite import MergedProvider
 from ..providers.ngoctham import NgocThamProvider
+from ..providers.privateshops import PrivateShopsProvider
 from ..providers.simplize import SimplizeProvider
 from ..providers.fx import fetch_usd_vnd
 from ..symbols import GOLD_TYPES
@@ -28,8 +29,11 @@ AUX_HEADERS = {"User-Agent": "Mozilla/5.0 (AurumTerminal/1.0)"}
 def build_provider(name: str) -> GoldProvider:
     if name == "mock":
         return MockProvider()
-    # Chế độ thường: gộp vang.today (12 mã) + Simplize (MH/BTMH/PQ) + Ngọc Thẩm chính chủ.
-    return MergedProvider([VangTodayProvider(), SimplizeProvider(), NgocThamProvider()])
+    # Chế độ thường: gộp vang.today (12 mã) + Simplize (MH/BTMH/PQ) + Ngọc Thẩm chính chủ
+    # + bảng giá các tiệm vàng tư nhân (Huy Thanh, Kim Tín, Kim Thành H, Kim Ngân Phúc).
+    return MergedProvider([
+        VangTodayProvider(), SimplizeProvider(), NgocThamProvider(), PrivateShopsProvider(),
+    ])
 
 
 class Poller:
