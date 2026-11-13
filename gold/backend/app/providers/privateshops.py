@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass
@@ -35,12 +36,24 @@ MAX_PRICE = 500_000_000.0
 
 TTL = 300
 
+# Render (IP datacenter) bị kimtin.com.vn chặn kết nối. Khi đó đọc qua
+# r.jina.ai (trả HTML gốc bằng header x-return-format) rồi parse như thường.
+# Tắt bằng KIMTIN_PROXY=0.
+KIMTIN_PROXY = os.environ.get("KIMTIN_PROXY", "1") != "0"
+KIMTIN_PROXY_URL = "https://r.jina.ai/https://kimtin.com.vn/"
+PROXY_HEADERS = {"x-return-format": "html"}
+
+# Trực tiếp thử nhanh để còn kịp fallback trong timeout 25s của MergedProvider.
+DIRECT_TIMEOUT = 8.0
+PROXY_TIMEOUT = 15.0
+
 
 @dataclass(slots=True)
 class ShopSpec:
     key: str
     url: str
     parse: Callable[[str], list[tuple[str, float, float]]]
+    proxy_url: str | None = None
 
 
 def _price(text: str, mult: float) -> float | None:
@@ -194,7 +207,7 @@ def parse_kimnganphuc(html: str) -> list[tuple[str, float, float]]:
 
 SHOPS: list[ShopSpec] = [
     ShopSpec("huythanh", "https://huythanhjewelry.vn/gia-vang-hom-nay", parse_huythanh),
-    ShopSpec("kimtin", "https://kimtin.com.vn/", parse_kimtin),
+    ShopSpec("kimtin", "https://kimtin.com.vn/", parse_kimtin, KIMTIN_PROXY_URL),
     ShopSpec("kimthanh", "https://kimthanhh.com/gia-vang", parse_kimthanh),
     ShopSpec("kimnganphuc", "https://kimnganphuc.vn/gia-vang", parse_kimnganphuc),
 ]
@@ -213,11 +226,25 @@ class PrivateShopsProvider(GoldProvider):
         self._cache: list[ProviderQuote] = []
         self._cache_ts = 0
 
-    async def _one(self, spec: ShopSpec) -> list[ProviderQuote]:
-        resp = await self._client.get(spec.url)
+    async def _text(self, url: str, timeout: float, headers: dict | None = None) -> str:
+        resp = await self._client.get(url, timeout=timeout, headers=headers)
         resp.raise_for_status()
+        return resp.text
+
+    async def _load(self, spec: ShopSpec) -> str:
+        fast = DIRECT_TIMEOUT if spec.proxy_url else 20.0
+        try:
+            return await self._text(spec.url, fast)
+        except Exception as exc:
+            if not (spec.proxy_url and KIMTIN_PROXY):
+                raise
+            log.info("tiệm %s trực tiếp lỗi (%s), thử proxy", spec.key, exc)
+            return await self._text(spec.proxy_url, PROXY_TIMEOUT, PROXY_HEADERS)
+
+    async def _one(self, spec: ShopSpec) -> list[ProviderQuote]:
+        html = await self._load(spec)
         quotes: list[ProviderQuote] = []
-        for code, buy, sell in spec.parse(resp.text):
+        for code, buy, sell in spec.parse(html):
             meta = BY_CODE.get(code)
             if meta is None:
                 continue

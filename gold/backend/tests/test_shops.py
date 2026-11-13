@@ -9,6 +9,7 @@ from app.db import Database
 from app.providers.base import GoldProvider, ProviderQuote
 from app.providers.composite import MergedProvider
 from app.providers.ngoctham import NgocThamProvider, parse_nt_time
+from app.providers import privateshops
 from app.providers.privateshops import (
     PrivateShopsProvider,
     ShopSpec,
@@ -277,6 +278,47 @@ def test_private_shops_partial_failure_and_cache():
     assert all(q.source == "shops:ok" for q in quotes)
     assert quotes2 == quotes
     assert len(calls) == n_calls  # cache TTL
+
+
+def test_kimtin_falls_back_to_proxy_when_direct_blocked():
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        if "r.jina.ai" in str(request.url):
+            assert request.headers.get("x-return-format") == "html"
+            return httpx.Response(200, text=KT_HTML)
+        return httpx.Response(500)
+
+    shops = [ShopSpec("kimtin", "https://kimtin.com.vn/", parse_kimtin,
+                      "https://r.jina.ai/https://kimtin.com.vn/")]
+    p = PrivateShopsProvider(shops=shops)
+    p._client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        quotes = asyncio.run(p.fetch_current())
+    finally:
+        asyncio.run(p._client.aclose())
+
+    assert {q.code for q in quotes} == {"KT_RING9999", "KT_SJC", "KT_TS23K"}
+    assert all(q.source == "shops:kimtin" for q in quotes)
+    assert any("r.jina.ai" in c for c in calls)
+
+
+def test_kimtin_proxy_can_be_disabled(monkeypatch):
+    monkeypatch.setattr(privateshops, "KIMTIN_PROXY", False)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500)
+
+    shops = [ShopSpec("kimtin", "https://kimtin.com.vn/", parse_kimtin,
+                      "https://r.jina.ai/https://kimtin.com.vn/")]
+    p = PrivateShopsProvider(shops=shops)
+    p._client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    try:
+        with pytest.raises(RuntimeError, match="không tiệm nào"):
+            asyncio.run(p.fetch_current())
+    finally:
+        asyncio.run(p._client.aclose())
 
 
 def test_private_shops_all_dead_raises():
