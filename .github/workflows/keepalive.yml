@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Ping aurum-gold health endpoint
         run: |
-          URL="https://aurum-gold.onrender.com/api/health"
+          URL="https://finalcial-vietnam-1.onrender.com/api/health"
           for i in 1 2 3; do
             code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$URL" || echo "000")
             echo "Lần $i: HTTP $code"
