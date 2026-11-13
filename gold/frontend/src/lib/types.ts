@@ -54,6 +54,14 @@ export interface Alert {
   triggered_at: number | null;
 }
 
+export interface NewsItem {
+  link: string;
+  title: string;
+  source: string;
+  published: number;
+  image: string;
+}
+
 export interface DailyPoint {
   date: string;
   buy: number;

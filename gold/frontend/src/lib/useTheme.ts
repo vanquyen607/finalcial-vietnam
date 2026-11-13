@@ -6,9 +6,8 @@ export function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   const stored = localStorage.getItem("ck_theme") || localStorage.getItem("aurum_theme");
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
-    ? "light"
-    : "dark";
+  // Luxury dark-first: chỉ theo hệ thống nếu người dùng đã bật light mode.
+  return "dark";
 }
 
 // Theme dùng chung toàn app: mọi component gọi useTheme() đều thấy cùng giá trị.

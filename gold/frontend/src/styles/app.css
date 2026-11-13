@@ -2047,3 +2047,444 @@ body {
     white-space: normal;
   }
 }
+
+/* ============================================================
+   Aurum Luxury — modern · minimal · numbers first
+   Charcoal + gold, hairline rules, soft radius, mono figures.
+   ============================================================ */
+
+/* ---------- chrome ---------- */
+.topbar {
+  background: color-mix(in srgb, var(--paper) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--rule);
+}
+
+.nav a {
+  border-radius: var(--r-md);
+  font-weight: 500;
+}
+
+.nav a.active::after {
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.btn-theme-toggle {
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule);
+}
+
+.btn-theme-toggle:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.dot--live {
+  border-radius: 50%;
+  background: var(--up);
+  box-shadow: 0 0 0 3px var(--up-soft);
+  animation: live-pulse 2.4s ease-in-out infinite;
+}
+
+.dot--err {
+  border-radius: 50%;
+}
+
+@keyframes live-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ---------- hero ---------- */
+.hero {
+  border-bottom: 1px solid var(--rule);
+}
+
+.hero__title {
+  letter-spacing: -0.025em;
+}
+
+/* ---------- KPI cards: the numbers are the hero ---------- */
+.hero-stats {
+  grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+  gap: 12px;
+  border: 0;
+  margin-bottom: 20px;
+}
+
+.hero-stat {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-sm);
+  padding: 16px 18px;
+}
+
+.hero-stat strong {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.hero-stat--primary {
+  background: var(--band-bg);
+  border-color: color-mix(in srgb, var(--band-figure) 38%, transparent);
+}
+
+.hero-stat--primary strong {
+  font-size: 32px;
+  color: var(--band-figure);
+}
+
+.hero-stat--primary .chip {
+  background: var(--band-figure);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+}
+
+.hero-stat__label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule);
+  font-weight: 700;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+
+.btn--primary:hover {
+  background: var(--accent-deep);
+}
+
+.btn--ghost {
+  border-color: var(--rule);
+  color: var(--ink);
+}
+
+.btn--ghost:hover {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.btn--danger {
+  border: 1px solid var(--rule);
+}
+
+/* ---------- panels ---------- */
+.card,
+.panel {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.panel__head {
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
+  padding: 14px 18px;
+}
+
+.panel__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.panel__body {
+  padding: 18px;
+}
+
+/* ---------- board: dark card, gold figures ---------- */
+.gold-table-wrap {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--band-bg);
+}
+
+.gold-table thead th {
+  background: var(--band-bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--band-figure) 45%, transparent);
+  color: color-mix(in srgb, var(--band-fg) 62%, transparent);
+  font-weight: 600;
+}
+
+.gold-table__group td {
+  background: color-mix(in srgb, var(--band-figure) 8%, var(--band-bg));
+  border-top: 1px solid var(--band-rule);
+  border-bottom: 1px solid var(--band-rule);
+}
+
+.gold-table__brand {
+  letter-spacing: 0.02em;
+}
+
+.gold-table__row:hover {
+  background: color-mix(in srgb, var(--band-figure) 14%, transparent);
+}
+
+.gold-table td.num {
+  font-family: var(--font-mono);
+}
+
+.gold-table .bid {
+  font-size: 16px;
+}
+
+.gold-table .up {
+  color: oklch(78% 0.14 155);
+}
+
+.gold-table .down {
+  color: oklch(74% 0.15 25);
+}
+
+/* ---------- chips + tabs: pill ---------- */
+.chip {
+  border-radius: var(--r-full);
+  font-weight: 600;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.range-tabs {
+  gap: 6px;
+}
+
+.range-tabs button {
+  border-radius: var(--r-full);
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-2);
+  padding: 7px 14px;
+  font-weight: 600;
+}
+
+.range-tabs button:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.range-tabs button[data-active="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+/* ---------- chart ---------- */
+.chart-box {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-md);
+  background: var(--surface-1);
+}
+
+/* ---------- forms ---------- */
+.field input,
+.field select,
+.filter-bar input,
+.filter-bar select {
+  border-radius: var(--r-md);
+  border: 1px solid var(--rule);
+  background: var(--surface-1);
+  padding: 10px 12px;
+}
+
+.field input:focus,
+.field select:focus,
+.filter-bar input:focus,
+.filter-bar select:focus {
+  border-color: var(--accent);
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ---------- dashboard grid ---------- */
+.dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 16px;
+  align-items: start;
+}
+
+.dash-main,
+.dash-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- filter bar (search + brand) ---------- */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.filter-bar input[type="search"] {
+  flex: 1;
+  min-width: 150px;
+}
+
+.filter-bar select {
+  max-width: 190px;
+}
+
+.filter-bar .meta {
+  white-space: nowrap;
+}
+
+/* ---------- side column lists ---------- */
+.news-line {
+  display: block;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
+}
+
+.news-line:first-child {
+  padding-top: 0;
+}
+
+.news-line:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.news-line:hover .news-line__title {
+  color: var(--accent-deep);
+}
+
+.news-line__title {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.news-line__meta {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.alert-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
+}
+
+.alert-line:first-child {
+  padding-top: 0;
+}
+
+.alert-line:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.alert-line b {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.alert-line__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.side-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+}
+
+.side-foot a {
+  color: var(--accent-deep);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.side-foot a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- misc ---------- */
+.toast {
+  border-radius: var(--r-lg);
+  border: 1px solid var(--rule);
+}
+
+.toast--alert {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent), var(--shadow-md);
+}
+
+.price-card__brand {
+  border-radius: var(--r-full);
+}
+
+.splash__bar,
+.splash__bar i {
+  border-radius: var(--r-full);
+}
+
+@media (max-width: 640px) {
+  .hero-stat strong {
+    font-size: 20px;
+  }
+  .hero-stat--primary strong {
+    font-size: 26px;
+  }
+  .filter-bar {
+    padding: 10px 12px;
+  }
+  .filter-bar select {
+    max-width: none;
+    flex: 1;
+  }
+}

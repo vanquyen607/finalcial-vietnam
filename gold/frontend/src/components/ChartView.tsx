@@ -21,9 +21,14 @@ interface Props {
   fitKey?: string;
 }
 
-const GOLD = "#c08a1e";
-const INK_LIGHT = "#1a1f28";
-const PAPER_DARK = "#e8ecf2";
+// Aurum luxury: đường giá chính là vàng kim; tham chiếu = hairline trung tính.
+const GOLD_LINE = { light: "#A8842A", dark: "#D6B24C" };
+const SEC_LINE = { light: "#A99E86", dark: "#5D616A" };
+const TEXT = { light: "#3B3D42", dark: "#B8B5AD" };
+const GRID = { light: "#E8E4DB", dark: "#2A2C31" };
+const CROSS = { light: "#A39D90", dark: "#4E5158" };
+const CROSS_BG = { light: "#F7F6F2", dark: "#232529" };
+const SCALE = { light: "#E0DBD2", dark: "#33353A" };
 
 export default function ChartView({
   points,
@@ -73,40 +78,41 @@ export default function ChartView({
       localization: { priceFormatter },
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: isLight ? "#3d4552" : "#b9c0cc",
+        textColor: isLight ? TEXT.light : TEXT.dark,
         fontFamily: "'Chivo Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: isLight ? "#d8dde4" : "#262d38" },
-        horzLines: { color: isLight ? "#d8dde4" : "#262d38" },
+        vertLines: { color: isLight ? GRID.light : GRID.dark },
+        horzLines: { color: isLight ? GRID.light : GRID.dark },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: isLight ? "#9aa3b0" : "#4a5361", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
-        horzLine: { color: isLight ? "#9aa3b0" : "#4a5361", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
+        vertLine: { color: isLight ? CROSS.light : CROSS.dark, width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? CROSS_BG.light : CROSS_BG.dark },
+        horzLine: { color: isLight ? CROSS.light : CROSS.dark, width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? CROSS_BG.light : CROSS_BG.dark },
       },
-      rightPriceScale: { borderColor: isLight ? "#d8dde4" : "#2c3440" },
-      timeScale: { borderColor: isLight ? "#d8dde4" : "#2c3440", timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: isLight ? SCALE.light : SCALE.dark },
+      timeScale: { borderColor: isLight ? SCALE.light : SCALE.dark, timeVisible: true, secondsVisible: false },
       handleScroll: false,
       handleScale: false,
     });
     chartRef.current = chart;
 
+    const lineColor = isLight ? GOLD_LINE.light : GOLD_LINE.dark;
     mainRef.current = chart.addLineSeries({
       priceFormat,
-      color: isLight ? INK_LIGHT : PAPER_DARK,
+      color: lineColor,
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: true,
-      crosshairMarkerBorderColor: GOLD,
-      crosshairMarkerBackgroundColor: GOLD,
+      crosshairMarkerBorderColor: lineColor,
+      crosshairMarkerBackgroundColor: lineColor,
       autoscaleInfoProvider,
     });
     if (secondary) {
       secRef.current = chart.addLineSeries({
         priceFormat,
-        color: GOLD,
+        color: isLight ? SEC_LINE.light : SEC_LINE.dark,
         lineWidth: 1,
         lineStyle: LineStyle.Dotted,
         priceLineVisible: false,
@@ -137,19 +143,25 @@ export default function ChartView({
     if (!chartRef.current) return;
     const isLight = theme === "light";
     chartRef.current.applyOptions({
-      layout: { textColor: isLight ? "#3d4552" : "#b9c0cc" },
+      layout: { textColor: isLight ? TEXT.light : TEXT.dark },
       grid: {
-        vertLines: { color: isLight ? "#d8dde4" : "#262d38" },
-        horzLines: { color: isLight ? "#d8dde4" : "#262d38" },
+        vertLines: { color: isLight ? GRID.light : GRID.dark },
+        horzLines: { color: isLight ? GRID.light : GRID.dark },
       },
       crosshair: {
-        vertLine: { color: isLight ? "#9aa3b0" : "#4a5361", labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
-        horzLine: { color: isLight ? "#9aa3b0" : "#4a5361", labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
+        vertLine: { color: isLight ? CROSS.light : CROSS.dark, labelBackgroundColor: isLight ? CROSS_BG.light : CROSS_BG.dark },
+        horzLine: { color: isLight ? CROSS.light : CROSS.dark, labelBackgroundColor: isLight ? CROSS_BG.light : CROSS_BG.dark },
       },
-      rightPriceScale: { borderColor: isLight ? "#d8dde4" : "#2c3440" },
-      timeScale: { borderColor: isLight ? "#d8dde4" : "#2c3440" },
+      rightPriceScale: { borderColor: isLight ? SCALE.light : SCALE.dark },
+      timeScale: { borderColor: isLight ? SCALE.light : SCALE.dark },
     });
-    mainRef.current?.applyOptions({ color: isLight ? INK_LIGHT : PAPER_DARK });
+    const lineColor = isLight ? GOLD_LINE.light : GOLD_LINE.dark;
+    mainRef.current?.applyOptions({
+      color: lineColor,
+      crosshairMarkerBorderColor: lineColor,
+      crosshairMarkerBackgroundColor: lineColor,
+    });
+    secRef.current?.applyOptions({ color: isLight ? SEC_LINE.light : SEC_LINE.dark });
   }, [theme]);
 
   useEffect(() => {

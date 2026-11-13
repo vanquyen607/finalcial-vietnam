@@ -1,38 +1,33 @@
-/* Hallmark · v2.0.0 · theme: wayfind (dealt 1/3 · platform/night) · genre: modern-minimal · redesign: full · scope: app · brand: gold accent kept by request */
-/* Built from the page's own content: live buy/sell prices, 71 gold types, 14 brands. The board is the signature. */
-
-/* ============================================================
-   Aurum Terminal — Wayfind tokens
-   Public-signage material: cool grey paper, blue-black ink,
-   Chivo Mono throughout, 2px ink borders, gold for figures on ink.
-   Light = "platform", Dark = "night".
-   ============================================================ */
+/* Aurum Terminal — Luxury tokens (modern · minimal · gold)
+   Charcoal surfaces, warm-white text, one metallic gold accent,
+   hairline rules, soft radius. Numbers in Chivo Mono tabular.
+   Dark = default "night", light = warm paper "day". */
 
 :root,
 [data-theme="light"] {
   color-scheme: light;
 
-  /* Wayfind material */
-  --paper: oklch(95.5% 0.006 250);
-  --paper-2: oklch(91% 0.009 250);
-  --paper-3: oklch(99.5% 0.005 250);
-  --ink: oklch(16% 0.014 262);
-  --ink-2: oklch(29% 0.014 262);
-  --muted: oklch(47% 0.016 260);
-  --rule: oklch(80% 0.011 250);
-  --ink-rule: oklch(34% 0.014 262);
+  /* Warm paper */
+  --paper: oklch(97% 0.004 85);
+  --paper-2: oklch(94.5% 0.005 85);
+  --paper-3: oklch(99% 0.003 85);
+  --ink: oklch(18% 0.01 260);
+  --ink-2: oklch(32% 0.01 260);
+  --muted: oklch(50% 0.01 260);
+  --rule: oklch(86% 0.006 85);
+  --ink-rule: oklch(78% 0.008 85);
 
-  /* Gold accent (the brand, kept) */
-  --accent: oklch(80% 0.15 82);
-  --accent-deep: oklch(66% 0.14 78);
-  --accent-ink: oklch(16% 0.014 262);
-  --focus: oklch(16% 0.014 262);
+  /* Metallic gold accent (the brand) */
+  --accent: oklch(72% 0.13 78);
+  --accent-deep: oklch(56% 0.12 72);
+  --accent-ink: oklch(18% 0.01 260);
+  --focus: oklch(56% 0.12 72);
 
-  /* Ink band that carries the board */
-  --band-bg: var(--ink);
-  --band-fg: var(--paper);
-  --band-figure: var(--accent);
-  --band-rule: var(--ink-rule);
+  /* The board is always a dark charcoal card — premium anchor in both themes */
+  --band-bg: oklch(16% 0.012 260);
+  --band-fg: oklch(96% 0.005 85);
+  --band-figure: oklch(80% 0.14 82);
+  --band-rule: oklch(28% 0.012 260);
 
   /* Map legacy tokens */
   --background: var(--paper);
@@ -42,8 +37,8 @@
   --surface-container-lowest: var(--paper-3);
   --surface-container-low: var(--paper);
   --surface-container: var(--paper-2);
-  --surface-container-high: oklch(86% 0.01 250);
-  --surface-container-highest: oklch(82% 0.011 250);
+  --surface-container-high: oklch(92% 0.005 85);
+  --surface-container-highest: oklch(89% 0.006 85);
 
   --on-surface: var(--ink);
   --on-surface-variant: var(--ink-2);
@@ -53,52 +48,53 @@
 
   --primary: var(--accent-deep);
   --primary-container: var(--accent);
-  --on-primary: var(--ink);
+  --on-primary: oklch(99% 0.005 85);
   --primary-fixed-dim: var(--accent-deep);
 
-  /* Financial semantics (functional, not decorative) */
-  --up: oklch(46% 0.13 150);
-  --up-soft: color-mix(in srgb, var(--up) 14%, transparent);
-  --down: oklch(52% 0.19 22);
-  --down-soft: color-mix(in srgb, var(--down) 14%, transparent);
+  /* Financial semantics — muted emerald / rose, never neon */
+  --up: oklch(52% 0.13 155);
+  --up-soft: color-mix(in srgb, var(--up) 12%, transparent);
+  --down: oklch(54% 0.17 25);
+  --down-soft: color-mix(in srgb, var(--down) 12%, transparent);
   --flat: var(--muted);
-  --error: oklch(52% 0.19 22);
+  --error: oklch(54% 0.17 25);
 
-  --shadow-sm: none;
-  --shadow-md: 0 24px 40px -24px oklch(8% 0.01 260 / 0.6);
+  --shadow-sm: 0 1px 2px oklch(20% 0.01 260 / 0.06);
+  --shadow-md: 0 20px 44px -24px oklch(20% 0.01 260 / 0.35);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --paper: oklch(15% 0.012 262);
-  --paper-2: oklch(19% 0.012 262);
-  --paper-3: oklch(23% 0.012 262);
-  --ink: oklch(96% 0.005 250);
-  --ink-2: oklch(80% 0.008 250);
-  --muted: oklch(62% 0.012 255);
-  --rule: oklch(31% 0.014 262);
-  --ink-rule: oklch(45% 0.014 262);
+  /* Near-black charcoal, faintly warm */
+  --paper: oklch(15.5% 0.008 260);
+  --paper-2: oklch(19.5% 0.009 260);
+  --paper-3: oklch(23.5% 0.01 260);
+  --ink: oklch(96.5% 0.004 85);
+  --ink-2: oklch(82% 0.006 85);
+  --muted: oklch(63% 0.01 260);
+  --rule: oklch(30% 0.01 260);
+  --ink-rule: oklch(38% 0.01 260);
 
-  --accent: oklch(82% 0.15 85);
-  --accent-deep: oklch(74% 0.14 82);
-  --accent-ink: oklch(15% 0.012 262);
-  --focus: oklch(82% 0.15 85);
+  --accent: oklch(78% 0.14 82);
+  --accent-deep: oklch(68% 0.13 78);
+  --accent-ink: oklch(15% 0.01 260);
+  --focus: oklch(78% 0.14 82);
 
-  --band-bg: oklch(11% 0.01 262);
-  --band-fg: oklch(96% 0.005 250);
+  --band-bg: oklch(13% 0.008 260);
+  --band-fg: oklch(96.5% 0.004 85);
   --band-figure: var(--accent);
-  --band-rule: oklch(31% 0.014 262);
+  --band-rule: oklch(27% 0.01 260);
 
   --background: var(--paper);
   --surface-0: var(--paper);
   --surface-1: var(--paper-2);
   --surface-2: var(--paper-3);
-  --surface-container-lowest: oklch(12% 0.01 262);
-  --surface-container-low: oklch(17% 0.012 262);
-  --surface-container: oklch(21% 0.012 262);
-  --surface-container-high: oklch(26% 0.012 262);
-  --surface-container-highest: oklch(30% 0.012 262);
+  --surface-container-lowest: oklch(13% 0.008 260);
+  --surface-container-low: oklch(17% 0.009 260);
+  --surface-container: oklch(21% 0.01 260);
+  --surface-container-high: oklch(25% 0.01 260);
+  --surface-container-highest: oklch(29% 0.011 260);
 
   --on-surface: var(--ink);
   --on-surface-variant: var(--ink-2);
@@ -108,26 +104,26 @@
 
   --primary: var(--accent-deep);
   --primary-container: var(--accent);
-  --on-primary: var(--ink);
+  --on-primary: oklch(15% 0.01 260);
   --primary-fixed-dim: var(--accent-deep);
 
-  --up: oklch(80% 0.14 150);
-  --up-soft: color-mix(in srgb, var(--up) 16%, transparent);
-  --down: oklch(72% 0.16 22);
-  --down-soft: color-mix(in srgb, var(--down) 16%, transparent);
+  --up: oklch(74% 0.14 155);
+  --up-soft: color-mix(in srgb, var(--up) 14%, transparent);
+  --down: oklch(70% 0.16 25);
+  --down-soft: color-mix(in srgb, var(--down) 14%, transparent);
   --flat: var(--muted);
-  --error: oklch(72% 0.16 22);
+  --error: oklch(70% 0.16 25);
 
   --shadow-sm: none;
-  --shadow-md: 0 24px 40px -24px oklch(4% 0.01 260 / 0.8);
+  --shadow-md: 0 24px 48px -24px oklch(4% 0.01 260 / 0.85);
 }
 
 :root {
-  /* Typography — Chivo Mono is the board's face */
-  --font-display: "Chivo Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-body: "Chivo Mono", ui-monospace, SFMono-Regular, monospace;
+  /* Typography — Be Vietnam Pro speaks, Chivo Mono counts */
+  --font-display: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+  --font-body: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
   --font-mono: "Chivo Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-outlier: var(--font-body);
+  --font-outlier: var(--font-mono);
 
   /* Spacing — 4px baseline grid */
   --sp-xs: 4px;
@@ -138,14 +134,14 @@
   --sp-xl: 32px;
   --margin-mobile: 16px;
 
-  /* Square material: borders are depth, radius 0 except pills */
-  --r-sm: 0;
-  --r-md: 0;
-  --r-lg: 0;
-  --r-xl: 0;
+  /* Soft modern radius — quiet luxury, no harsh corners */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
   --r-full: 9999px;
   --rule-hair: 1px;
-  --rule-bar: 2px;
+  --rule-bar: 1px;
 
   --tabbar-h: 64px;
   --header-h: 60px;

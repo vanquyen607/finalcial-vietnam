@@ -1,4 +1,4 @@
-import type { Alert, BrandInfo, GoldType, HistoryPayload, Quote, Status } from "./types";
+import type { Alert, BrandInfo, GoldType, HistoryPayload, NewsItem, Quote, Status } from "./types";
 
 const BASE = "/api";
 
@@ -56,6 +56,7 @@ export const api = {
   history: (ref: string, days = 30) =>
     request<HistoryPayload>(`/history/${encodeURIComponent(ref)}?days=${days}`),
   alerts: () => request<{ items: Alert[] }>("/alerts"),
+  news: (limit = 5) => request<{ count: number; items: NewsItem[] }>(`/news?limit=${limit}`),
   createAlert: (body: { code: string; direction: "up" | "down"; threshold: number; note: string;
                         target_price?: number }) =>
     request<Alert>("/alerts", { method: "POST", body: JSON.stringify(body) }),
