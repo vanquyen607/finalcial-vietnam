@@ -158,7 +158,7 @@ select {
   background: var(--surface-2);
   color: var(--on-surface);
   cursor: pointer;
-  transition: all 0.16s ease;
+  transition: background-color 0.12s steps(1), border-color 0.12s steps(1);
   flex: none;
 }
 .btn-theme-toggle:hover {
@@ -880,7 +880,7 @@ select {
   border: 1px solid var(--border);
   color: var(--on-surface-variant);
   white-space: nowrap;
-  transition: all 0.12s ease;
+  transition: background-color 0.12s steps(1), border-color 0.12s steps(1), color 0.12s steps(1);
 }
 .range-tabs button:hover {
   border-color: var(--outline-variant);
@@ -1433,5 +1433,617 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   Hallmark · Wayfind redesign (appended system)
+   Public-signage material: paper, ink borders, mono, gold on ink.
+   ============================================================ */
+html,
+body {
+  overflow-x: clip;
+}
+
+body {
+  background: var(--surface-0);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: var(--rule-bar) solid var(--focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* labels: sentence case, untracked (Floor 9) */
+.meta,
+.panel__title,
+.section-label,
+.stat__k,
+.field span,
+.price-label,
+.bp__count,
+.brand__tag,
+.tbl thead th,
+.gold-table thead th,
+.kpi__label,
+.hero-stat__label,
+.list-row__meta {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ---------- chrome ---------- */
+.topbar {
+  background: var(--paper);
+  border-bottom: var(--rule-bar) solid var(--ink);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.topbar__inner {
+  height: var(--header-h);
+  gap: 24px;
+}
+
+.brand__name {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 18px;
+}
+
+.brand__tag {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.nav {
+  gap: 0;
+}
+
+.nav a {
+  border-radius: 0;
+  padding: 10px 14px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.nav a:hover {
+  color: var(--ink);
+  background: var(--paper-2);
+}
+
+.nav a.active {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.nav a.active::after {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+.btn-theme-toggle {
+  border-radius: 0;
+  border: var(--rule-bar) solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn-theme-toggle:hover {
+  background: var(--ink);
+  color: var(--paper);
+  transform: none;
+}
+
+.btn-theme-toggle:active {
+  transform: none;
+}
+
+.dot--live {
+  border-radius: 0;
+  background: var(--accent-deep);
+  box-shadow: none;
+  animation: none;
+}
+
+.dot--err {
+  border-radius: 0;
+}
+
+/* ---------- ticker ---------- */
+.ticker {
+  border-top: var(--rule-hair) solid var(--rule);
+  background: var(--paper-2);
+}
+
+.ticker__track {
+  animation-duration: 90s;
+  gap: 34px;
+}
+
+.ticker__item {
+  border-radius: 0;
+}
+
+.ticker__item:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+/* ---------- page + hero ---------- */
+.page {
+  padding: 28px 24px 80px;
+}
+
+.hero {
+  align-items: flex-start;
+  border-bottom: var(--rule-bar) solid var(--ink);
+  padding-bottom: 22px;
+  margin: 2px 0 22px;
+}
+
+.hero__title {
+  font-size: clamp(30px, 4vw, 44px);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  font-weight: 800;
+  max-width: 42ch;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+
+.hero__title span {
+  color: inherit;
+}
+
+.hero__sub {
+  font-size: 16px;
+  line-height: 1.55;
+  max-width: 60ch;
+  color: var(--ink-2);
+}
+
+.hero__actions {
+  gap: 12px;
+}
+
+.hero__actions .meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- buttons ---------- */
+.btn {
+  border-radius: 0;
+  border: var(--rule-bar) solid var(--ink);
+  padding: 12px 18px;
+  font-weight: 800;
+  font-size: 14px;
+  transition: background-color 0.12s steps(1), color 0.12s steps(1), border-color 0.12s steps(1);
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--ink);
+  color: var(--accent-ink);
+}
+
+.btn--primary:hover {
+  background: var(--accent-deep);
+}
+
+.btn--ghost {
+  background: transparent;
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.btn--ghost:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.btn--danger {
+  border: var(--rule-bar) solid var(--ink);
+  color: var(--down);
+}
+
+/* ---------- panels + cards ---------- */
+.card,
+.panel {
+  background: var(--surface-1);
+  border: var(--rule-bar) solid var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.panel__head {
+  border-bottom: var(--rule-bar) solid var(--ink);
+  background: var(--paper-2);
+  padding: 12px 16px;
+}
+
+.panel__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.panel__body {
+  padding: 16px;
+}
+
+.kpi,
+.stat,
+.price-card,
+.list-row {
+  border-radius: 0;
+}
+
+.kpi,
+.stat {
+  border: var(--rule-bar) solid var(--ink);
+  box-shadow: none;
+}
+
+.kpi:hover,
+.price-card:hover {
+  border-color: var(--ink);
+  transform: none;
+  background: var(--paper-2);
+}
+
+.stat__k,
+.kpi__label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.stat__v,
+.kpi__value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- hero stats as plates ---------- */
+.hero-stats {
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: var(--rule-bar) solid var(--ink);
+  margin-bottom: 18px;
+}
+
+.hero-stat {
+  border: 0;
+  border-radius: 0;
+  box-shadow: inset -1px -1px 0 var(--rule);
+  padding: 16px 18px;
+  background: var(--surface-1);
+}
+
+.hero-stat--primary {
+  background: var(--band-bg);
+  color: var(--band-fg);
+  border-color: var(--band-bg);
+}
+
+.hero-stat--primary .hero-stat__label {
+  color: color-mix(in srgb, var(--band-fg) 68%, transparent);
+}
+
+.hero-stat--primary strong {
+  color: var(--band-figure);
+  font-size: 30px;
+}
+
+.hero-stat--primary .chip {
+  background: var(--band-figure);
+  color: var(--accent-ink);
+}
+
+.hero-stat__label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.hero-stat strong {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.hero-stat__hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ---------- the board: gold table on ink ---------- */
+.gold-table-wrap {
+  background: var(--band-bg);
+}
+
+.gold-table {
+  color: var(--band-fg);
+}
+
+.gold-table thead th {
+  background: var(--band-bg);
+  color: color-mix(in srgb, var(--band-fg) 72%, transparent);
+  border-bottom: var(--rule-bar) solid var(--band-fg);
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.gold-table thead th:first-child {
+  text-align: left;
+}
+
+.gold-table__group td {
+  background: var(--band-bg);
+  color: var(--band-fg);
+  border-top: var(--rule-hair) solid var(--band-rule);
+  border-bottom: var(--rule-hair) solid var(--band-rule);
+  padding: 10px 14px;
+}
+
+.gold-table__brand {
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.gold-table__count {
+  color: color-mix(in srgb, var(--band-fg) 58%, transparent);
+  font-size: 11px;
+}
+
+.gold-table tbody td {
+  border-bottom: var(--rule-hair) solid var(--band-rule);
+}
+
+.gold-table__row:hover {
+  background: color-mix(in srgb, var(--band-figure) 12%, transparent);
+}
+
+.gt-brand {
+  color: color-mix(in srgb, var(--band-fg) 78%, transparent);
+}
+
+.gt-name {
+  color: var(--band-fg);
+}
+
+.gt-code {
+  color: color-mix(in srgb, var(--band-fg) 52%, transparent);
+}
+
+.gold-table .bid,
+.gold-table .ask {
+  font-variant-numeric: tabular-nums;
+}
+
+.gold-table .bid {
+  color: var(--band-figure);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.gold-table .ask {
+  color: var(--band-fg);
+  font-weight: 500;
+}
+
+.gold-table .up {
+  color: oklch(82% 0.15 150);
+}
+
+.gold-table .down {
+  color: oklch(72% 0.17 22);
+}
+
+.gold-table .flat,
+.gold-table .muted {
+  color: color-mix(in srgb, var(--band-fg) 52%, transparent);
+}
+
+/* ---------- chips ---------- */
+.chip {
+  border-radius: 0;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* ---------- chart ---------- */
+.chart-box {
+  border: var(--rule-bar) solid var(--ink);
+  border-radius: 0;
+  background: var(--surface-1);
+}
+
+.range-tabs {
+  gap: 0;
+}
+
+.range-tabs button {
+  border-radius: 0;
+  border: var(--rule-bar) solid var(--ink);
+  background: transparent;
+  color: var(--ink-2);
+  padding: 7px 12px;
+}
+
+.range-tabs button:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.range-tabs button[data-active="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+  font-weight: 800;
+}
+
+/* ---------- forms ---------- */
+.field input,
+.field select {
+  border-radius: 0;
+  border: var(--rule-bar) solid var(--ink);
+  background: var(--paper-3);
+  padding: 12px;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--ink);
+  outline: var(--rule-bar) solid var(--accent);
+  outline-offset: 1px;
+}
+
+.field span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ---------- misc surfaces ---------- */
+.price-card__brand {
+  border-radius: 0;
+  background: transparent;
+  border: var(--rule-hair) solid var(--rule);
+  color: var(--ink-2);
+}
+
+.list-row {
+  border-bottom: var(--rule-hair) solid var(--rule);
+}
+
+.toast {
+  border-radius: 0;
+  border: var(--rule-bar) solid var(--ink);
+  background: var(--paper-3);
+  box-shadow: var(--shadow-md);
+}
+
+.toast--alert {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 2px var(--accent), var(--shadow-md);
+}
+
+.splash {
+  background: var(--surface-0);
+}
+
+.splash__bar {
+  border-radius: 0;
+}
+
+.splash__bar i {
+  border-radius: 0;
+}
+
+.tbl thead th {
+  background: var(--paper-2);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tbl tbody td {
+  border-bottom: var(--rule-hair) solid var(--rule);
+}
+
+.tbl tbody tr:hover {
+  background: var(--paper-2);
+}
+
+.empty {
+  color: var(--muted);
+}
+
+/* ---------- responsive ---------- */
+@media (max-width: 1100px) {
+  .hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar__inner {
+    height: auto;
+    padding: 10px 16px 0;
+  }
+  .page {
+    padding: 20px 16px 64px;
+  }
+  .hero__title {
+    font-size: 30px;
+    max-width: none;
+  }
+  .nav a {
+    padding: 10px 7px;
+    font-size: 12.5px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px 14px 56px;
+  }
+  .hero-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hero-stat {
+    padding: 12px 12px;
+  }
+  .hero-stat--primary strong {
+    font-size: 22px;
+  }
+  .gold-table th.gt-spread,
+  .gold-table td.gt-spread,
+  .gold-table th.gt-time,
+  .gold-table td.gt-time {
+    display: none;
+  }
+  .gold-table .gt-delta {
+    display: none;
+  }
+  .gold-table thead th,
+  .gold-table tbody td {
+    padding: 8px 6px;
+  }
+  .gold-table {
+    font-size: 11px;
+  }
+  .gold-table .gt-name {
+    font-size: 12px;
+  }
+  .gold-table .gt-code {
+    display: none;
+  }
+  .gold-table .bid {
+    font-size: 12px;
+  }
+  .gold-table .ask,
+  .gold-table .gt-change {
+    font-size: 11px;
+  }
+  .gold-table td.num {
+    white-space: nowrap;
+  }
+  .gold-table tbody td:nth-child(2) {
+    white-space: normal;
   }
 }

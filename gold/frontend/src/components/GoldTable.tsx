@@ -29,9 +29,9 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
             <th>Loại vàng</th>
             <th className="num">Mua vào</th>
             <th className="num">Bán ra</th>
-            <th className="num">Chênh lệch</th>
-            <th className="num">Thay đổi</th>
-            <th className="num">Lúc</th>
+            <th className="num gt-spread">Chênh lệch</th>
+            <th className="num gt-change">Thay đổi</th>
+            <th className="num gt-time">Lúc</th>
           </tr>
         </thead>
         <tbody>
@@ -66,7 +66,7 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
                     <td>
                       <span className="gt-name">{meta?.product || q.name}</span>
                       <span className="gt-code">
-                        {q.code} · {q.per || "lượng"}
+                        {q.code} / {q.per || "lượng"}
                       </span>
                     </td>
                     <td className="num bid">
@@ -75,11 +75,18 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
                     <td className="num ask">
                       {q.sell > 0 ? <LivePrice value={q.sell} unit={q.unit} /> : "—"}
                     </td>
-                    <td className="num muted">{spread ? fmtSigned(spread, q.unit) : "—"}</td>
-                    <td className={`num ${t}`}>
-                      {q.change_buy ? `${fmtSigned(q.change_buy, q.unit)} · ${fmtPct(pct)}` : fmtPct(0)}
+                    <td className="num muted gt-spread">{spread ? fmtSigned(spread, q.unit) : "—"}</td>
+                    <td className={`num ${t} gt-change`}>
+                      {q.change_buy ? (
+                        <>
+                          <span className="gt-delta">{fmtSigned(q.change_buy, q.unit)} </span>
+                          <span>({fmtPct(pct)})</span>
+                        </>
+                      ) : (
+                        fmtPct(0)
+                      )}
                     </td>
-                    <td className="num muted">{fmtClock(fetchedAt ?? q.ts)}</td>
+                    <td className="num muted gt-time">{fmtClock(fetchedAt ?? q.ts)}</td>
                   </tr>
                 );
               })}

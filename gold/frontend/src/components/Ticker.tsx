@@ -26,7 +26,7 @@ export default function Ticker() {
   });
 
   return (
-    <div className="ticker">
+    <div className="ticker" aria-hidden="true">
       <div className="ticker__track">
         {items}
         {items}

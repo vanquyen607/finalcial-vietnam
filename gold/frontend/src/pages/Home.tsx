@@ -31,21 +31,16 @@ export default function Home() {
       <div className="hero">
         <div>
           <h1 className="hero__title">
-            Giá vàng hôm nay,
-            <br />
-            <span>so sánh {brandCount || "các"} thương hiệu.</span>
+            Giá vàng hôm nay, so sánh {brandCount || "các"} thương hiệu.
           </h1>
           <p className="hero__sub">
-            Giá mua vàng vào và bán vàng ra của các cửa hàng tại Việt Nam.
-            <br />
-            Mỗi thương hiệu hiển thị nhiều sản phẩm: vàng miếng, nhẫn trơn, vàng 24K và trang sức.
+            Giá mua vào và bán ra của các cửa hàng tại Việt Nam. Mỗi thương hiệu hiển thị nhiều
+            sản phẩm: vàng miếng, nhẫn trơn, vàng 24K và trang sức.
           </p>
         </div>
         <div className="hero__actions">
-          <span className="meta">
-            {connected ? "● REALTIME" : "○ ĐANG KẾT NỐI LẠI"}
-            {age !== null ? ` · ${fmtAgo(age).toUpperCase()}` : ""}
-          </span>
+          <span className="meta">{connected ? "Realtime" : "Đang kết nối lại"}</span>
+          {age !== null && <span className="meta">{fmtAgo(age)}</span>}
           <button className="btn btn--ghost" onClick={() => void refresh()}>
             Làm mới
           </button>
@@ -62,7 +57,7 @@ export default function Home() {
               <strong>{sjc ? fmtPrice(sjc.sell, sjc.unit) : "—"}</strong>
               {sjc && (
                 <span className={`chip chip--${sjcTone}`}>
-                  {fmtSigned(sjc.change_buy, sjc.unit)} · {fmtPct(sjcPct)}
+                  {fmtSigned(sjc.change_buy, sjc.unit)} ({fmtPct(sjcPct)})
                 </span>
               )}
             </div>
@@ -89,8 +84,7 @@ export default function Home() {
             <div className="panel__head">
               <span className="panel__title">Biểu đồ giá</span>
               <span className="meta">
-                {status.source ? `NGUỒN ${status.source.toUpperCase()}` : "ĐANG TẢI"}
-                {age !== null ? ` · ${fmtAgo(age).toUpperCase()}` : ""}
+                {status.source ? `Nguồn ${status.source}` : "Đang tải"}
               </span>
             </div>
             <div className="panel__body">
@@ -102,7 +96,7 @@ export default function Home() {
             <div className="panel__head">
               <span className="panel__title">Bảng giá vàng</span>
               <span className="meta">
-                {quoteList.length} LOẠI · {brandCount} THƯƠNG HIỆU
+                {quoteList.length} loại, {brandCount} thương hiệu
               </span>
             </div>
             <GoldTable
@@ -114,8 +108,8 @@ export default function Home() {
           </section>
 
           <p className="meta footer-note">
-            Giá chỉ mang tính tham khảo · Chạy {status.polls ?? 0} lần · {status.clients ?? 0} client
-            đang kết nối ·{" "}
+            Giá chỉ mang tính tham khảo. Chạy {status.polls ?? 0} lần, {status.clients ?? 0} client
+            đang kết nối.{" "}
             <a className="footer-link" href={STOCKS_URL} title="App phân tích cổ phiếu VN">
               Phân tích cổ phiếu →
             </a>

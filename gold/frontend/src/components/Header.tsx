@@ -26,8 +26,8 @@ export default function Header() {
   }, []);
 
   const live = connected && status.state === "live";
-  const label = !connected ? "NGẮT KẾT NỐI" : status.state === "error" ? "LỖI NGUỒN" : "LIVE";
-  const source = status.source === "mock" ? "MOCK" : (status.source || "").toUpperCase();
+  const label = !connected ? "Mất kết nối" : status.state === "error" ? "Lỗi nguồn" : "Live";
+  const source = status.source === "mock" ? "Mock" : status.source || "";
   const age = ageSeconds(status.last_success, now);
 
   return (
@@ -51,10 +51,10 @@ export default function Header() {
 
         <div className="topbar__status">
           <span className="meta hide-sm">
-            {quoteList.length} LOẠI · {source || "…"}
+            {quoteList.length} loại, {source || "…"}
           </span>
           <span className="meta hide-sm hide-md">
-            LẤY DỮ LIỆU {age !== null ? fmtAgo(age).toUpperCase() : "…"}
+            Cập nhật {age !== null ? fmtAgo(age) : "…"}
           </span>
           <span className="row" style={{ gap: 6 }}>
             <i className={`dot ${live ? "dot--live" : status.state === "error" ? "dot--err" : ""}`} />

@@ -28,6 +28,9 @@ gold/_shots/
 # File sinh tự động lúc build
 gold/frontend/public/sw-version.js
 
+# Hallmark design-tool state (local)
+.hallmark/
+
 # OS / editor
 .DS_Store
 Thumbs.db

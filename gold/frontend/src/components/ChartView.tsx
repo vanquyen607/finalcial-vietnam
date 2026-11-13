@@ -21,9 +21,9 @@ interface Props {
   fitKey?: string;
 }
 
-const GOLD = "#d4af37";
-const UP = "#30d158";
-const DOWN = "#ff453a";
+const GOLD = "#c08a1e";
+const INK_LIGHT = "#1a1f28";
+const PAPER_DARK = "#e8ecf2";
 
 export default function ChartView({
   points,
@@ -73,21 +73,21 @@ export default function ChartView({
       localization: { priceFormatter },
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
-        textColor: isLight ? "#475569" : "#99907c",
-        fontFamily: "'JetBrains Mono', monospace",
+        textColor: isLight ? "#3d4552" : "#b9c0cc",
+        fontFamily: "'Chivo Mono', monospace",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
-        horzLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
+        vertLines: { color: isLight ? "#d8dde4" : "#262d38" },
+        horzLines: { color: isLight ? "#d8dde4" : "#262d38" },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: isLight ? "#cbd5e1" : "#4d4635", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
-        horzLine: { color: isLight ? "#cbd5e1" : "#4d4635", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
+        vertLine: { color: isLight ? "#9aa3b0" : "#4a5361", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
+        horzLine: { color: isLight ? "#9aa3b0" : "#4a5361", width: 1, style: LineStyle.Dashed, labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
       },
-      rightPriceScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e" },
-      timeScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e", timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: isLight ? "#d8dde4" : "#2c3440" },
+      timeScale: { borderColor: isLight ? "#d8dde4" : "#2c3440", timeVisible: true, secondsVisible: false },
       handleScroll: false,
       handleScale: false,
     });
@@ -95,7 +95,7 @@ export default function ChartView({
 
     mainRef.current = chart.addLineSeries({
       priceFormat,
-      color: positive ? UP : DOWN,
+      color: isLight ? INK_LIGHT : PAPER_DARK,
       lineWidth: 2,
       priceLineVisible: false,
       lastValueVisible: true,
@@ -137,18 +137,19 @@ export default function ChartView({
     if (!chartRef.current) return;
     const isLight = theme === "light";
     chartRef.current.applyOptions({
-      layout: { textColor: isLight ? "#475569" : "#99907c" },
+      layout: { textColor: isLight ? "#3d4552" : "#b9c0cc" },
       grid: {
-        vertLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
-        horzLines: { color: isLight ? "#e2e8f0" : "#1c1c1e" },
+        vertLines: { color: isLight ? "#d8dde4" : "#262d38" },
+        horzLines: { color: isLight ? "#d8dde4" : "#262d38" },
       },
       crosshair: {
-        vertLine: { color: isLight ? "#cbd5e1" : "#4d4635", labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
-        horzLine: { color: isLight ? "#cbd5e1" : "#4d4635", labelBackgroundColor: isLight ? "#f1f3f5" : "#2c2c2e" },
+        vertLine: { color: isLight ? "#9aa3b0" : "#4a5361", labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
+        horzLine: { color: isLight ? "#9aa3b0" : "#4a5361", labelBackgroundColor: isLight ? "#f6f7f9" : "#1c222c" },
       },
-      rightPriceScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e" },
-      timeScale: { borderColor: isLight ? "#e2e8f0" : "#2c2c2e" },
+      rightPriceScale: { borderColor: isLight ? "#d8dde4" : "#2c3440" },
+      timeScale: { borderColor: isLight ? "#d8dde4" : "#2c3440" },
     });
+    mainRef.current?.applyOptions({ color: isLight ? INK_LIGHT : PAPER_DARK });
   }, [theme]);
 
   useEffect(() => {

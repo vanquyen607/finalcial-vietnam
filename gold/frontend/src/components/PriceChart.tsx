@@ -180,8 +180,8 @@ export default function PriceChart({
 
       {!compact && (
         <p className="meta" style={{ marginTop: 12 }}>
-          MÃ {meta?.code ?? "—"} · NGUỒN {hist?.source ?? "…"} · {hist?.daily.length ?? 0} NGÀY LƯU TRỮ
-          · ĐƯỜNG ĐỨT KIM VÀNG = GIÁ BÁN RA
+          Mã {meta?.code ?? "—"}, nguồn {hist?.source ?? "…"}, {hist?.daily.length ?? 0} ngày lưu trữ.
+          Đường đứt màu vàng là giá bán ra.
         </p>
       )}
     </div>
