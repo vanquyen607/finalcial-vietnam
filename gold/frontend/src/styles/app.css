@@ -2488,3 +2488,121 @@ body {
     flex: 1;
   }
 }
+
+/* ============================================================
+   Mobile polish — touch targets, 390px fits, iOS input zoom
+   ============================================================ */
+
+/* detail: 4 ô Mua/Bán/Chênh lệch/Số đầu ngày phải wrap thay vì bị cắt */
+.row--stats {
+  gap: 34px;
+  flex-wrap: wrap;
+  row-gap: 18px;
+}
+
+@media (max-width: 900px) {
+  /* nav chạm được: cao ~46px thay vì 39px */
+  .nav a {
+    padding: 15px 9px;
+  }
+  /* touch targets tối thiểu ~40px (tablet lẫn mobile) */
+  .btn-theme-toggle {
+    width: 40px;
+    height: 40px;
+  }
+  .range-tabs button {
+    min-height: 40px;
+    padding: 9px 15px;
+  }
+  button.chip,
+  .chip {
+    min-height: 34px;
+    padding: 6px 13px;
+  }
+  /* link phụ cũng phải chạm được */
+  .brand {
+    padding-block: 10px;
+  }
+  a.meta,
+  .side-foot a,
+  .footer-link {
+    display: inline-block;
+    padding: 11px 0;
+  }
+}
+
+@media (max-width: 640px) {
+  /* hero gọn để KPI + bảng xuất hiện sớm */
+  .hero__title {
+    font-size: 26px;
+    line-height: 1.12;
+  }
+  .hero__sub {
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+  .hero {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* touch targets đã xử lý ở ≤900 */
+
+  /* detail hero vừa 390px */
+  .detail-hero {
+    padding: 16px;
+  }
+  .detail-hero__price {
+    font-size: 32px;
+    line-height: 40px;
+  }
+  .row--stats {
+    gap: 14px 26px;
+  }
+  .row--stats > div {
+    min-width: 120px;
+  }
+
+  /* ẩn thanh cuộn ngang của hàng pill */
+  .range-tabs--chips {
+    scrollbar-width: none;
+    padding-bottom: 0;
+  }
+  .range-tabs--chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* nút hành động đầu trang: wrap + đủ rộng để bấm */
+  .page-head__actions {
+    flex-wrap: wrap;
+    gap: 10px;
+    width: 100%;
+  }
+  .page-head__actions .btn {
+    flex: 1;
+    min-width: 140px;
+    justify-content: center;
+  }
+
+  /* input 16px: iOS không tự zoom khi focus (bỏ maximum-scale được) */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* cực hẹp (iPhone SE 320px): bảng vừa màn hình */
+@media (max-width: 360px) {
+  .page {
+    padding: 14px 12px 56px;
+  }
+  .gold-table th.gt-change,
+  .gold-table td.gt-change {
+    display: none;
+  }
+  .gold-table thead th,
+  .gold-table tbody td {
+    padding: 8px 6px;
+  }
+}

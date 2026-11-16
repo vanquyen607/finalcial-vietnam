@@ -110,7 +110,7 @@ export default function Detail() {
             </div>
           </div>
 
-          <div className="row" style={{ gap: 34 }}>
+          <div className="row row--stats">
             <div>
               <div className="price-label">Mua vào</div>
               <div className="mono" style={{ fontWeight: 700, fontSize: 18, marginTop: 4 }}>

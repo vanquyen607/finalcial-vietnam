@@ -170,7 +170,7 @@ export default function Alerts() {
                    min="0"
                    value={targetPrice}
                    onChange={(e) => setTargetPrice(e.target.value)}
-                   placeholder="vd: 145000000 — nếu điền thì bỏ qua %"
+                    placeholder="vd: 145000000 (bỏ trống nếu dùng %)"
                  />
                </label>
 

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { fmtAgo, fmtClock } from "../lib/format";
 import { ageSeconds } from "../lib/useNow";
 import { useTheme } from "../lib/useTheme";
@@ -19,11 +19,19 @@ export default function Header() {
   const { status, connected, quoteList } = useMarket();
   const { theme, toggleTheme } = useTheme();
   const [now, setNow] = useState(() => Date.now());
+  const location = useLocation();
+  const navRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
+
+  // Nav cuộn ngang trên mobile: kéo tab đang chọn vào vùng nhìn thấy.
+  useEffect(() => {
+    const active = navRef.current?.querySelector("a.active");
+    active?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [location.pathname]);
 
   const live = connected && status.state === "live";
   const label = !connected ? "Mất kết nối" : status.state === "error" ? "Lỗi nguồn" : "Live";
@@ -41,7 +49,7 @@ export default function Header() {
           </span>
         </NavLink>
 
-        <nav className="nav">
+        <nav className="nav" ref={navRef}>
           {LINKS.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end}>
               {l.label}
