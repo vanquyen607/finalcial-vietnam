@@ -1931,6 +1931,9 @@ body {
   gap: 20px;
   align-items: start;
 }
+.world-grid > * {
+  min-width: 0;
+}
 @media (max-width: 900px) {
   .world-grid {
     grid-template-columns: 1fr;
@@ -2004,4 +2007,11 @@ body {
 .gauge-meter__val {
   font-weight: 600;
   text-align: right;
+}
+@media (max-width: 480px) {
+  .gauge-meter {
+    grid-template-columns: 96px 1fr 64px;
+    font-size: 12px;
+    gap: 6px;
+  }
 }
