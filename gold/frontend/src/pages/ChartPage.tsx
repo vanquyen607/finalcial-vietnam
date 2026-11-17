@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import PriceChart from "../components/PriceChart";
 import TradingViewOverview from "../components/TradingViewOverview";
+import WorldLive from "../components/WorldLive";
 import { tvTabsFor } from "../lib/tradingview";
 import { useMarket } from "../state/Market";
 
@@ -44,6 +45,16 @@ export default function ChartPage() {
             </button>
           </div>
         )}
+      </div>
+
+      <div className="panel" style={{ marginBottom: 18 }}>
+        <div className="panel__head">
+          <span className="panel__title">Vàng thế giới · realtime</span>
+          <span className="meta">XAUUSD · GIÁ SPOT + SỨC MUA/BÁN</span>
+        </div>
+        <div className="panel__body">
+          <WorldLive />
+        </div>
       </div>
 
       <div className="panel">

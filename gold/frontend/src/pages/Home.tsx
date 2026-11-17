@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import GoldTable from "../components/GoldTable";
 import MarketStrip from "../components/MarketStrip";
 import PriceChart from "../components/PriceChart";
+import TechGauge from "../components/TechGauge";
 import { api } from "../lib/api";
 import { changePct, fmtAgo, fmtPct, fmtPrice, fmtSigned, tone } from "../lib/format";
 import type { Alert, NewsItem } from "../lib/types";
@@ -217,6 +218,16 @@ export default function Home() {
             </div>
 
             <aside className="dash-side">
+              <section className="panel">
+                <div className="panel__head">
+                  <span className="panel__title">Sức mua vàng thế giới</span>
+                  <span className="meta">TRADINGVIEW</span>
+                </div>
+                <div className="panel__body">
+                  <TechGauge compact />
+                </div>
+              </section>
+
               <section className="panel">
                 <div className="panel__head">
                   <span className="panel__title">Tin nổi bật</span>

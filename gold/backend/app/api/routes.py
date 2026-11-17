@@ -11,6 +11,7 @@ from ..config import settings
 from ..db import db
 from ..services import alerts as alerts_svc
 from ..services import extras as extras_svc
+from ..services import technicals as technicals_svc
 from ..services import news as news_svc
 from ..services.broadcast import hub
 from ..services.poller import poller
@@ -163,6 +164,15 @@ async def premium() -> dict:
 @router.get("/extras")
 async def extras() -> dict:
     return await extras_svc.get_extras()
+
+
+# ---------- technicals: đồng hồ sức mua/bán TradingView (XAUUSD) ----------
+@router.get("/technicals")
+async def technicals() -> dict:
+    data = await technicals_svc.get_technicals()
+    if data is None:
+        raise HTTPException(503, "Chưa lấy được chỉ số kỹ thuật từ TradingView")
+    return data
 
 
 # ---------- news ----------

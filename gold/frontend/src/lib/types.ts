@@ -121,3 +121,21 @@ export interface ExtrasPayload {
   fx: { ts: number; stale: boolean; source: string; items: FxItem[] } | null;
   fuel: { ts: number; stale: boolean; source: string; items: FuelItem[] } | null;
 }
+
+/** Một khung thời gian của đồng hồ sức mua/bán (TradingView Recommend). */
+export interface TfRating {
+  all: number;
+  ma: number | null;
+  other: number | null;
+  rating: string;
+  label: string;
+}
+
+export interface TechnicalsPayload {
+  ts: number;
+  stale: boolean;
+  symbol: string;
+  close: number | null;
+  change: number | null;
+  frames: Record<string, TfRating>;
+}
