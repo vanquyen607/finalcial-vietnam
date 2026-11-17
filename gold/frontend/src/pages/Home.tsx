@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import GoldTable from "../components/GoldTable";
+import MarketStrip from "../components/MarketStrip";
 import PriceChart from "../components/PriceChart";
 import { api } from "../lib/api";
 import { changePct, fmtAgo, fmtPct, fmtPrice, fmtSigned, tone } from "../lib/format";
@@ -143,6 +144,8 @@ export default function Home() {
               <span className="hero-stat__hint">{brandCount} thương hiệu</span>
             </div>
           </div>
+
+          <MarketStrip />
 
           <div className="dash-grid">
             <div className="dash-main">

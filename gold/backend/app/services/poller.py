@@ -10,7 +10,9 @@ import httpx
 from ..config import settings
 from ..db import db
 from ..providers import (
+    BtmhProvider,
     GoldProvider,
+    MiHongProvider,
     MockProvider,
     PrivateShopsProvider,
     VangTodayProvider,
@@ -33,9 +35,13 @@ AUX_HEADERS = {"User-Agent": "Mozilla/5.0 (AurumTerminal/1.0)"}
 def build_provider(name: str) -> GoldProvider:
     if name == "mock":
         return MockProvider()
-    # Chế độ thường: gộp vang.today (12 mã) + Simplize (MH/BTMH/PQ) + Ngọc Thẩm chính chủ
-    # + bảng giá các tiệm vàng tư nhân (Huy Thanh, Kim Tín, Kim Thành H, Kim Ngân Phúc).
-    subs: list[GoldProvider] = [VangTodayProvider(), SimplizeProvider(), NgocThamProvider()]
+    # Chế độ thường: gộp vang.today (12 mã) + nguồn chính chủ (Mi Hồng, BTMH, Ngọc Thẩm)
+    # + Simplize (MH/BTMH/PQ) + bảng giá các tiệm vàng tư nhân
+    # (Huy Thanh, Kim Tín, Kim Thành H, Kim Ngân Phúc).
+    subs: list[GoldProvider] = [VangTodayProvider(), MiHongProvider(), NgocThamProvider(),
+                                SimplizeProvider()]
+    if BtmhProvider is not None:
+        subs.insert(2, BtmhProvider())
     if PrivateShopsProvider is not None:
         subs.append(PrivateShopsProvider())
     else:  # thiếu beautifulsoup4/lxml -> vẫn chạy các nguồn còn lại

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from ..config import settings
 from ..db import db
 from ..services import alerts as alerts_svc
+from ..services import extras as extras_svc
 from ..services import news as news_svc
 from ..services.broadcast import hub
 from ..services.poller import poller
@@ -156,6 +157,12 @@ async def premium() -> dict:
         "fx": {"usd_vnd": fx["usd_vnd"], "source": fx["source"], "ts": fx["ts"]},
         **gap,
     }
+
+
+# ---------- extras: bạc / tỷ giá / xăng dầu ----------
+@router.get("/extras")
+async def extras() -> dict:
+    return await extras_svc.get_extras()
 
 
 # ---------- news ----------

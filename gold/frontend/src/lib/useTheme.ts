@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 export type Theme = "dark" | "light";
 
 export function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
+  if (typeof window === "undefined") return "light";
   const stored = localStorage.getItem("ck_theme") || localStorage.getItem("aurum_theme");
   if (stored === "light" || stored === "dark") return stored;
-  // Luxury dark-first: chỉ theo hệ thống nếu người dùng đã bật light mode.
-  return "dark";
+  // Mặc định giao diện sáng, mềm mắt; người dùng đã chọn tối thì tôn trọng lựa chọn đó.
+  return "light";
 }
 
 // Theme dùng chung toàn app: mọi component gọi useTheme() đều thấy cùng giá trị.

@@ -23,11 +23,12 @@
   --accent-ink: oklch(18% 0.01 260);
   --focus: oklch(56% 0.12 72);
 
-  /* The board is always a dark charcoal card — premium anchor in both themes */
-  --band-bg: oklch(16% 0.012 260);
-  --band-fg: oklch(96% 0.005 85);
-  --band-figure: oklch(80% 0.14 82);
-  --band-rule: oklch(28% 0.012 260);
+  /* Khối nhấn (giá SJC chính): cát ấm sáng ở theme sáng cho mềm mắt,
+     than tối ở theme tối */
+  --band-bg: oklch(93.5% 0.028 85);
+  --band-fg: oklch(22% 0.015 260);
+  --band-figure: oklch(50% 0.12 70);
+  --band-rule: oklch(85% 0.02 85);
 
   /* Map legacy tokens */
   --background: var(--paper);

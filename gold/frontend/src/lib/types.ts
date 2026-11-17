@@ -79,3 +79,45 @@ export interface HistoryPayload {
   intraday: { ts: number; buy: number; sell: number }[];
   source: string | null;
 }
+
+/* ---------- /api/extras: bạc, tỷ giá, xăng dầu ---------- */
+export interface SilverInfo {
+  ts: number;
+  stale: boolean;
+  price_usd: number;
+  change_usd: number;
+  source: string;
+  vnd_per_luong?: number;
+}
+
+export interface FxItem {
+  code: string;
+  name: string;
+  buy: number | null;
+  transfer: number | null;
+  sell: number | null;
+}
+
+export interface FuelItem {
+  name: string;
+  change: number;
+  zone1: number;
+  zone2: number | null;
+}
+
+export interface SilverDomesticItem {
+  brand: string;
+  name: string;
+  buy: number | null;
+  sell: number | null;
+  change: number | null;
+  source: string;
+}
+
+export interface ExtrasPayload {
+  ts: number;
+  silver: SilverInfo | null;
+  silver_domestic: { ts: number; stale: boolean; source: string; items: SilverDomesticItem[] } | null;
+  fx: { ts: number; stale: boolean; source: string; items: FxItem[] } | null;
+  fuel: { ts: number; stale: boolean; source: string; items: FuelItem[] } | null;
+}
