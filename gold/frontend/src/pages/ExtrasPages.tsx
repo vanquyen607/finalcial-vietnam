@@ -1,0 +1,530 @@
+import { Fragment, useMemo, useState } from "react";
+import MarketTabs from "../components/MarketTabs";
+import { HeroStatsSkeleton, TablePanelSkeleton } from "../components/Skeletons";
+import { changePct, fmtAgo, fmtPct, fmtPrice, fmtSigned, tone } from "../lib/format";
+import { useExtras } from "../lib/useExtras";
+import { ageSeconds, useNow } from "../lib/useNow";
+import type { SilverDomesticItem } from "../lib/types";
+
+const FX_NUM = new Intl.NumberFormat("vi-VN", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+});
+
+function fmtFx(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  return FX_NUM.format(v);
+}
+
+export function SilverPage() {
+  const { data, loading, error, refresh } = useExtras();
+  const [query, setQuery] = useState("");
+  const [brandFilter, setBrandFilter] = useState("");
+  const now = useNow(5000);
+
+  const silver = data?.silver ?? null;
+  const domestic = useMemo(() => data?.silver_domestic?.items ?? [], [data]);
+  const brands = useMemo(() => Array.from(new Set(domestic.map((i) => i.brand))), [domestic]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return domestic.filter((item) => {
+      if (brandFilter && item.brand !== brandFilter) return false;
+      if (!q) return true;
+      return item.name.toLowerCase().includes(q) || item.brand.toLowerCase().includes(q);
+    });
+  }, [domestic, query, brandFilter]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, SilverDomesticItem[]>();
+    for (const item of filtered) {
+      const list = map.get(item.brand) ?? [];
+      list.push(item);
+      map.set(item.brand, list);
+    }
+    return Array.from(map.entries());
+  }, [filtered]);
+
+  const headline = domestic.find((i) => i.brand === "DOJI" && i.sell) ?? domestic.find((i) => i.sell);
+  const premium =
+    headline?.sell && silver?.vnd_per_luong
+      ? (headline.sell / silver.vnd_per_luong - 1) * 100
+      : null;
+  const age = ageSeconds(data?.silver_domestic?.ts ?? silver?.ts ?? null, now);
+  const worldPct = silver ? changePct(silver.price_usd, silver.change_usd) : 0;
+
+  return (
+    <div className="page">
+      <MarketTabs />
+
+      <div className="hero">
+        <div>
+          <h1 className="hero__title">Giá bạc hôm nay</h1>
+          <p className="hero__sub">
+            Bạc thế giới (XAG/USD) và bảng giá bạc miếng, bạc thỏi trong nước theo từng thương hiệu.
+          </p>
+        </div>
+        <div className="hero__actions">
+          {age !== null && <span className="meta">Cập nhật {fmtAgo(age)}</span>}
+          <button className="btn btn--ghost" onClick={() => void refresh()}>
+            Làm mới
+          </button>
+        </div>
+      </div>
+
+      {loading && !data ? (
+        <>
+          <HeroStatsSkeleton />
+          <TablePanelSkeleton rows={6} />
+        </>
+      ) : error && !data ? (
+        <div className="empty">{error}</div>
+      ) : (
+        <>
+          <div className="hero-stats">
+            <div className="hero-stat hero-stat--primary">
+              <div className="hero-stat__head">
+                <span className="hero-stat__label">Bạc thế giới (XAG/USD)</span>
+                <strong>{silver ? `${fmtPrice(silver.price_usd, "USD")} $` : "—"}</strong>
+              </div>
+              {silver && (
+                <span className={`chip chip--${tone(silver.change_usd)}`}>
+                  {fmtSigned(silver.change_usd, "USD")} ({fmtPct(worldPct)})
+                </span>
+              )}
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Thế giới quy đổi</span>
+              <strong>
+                {silver?.vnd_per_luong != null ? fmtPrice(silver.vnd_per_luong, "VND") : "—"}
+              </strong>
+              <span className="hero-stat__hint">đ/lượng</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">
+                {headline ? `${headline.brand} bán ra` : "Bạc trong nước"}
+              </span>
+              <strong>{headline?.sell ? fmtPrice(headline.sell, "VND") : "—"}</strong>
+              <span className="hero-stat__hint">
+                {premium != null
+                  ? `Cao hơn TG ${premium.toFixed(1).replace(".", ",")}%`
+                  : "đ/lượng"}
+              </span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Thương hiệu</span>
+              <strong>{brands.length} hãng</strong>
+              <span className="hero-stat__hint">{domestic.length} sản phẩm</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Nguồn dữ liệu</span>
+              <strong>{silver?.source || "—"}</strong>
+              <span className="hero-stat__hint">{data?.silver_domestic?.source || "Trong nước"}</span>
+            </div>
+          </div>
+
+          <section className="panel panel--table">
+            <div className="panel__head">
+              <span className="panel__title">Bảng giá bạc trong nước</span>
+              <span className="meta">
+                {filtered.length}/{domestic.length} sản phẩm
+              </span>
+            </div>
+            <div className="filter-bar">
+              <input
+                type="search"
+                placeholder="Tìm sản phẩm bạc, thương hiệu…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Tìm giá bạc"
+              />
+              <select
+                value={brandFilter}
+                onChange={(e) => setBrandFilter(e.target.value)}
+                aria-label="Lọc thương hiệu bạc"
+              >
+                <option value="">Tất cả thương hiệu</option>
+                {brands.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+              {(query || brandFilter) && (
+                <button
+                  className="btn btn--ghost"
+                  onClick={() => {
+                    setQuery("");
+                    setBrandFilter("");
+                  }}
+                >
+                  Xóa lọc
+                </button>
+              )}
+            </div>
+            <div className="gold-table-wrap">
+              <table className="gold-table">
+                <thead>
+                  <tr>
+                    <th>Sản phẩm</th>
+                    <th className="num">Mua vào</th>
+                    <th className="num">Bán ra</th>
+                    <th className="num gt-spread">Chênh lệch</th>
+                    <th className="num gt-change">Thay đổi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {grouped.map(([brand, items]) => (
+                    <Fragment key={brand}>
+                      <tr className="gold-table__group">
+                        <td colSpan={5}>
+                          <span className="gold-table__brand">{brand}</span>
+                          <span className="gold-table__count">{items.length} sản phẩm</span>
+                        </td>
+                      </tr>
+                      {items.map((s) => {
+                        const spread = s.buy && s.sell ? s.sell - s.buy : null;
+                        const chg = s.change ?? 0;
+                        const t = tone(chg);
+                        return (
+                          <tr key={`${s.brand}-${s.name}`}>
+                            <td className="gt-col-name">
+                              <span className="gt-name">{s.name}</span>
+                            </td>
+                            <td className="num bid">
+                              {s.buy != null ? fmtPrice(s.buy, "VND") : "—"}
+                              {chg !== 0 && (
+                                <span className={`gt-inline-chg ${t}`}>
+                                  {fmtSigned(chg, "VND")}
+                                </span>
+                              )}
+                            </td>
+                            <td className="num ask">
+                              {s.sell != null ? fmtPrice(s.sell, "VND") : "—"}
+                            </td>
+                            <td className="num muted gt-spread">
+                              {spread != null ? fmtPrice(spread, "VND") : "—"}
+                            </td>
+                            <td className={`num ${t} gt-change`}>
+                              {chg !== 0 ? fmtSigned(chg, "VND") : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length === 0 && (
+              <div className="empty" style={{ padding: 18 }}>
+                Không có sản phẩm bạc phù hợp.
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function FuelPage() {
+  const { data, loading, error, refresh } = useExtras();
+  const now = useNow(5000);
+
+  const fuel = data?.fuel ?? null;
+  const items = useMemo(() => fuel?.items ?? [], [fuel]);
+  const age = ageSeconds(fuel?.ts ?? null, now);
+
+  const ron95 = items.find((i) => i.name.includes("95")) ?? items[0];
+  const e5 = items.find((i) => i.name.includes("E5"));
+  const diesel = items.find((i) => i.name.includes("DO"));
+
+  return (
+    <div className="page">
+      <MarketTabs />
+
+      <div className="hero">
+        <div>
+          <h1 className="hero__title">Giá xăng dầu hôm nay</h1>
+          <p className="hero__sub">
+            Bảng giá bán lẻ xăng dầu {fuel?.source ?? "Petrolimex"} theo Vùng 1 và Vùng 2 (đồng/lít).
+          </p>
+        </div>
+        <div className="hero__actions">
+          {age !== null && <span className="meta">Cập nhật {fmtAgo(age)}</span>}
+          <button className="btn btn--ghost" onClick={() => void refresh()}>
+            Làm mới
+          </button>
+        </div>
+      </div>
+
+      {loading && !data ? (
+        <>
+          <HeroStatsSkeleton />
+          <TablePanelSkeleton rows={6} />
+        </>
+      ) : error && !data ? (
+        <div className="empty">{error}</div>
+      ) : !fuel ? (
+        <div className="empty">Chưa có dữ liệu xăng dầu.</div>
+      ) : (
+        <>
+          <div className="hero-stats">
+            <div className="hero-stat hero-stat--primary">
+              <div className="hero-stat__head">
+                <span className="hero-stat__label">{ron95?.name ?? "Xăng RON 95"}</span>
+                <strong>{ron95 ? `${fmtPrice(ron95.zone1, "VND")} đ` : "—"}</strong>
+              </div>
+              {ron95 && (
+                <span className={`chip chip--${tone(ron95.change)}`}>
+                  {ron95.change !== 0 ? `${fmtSigned(ron95.change, "VND")} đ/lít` : "Không đổi"}
+                </span>
+              )}
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">{e5?.name ?? "Xăng E5 RON 92"}</span>
+              <strong>{e5 ? fmtPrice(e5.zone1, "VND") : "—"}</strong>
+              <span className="hero-stat__hint">Vùng 1 · đ/lít</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">{diesel?.name ?? "Dầu DO"}</span>
+              <strong>{diesel ? fmtPrice(diesel.zone1, "VND") : "—"}</strong>
+              <span className="hero-stat__hint">Vùng 1 · đ/lít</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Mặt hàng</span>
+              <strong>{items.length} loại</strong>
+              <span className="hero-stat__hint">Vùng 1 & Vùng 2</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Nguồn niêm yết</span>
+              <strong>{fuel.source}</strong>
+              <span className="hero-stat__hint">Bán lẻ trong nước</span>
+            </div>
+          </div>
+
+          <section className="panel panel--table">
+            <div className="panel__head">
+              <span className="panel__title">Bảng giá xăng dầu · {fuel.source}</span>
+              <span className="meta">ĐƠN VỊ: ĐỒNG / LÍT</span>
+            </div>
+            <div className="gold-table-wrap">
+              <table className="gold-table">
+                <thead>
+                  <tr>
+                    <th>Mặt hàng</th>
+                    <th className="num">Vùng 1</th>
+                    <th className="num">Vùng 2</th>
+                    <th className="num gt-spread">Chênh Vùng 2–1</th>
+                    <th className="num gt-change">Thay đổi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((f) => {
+                    const diff = f.zone2 != null ? f.zone2 - f.zone1 : null;
+                    const t = tone(f.change);
+                    return (
+                      <tr key={f.name}>
+                        <td className="gt-col-name">
+                          <span className="gt-name">{f.name}</span>
+                        </td>
+                        <td className="num bid">
+                          {fmtPrice(f.zone1, "VND")}
+                          {f.change !== 0 && (
+                            <span className={`gt-inline-chg ${t}`}>
+                              {fmtSigned(f.change, "VND")}
+                            </span>
+                          )}
+                        </td>
+                        <td className="num ask">
+                          {f.zone2 != null ? fmtPrice(f.zone2, "VND") : "—"}
+                        </td>
+                        <td className="num muted gt-spread">
+                          {diff != null ? `+${fmtPrice(diff, "VND")}` : "—"}
+                        </td>
+                        <td className={`num ${t} gt-change`}>
+                          {f.change !== 0 ? fmtSigned(f.change, "VND") : "0"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function FxPage() {
+  const { data, loading, error, refresh } = useExtras();
+  const [query, setQuery] = useState("");
+  const now = useNow(5000);
+
+  const fx = data?.fx ?? null;
+  const items = useMemo(() => fx?.items ?? [], [fx]);
+  const age = ageSeconds(fx?.ts ?? null, now);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(
+      (c) => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q),
+    );
+  }, [items, query]);
+
+  const usd = items.find((c) => c.code === "USD");
+  const eur = items.find((c) => c.code === "EUR");
+  const gbp = items.find((c) => c.code === "GBP");
+  const jpy = items.find((c) => c.code === "JPY");
+
+  return (
+    <div className="page">
+      <MarketTabs />
+
+      <div className="hero">
+        <div>
+          <h1 className="hero__title">Tỷ giá ngoại tệ</h1>
+          <p className="hero__sub">
+            Tỷ giá mua tiền mặt, mua chuyển khoản và bán ra quy đổi VND ({fx?.source ?? "Ngân hàng"}).
+          </p>
+        </div>
+        <div className="hero__actions">
+          {age !== null && <span className="meta">Cập nhật {fmtAgo(age)}</span>}
+          <button className="btn btn--ghost" onClick={() => void refresh()}>
+            Làm mới
+          </button>
+        </div>
+      </div>
+
+      {loading && !data ? (
+        <>
+          <HeroStatsSkeleton />
+          <TablePanelSkeleton rows={8} />
+        </>
+      ) : error && !data ? (
+        <div className="empty">{error}</div>
+      ) : !fx ? (
+        <div className="empty">Chưa có dữ liệu ngoại tệ.</div>
+      ) : (
+        <>
+          <div className="hero-stats">
+            <div className="hero-stat hero-stat--primary">
+              <div className="hero-stat__head">
+                <span className="hero-stat__label">USD bán ra</span>
+                <strong>{usd?.sell != null ? `${fmtFx(usd.sell)} đ` : "—"}</strong>
+              </div>
+              <span className="chip chip--flat">
+                Mua CK {usd?.transfer != null ? fmtFx(usd.transfer) : "—"}
+              </span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">EUR bán ra</span>
+              <strong>{fmtFx(eur?.sell ?? null)}</strong>
+              <span className="hero-stat__hint">Mua {fmtFx(eur?.buy ?? null)}</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">GBP bán ra</span>
+              <strong>{fmtFx(gbp?.sell ?? null)}</strong>
+              <span className="hero-stat__hint">Mua {fmtFx(gbp?.buy ?? null)}</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">JPY bán ra</span>
+              <strong>{fmtFx(jpy?.sell ?? null)}</strong>
+              <span className="hero-stat__hint">Mua {fmtFx(jpy?.buy ?? null)}</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Đang niêm yết</span>
+              <strong>{items.length} đồng</strong>
+              <span className="hero-stat__hint">Nguồn {fx.source}</span>
+            </div>
+          </div>
+
+          <section className="panel panel--table">
+            <div className="panel__head">
+              <span className="panel__title">Bảng tỷ giá ngoại tệ</span>
+              <span className="meta">
+                {filtered.length}/{items.length} ngoại tệ · ĐƠN VỊ: VND
+              </span>
+            </div>
+            <div className="filter-bar">
+              <input
+                type="search"
+                placeholder="Tìm mã hoặc tên ngoại tệ (USD, EUR, JPY…)"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Tìm ngoại tệ"
+              />
+              {query && (
+                <button className="btn btn--ghost" onClick={() => setQuery("")}>
+                  Xóa lọc
+                </button>
+              )}
+            </div>
+            <div className="gold-table-wrap">
+              <table className="gold-table">
+                <thead>
+                  <tr>
+                    <th className="gt-col-brand">Mã</th>
+                    <th>Ngoại tệ</th>
+                    <th className="num">Mua tiền mặt</th>
+                    <th className="num gt-spread">Mua chuyển khoản</th>
+                    <th className="num">Bán ra</th>
+                    <th className="num gt-change">Chênh lệch</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((c) => {
+                    const spread = c.buy != null && c.sell != null ? c.sell - c.buy : null;
+                    return (
+                      <tr key={c.code}>
+                        <td className="gt-brand gt-col-brand">
+                          <b>{c.code}</b>
+                        </td>
+                        <td className="gt-col-name">
+                          <span className="gt-name">{c.code}</span>
+                          <span className="gt-code">{c.name}</span>
+                        </td>
+                        <td className="num bid">
+                          {fmtFx(c.buy)}
+                          {c.transfer != null && (
+                            <span className="gt-inline-chg muted">CK {fmtFx(c.transfer)}</span>
+                          )}
+                        </td>
+                        <td className="num ask gt-spread">{fmtFx(c.transfer)}</td>
+                        <td className="num ask">{fmtFx(c.sell)}</td>
+                        <td className="num muted gt-change">
+                          {spread != null ? fmtFx(spread) : "—"}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {filtered.length === 0 && (
+              <div className="empty" style={{ padding: 18 }}>
+                Không có ngoại tệ khớp “{query}”.
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
+}

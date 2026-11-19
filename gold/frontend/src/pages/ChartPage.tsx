@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import PriceChart from "../components/PriceChart";
 import TradingViewOverview from "../components/TradingViewOverview";
@@ -13,8 +13,20 @@ export default function ChartPage() {
   const { symbols } = useMarket();
   const active = params.get("m") ?? "sjc";
 
-  const code = symbols.find((s) => s.alias === active || s.code === active)?.code;
+  const meta = symbols.find((s) => s.alias === active || s.code === active);
+  const code = meta?.code;
   const tvTabs = tvTabsFor(code);
+
+  const featuredSymbols = useMemo(() => symbols.filter((s) => s.featured), [symbols]);
+  const groupedSymbols = useMemo(() => {
+    const map = new Map<string, typeof symbols>();
+    for (const s of symbols) {
+      const list = map.get(s.brand) ?? [];
+      list.push(s);
+      map.set(s.brand, list);
+    }
+    return Array.from(map.entries());
+  }, [symbols]);
 
   // Mặc định mở tab TradingView nếu mã có dữ liệu trên đó (chỉ XAUUSD);
   // tự reset mỗi khi đổi mã.
@@ -67,16 +79,36 @@ export default function ChartPage() {
         <div className="panel__body">
           {effective === "tv" && tvTabs ? (
             <div>
-              <div className="range-tabs range-tabs--chips">
-                {symbols.map((s) => (
-                  <button
-                    key={s.code}
-                    data-active={active === s.alias || active === s.code}
-                    onClick={() => pick(s.alias)}
+              <div className="symbol-picker">
+                <div className="symbol-picker__bar">
+                  <select
+                    className="symbol-picker__select"
+                    value={meta?.alias ?? active}
+                    onChange={(e) => pick(e.target.value)}
+                    aria-label="Chọn loại vàng trên biểu đồ"
                   >
-                    {s.name}
-                  </button>
-                ))}
+                    {groupedSymbols.map(([brand, items]) => (
+                      <optgroup key={brand} label={brand}>
+                        {items.map((s) => (
+                          <option key={s.code} value={s.alias}>
+                            {s.name} ({s.code})
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <div className="range-tabs range-tabs--chips">
+                    {featuredSymbols.map((s) => (
+                      <button
+                        key={s.code}
+                        data-active={active === s.alias || active === s.code}
+                        onClick={() => pick(s.alias)}
+                      >
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <TradingViewOverview
                 symbol={tvTabs[0].tv}

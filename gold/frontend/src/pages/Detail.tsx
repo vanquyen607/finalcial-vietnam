@@ -13,6 +13,8 @@ export default function Detail() {
   const navigate = useNavigate();
   const { metaByCode, quotes, symbols } = useMarket();
   const [hist, setHist] = useState<HistoryPayload | null>(null);
+  const [qtyStr, setQtyStr] = useState("1");
+  const [calcUnit, setCalcUnit] = useState<"luong" | "chi" | "gram" | "oz">("luong");
 
   const meta = useMemo(
     () => Object.values(metaByCode).find((m) => m.alias === ref || m.code === ref),
@@ -39,6 +41,34 @@ export default function Detail() {
   const quote = code ? quotes[code] : undefined;
   const unit = quote?.unit ?? "VND";
   const pct = quote ? changePct(quote.buy, quote.change_buy) : 0;
+
+  useEffect(() => {
+    setCalcUnit(unit === "USD" ? "oz" : "luong");
+  }, [unit, code]);
+
+  const calcResult = useMemo(() => {
+    if (!quote) return null;
+    const rawQty = Number(qtyStr.replace(",", "."));
+    const qty = Number.isFinite(rawQty) && rawQty >= 0 ? rawQty : 0;
+    const baseIsChi = (quote.per || meta?.per || "").toLowerCase().includes("chỉ");
+    let factor = 1;
+    if (unit === "USD") {
+      if (calcUnit === "luong") factor = 1.20565;
+      else if (calcUnit === "chi") factor = 0.120565;
+      else if (calcUnit === "gram") factor = 1 / 31.1035;
+      else factor = 1;
+    } else {
+      const luongMul = baseIsChi ? 10 : 1;
+      if (calcUnit === "luong") factor = luongMul;
+      else if (calcUnit === "chi") factor = luongMul / 10;
+      else if (calcUnit === "gram") factor = luongMul / 37.5;
+      else factor = luongMul / 1.20565;
+    }
+    const buyTotal = quote.buy * factor * qty;
+    const sellTotal = quote.sell > 0 ? quote.sell * factor * qty : 0;
+    const spreadTotal = sellTotal > 0 ? sellTotal - buyTotal : 0;
+    return { qty, buyTotal, sellTotal, spreadTotal };
+  }, [quote, meta?.per, unit, qtyStr, calcUnit]);
 
   const stats = useMemo(() => {
     if (!hist) return null;
@@ -96,7 +126,7 @@ export default function Detail() {
 
       {/* Hero giá */}
       <div className="card detail-hero">
-        <div className="row row--between wrap" style={{ alignItems: "flex-start" }}>
+        <div className="detail-hero__top">
           <div>
             <div className="price-label">Giá mua vào</div>
             <div className="detail-hero__price">
@@ -161,13 +191,92 @@ export default function Detail() {
         </section>
 
         <div>
+          {quote && calcResult && (
+            <section className="panel">
+              <div className="panel__head">
+                <span className="panel__title">Tính tiền nhanh</span>
+                <span className="meta">THEO GIÁ REALTIME</span>
+              </div>
+              <div className="panel__body">
+                <div className="calc-controls">
+                  <label className="field" style={{ marginBottom: 0 }}>
+                    <span>Số lượng</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.1"
+                      value={qtyStr}
+                      onChange={(e) => setQtyStr(e.target.value)}
+                      aria-label="Số lượng vàng"
+                    />
+                  </label>
+                  <label className="field" style={{ marginBottom: 0 }}>
+                    <span>Đơn vị</span>
+                    <select
+                      value={calcUnit}
+                      onChange={(e) => setCalcUnit(e.target.value as "luong" | "chi" | "gram" | "oz")}
+                      aria-label="Đơn vị quy đổi"
+                    >
+                      {unit === "USD" ? (
+                        <>
+                          <option value="oz">Ounce (oz)</option>
+                          <option value="luong">Lượng (1,20565 oz)</option>
+                          <option value="chi">Chỉ (0,12057 oz)</option>
+                          <option value="gram">Gram (g)</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="luong">Lượng (cây)</option>
+                          <option value="chi">Chỉ (1/10 lượng)</option>
+                          <option value="gram">Gram (g)</option>
+                        </>
+                      )}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="range-tabs calc-presets">
+                  {["1", "2", "5", "10"].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      data-active={qtyStr === v}
+                      onClick={() => setQtyStr(v)}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="calc-results">
+                  <div className="calc-row">
+                    <span className="meta">MUA VÀO TẠM TÍNH</span>
+                    <strong className="mono">{fmtPrice(calcResult.buyTotal, unit)}</strong>
+                  </div>
+                  <div className="calc-row">
+                    <span className="meta">BÁN RA TẠM TÍNH</span>
+                    <strong className="mono">
+                      {calcResult.sellTotal > 0 ? fmtPrice(calcResult.sellTotal, unit) : "—"}
+                    </strong>
+                  </div>
+                  {calcResult.sellTotal > 0 && (
+                    <div className="calc-row">
+                      <span className="meta">CHÊNH LỆCH MUA / BÁN</span>
+                      <span className="mono muted">{fmtPrice(calcResult.spreadTotal, unit)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
           {stats && (
             <section className="panel">
               <div className="panel__head">
                 <span className="panel__title">Thống kê {stats.span} ngày</span>
               </div>
               <div className="panel__body">
-                <div className="stat-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                <div className="stat-grid">
                   <div className="stat">
                     <div className="stat__k">Cao nhất</div>
                     <div className="stat__v up">{fmtPrice(stats.high, unit)}</div>
@@ -205,7 +314,7 @@ export default function Detail() {
                 .map((s) => {
                   const q = quotes[s.code];
                   return (
-                    <div key={s.code} className="list-row">
+                    <Link key={s.code} to={`/detail/${s.alias}`} className="list-row list-row--link">
                       <div>
                         <div className="list-row__name">{s.name}</div>
                         <div className="list-row__meta">{s.code}</div>
@@ -215,7 +324,7 @@ export default function Detail() {
                           {q ? <LivePrice value={q.buy} unit={q.unit} /> : "—"}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
             </div>

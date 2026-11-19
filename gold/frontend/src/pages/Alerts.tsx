@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
-import { fmtClock, fmtPct, tone } from "../lib/format";
+import { fmtClock, fmtPct, fmtPrice, tone } from "../lib/format";
 import type { Alert } from "../lib/types";
 import { useMarket } from "../state/Market";
 
@@ -135,8 +135,8 @@ export default function Alerts() {
                 </select>
               </label>
 
-              <div className="row" style={{ gap: 12, alignItems: "flex-end" }}>
-                <label className="field" style={{ flex: 1 }}>
+              <div className="form-row-2">
+                <label className="field">
                   <span>Điều kiện</span>
                   <select
                     value={direction}
@@ -149,13 +149,14 @@ export default function Alerts() {
                     ))}
                   </select>
                 </label>
-                <label className="field" style={{ flex: 1 }}>
+                <label className="field">
                   <span>Ngưỡng (%)</span>
                   <input
                     type="number"
                     step="0.1"
                     min="0.1"
                     max="100"
+                    disabled={Boolean(targetPrice.trim())}
                     value={threshold}
                     onChange={(e) => setThreshold(e.target.value)}
                   />
@@ -210,7 +211,9 @@ export default function Alerts() {
                       <div className="list-row__name">
                         {a.name}{" "}
                         <span className={a.direction === "up" ? "up" : "down"}>
-                          {a.direction === "up" ? "↑ tăng" : "↓ giảm"} ≥ {a.threshold}%
+                          {a.target_price != null
+                            ? `${a.direction === "up" ? "≥" : "≤"} ${fmtPrice(a.target_price, q?.unit ?? "VND")}`
+                            : `${a.direction === "up" ? "↑ tăng" : "↓ giảm"} ≥ ${a.threshold}%`}
                         </span>
                       </div>
                       <div className="list-row__meta">
@@ -219,7 +222,7 @@ export default function Alerts() {
                         {a.triggered_at ? ` · ĐÃ KÍCH HOẠT ${fmtClock(a.triggered_at)}` : ""}
                       </div>
                     </div>
-                    <div className="row">
+                    <div className="list-row__actions">
                       <button
                         className={`chip ${a.active ? "chip--up" : "chip--flat"}`}
                         onClick={() => void toggle(a)}

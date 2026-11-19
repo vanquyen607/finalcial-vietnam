@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api, getApiToken, setApiToken } from "../lib/api";
 import { fmtClock } from "../lib/format";
 import { useTheme } from "../lib/useTheme";
@@ -146,7 +147,7 @@ export default function Settings() {
                   <div className="list-row__name">Chế độ hiển thị</div>
                   <div className="list-row__meta">Đồng bộ với hệ thống và app Cổ phiếu</div>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div className="list-row__actions">
                   <button
                     type="button"
                     className={`btn btn--sm ${theme === "dark" ? "btn--primary" : "btn--ghost"}`}
@@ -181,7 +182,7 @@ export default function Settings() {
                 </button>
               </div>
               <p className="meta" style={{ marginTop: 12 }}>
-                QUẢN LÝ CẢNH BÁO TẠI <a href="/alerts" className="up">TRANG CẢNH BÁO</a>
+                QUẢN LÝ CẢNH BÁO TẠI <Link to="/alerts" className="up">TRANG CẢNH BÁO</Link>
               </p>
             </div>
           </section>
@@ -209,7 +210,7 @@ export default function Settings() {
               <div className="list-row">
                 <div>
                   <div className="list-row__name">Phiên bản</div>
-                  <div className="list-row__meta">1.0.0 · PWA · REACT + FASTAPI + SQLITE</div>
+                  <div className="list-row__meta">1.0.0 · PWA · REACT + NODE.JS</div>
                 </div>
               </div>
             </div>
@@ -228,7 +229,7 @@ export default function Settings() {
                 PHẦN MỀM SẼ GỬI HEADER <span className="mono">X-API-TOKEN</span> KHI
                 TẠO/XÓA/BẬT-TẮT CẢNH BÁO. BỎ TRỐNG NẾU SERVER KHÔNG BẬT.
               </p>
-              <div className="list-row">
+              <div className="token-row">
                 <label className="field" style={{ flex: 1, marginBottom: 0 }}>
                   <span>API token</span>
                   <input
@@ -243,7 +244,7 @@ export default function Settings() {
                     }}
                   />
                 </label>
-                <div className="row">
+                <div className="list-row__actions">
                   <button className="chip chip--up" onClick={saveToken}>
                     {tokenSaved ? "ĐÃ LƯU" : "LƯU"}
                   </button>

@@ -1,19 +1,17 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import GoldTable from "../components/GoldTable";
 import MarketStrip from "../components/MarketStrip";
+import MarketTabs from "../components/MarketTabs";
+import PremiumPanel from "../components/PremiumPanel";
 import PriceChart from "../components/PriceChart";
+import { HeroStatsSkeleton, MarketStripSkeleton, TablePanelSkeleton } from "../components/Skeletons";
 import TechGauge from "../components/TechGauge";
 import { api } from "../lib/api";
 import { changePct, fmtAgo, fmtPct, fmtPrice, fmtSigned, tone } from "../lib/format";
 import type { Alert, NewsItem } from "../lib/types";
 import { ageSeconds, useNow } from "../lib/useNow";
 import { useMarket } from "../state/Market";
-
-const STOCKS_URL =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://127.0.0.1:8100/"
-    : "https://finalcial-vietnam.onrender.com/";
 
 /** Giá trị cảnh báo đã định dạng: "≥ 140.000.000" hoặc "↑ 1%". */
 function alertValue(a: Alert): string {
@@ -62,6 +60,7 @@ export default function Home() {
 
   /* ---------- side column: tin nổi bật + cảnh báo ---------- */
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [newsLoading, setNewsLoading] = useState(true);
   const [alerts, setAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
@@ -73,6 +72,9 @@ export default function Home() {
       })
       .catch(() => {
         /* API news lỗi -> để trống, không crash trang */
+      })
+      .finally(() => {
+        if (alive) setNewsLoading(false);
       });
     api
       .alerts()
@@ -89,14 +91,13 @@ export default function Home() {
 
   return (
     <div className="page">
+      <MarketTabs />
+
       <div className="hero">
         <div>
-          <h1 className="hero__title">
-            Giá vàng hôm nay, so sánh {brandCount || "các"} thương hiệu.
-          </h1>
+          <h1 className="hero__title">Giá vàng hôm nay</h1>
           <p className="hero__sub">
-            Giá mua vào và bán ra của các cửa hàng tại Việt Nam. Mỗi thương hiệu hiển thị nhiều
-            sản phẩm: vàng miếng, nhẫn trơn, vàng 24K và trang sức.
+            So sánh {brandCount || "các"} thương hiệu tại Việt Nam · cập nhật realtime.
           </p>
         </div>
         <div className="hero__actions">
@@ -109,13 +110,19 @@ export default function Home() {
       </div>
 
       {loading && !quoteList.length ? (
-        <div className="empty">Đang tải bảng giá…</div>
+        <>
+          <HeroStatsSkeleton />
+          <MarketStripSkeleton />
+          <TablePanelSkeleton rows={8} />
+        </>
       ) : (
         <>
           <div className="hero-stats">
             <div className="hero-stat hero-stat--primary">
-              <span className="hero-stat__label">SJC bán ra</span>
-              <strong>{sjc ? fmtPrice(sjc.sell, sjc.unit) : "—"}</strong>
+              <div className="hero-stat__head">
+                <span className="hero-stat__label">SJC bán ra</span>
+                <strong>{sjc ? fmtPrice(sjc.sell, sjc.unit) : "—"}</strong>
+              </div>
               {sjc && (
                 <span className={`chip chip--${sjcTone}`}>
                   {fmtSigned(sjc.change_buy, sjc.unit)} ({fmtPct(sjcPct)})
@@ -150,7 +157,7 @@ export default function Home() {
 
           <div className="dash-grid">
             <div className="dash-main">
-              <section className="panel panel--chart">
+              <section className="panel">
                 <div className="panel__head">
                   <span className="panel__title">Biểu đồ giá</span>
                   <span className="meta">
@@ -158,63 +165,11 @@ export default function Home() {
                   </span>
                 </div>
                 <div className="panel__body">
-                  <PriceChart compact height={320} defaultRange="7d" />
+                  <PriceChart compact height={340} defaultRange="7d" />
                 </div>
               </section>
 
-              <section className="panel">
-                <div className="panel__head">
-                  <span className="panel__title">Bảng giá vàng</span>
-                  <span className="meta">
-                    {filtered.length === quoteList.length
-                      ? `${quoteList.length} loại, ${brandCount} thương hiệu`
-                      : `${filtered.length}/${quoteList.length} loại`}
-                  </span>
-                </div>
-                <div className="filter-bar">
-                  <input
-                    type="search"
-                    placeholder="Tìm sản phẩm, mã, thương hiệu…"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    aria-label="Tìm trong bảng giá"
-                  />
-                  <select
-                    value={brandFilter}
-                    onChange={(e) => setBrandFilter(e.target.value)}
-                    aria-label="Lọc theo thương hiệu"
-                  >
-                    <option value="">Tất cả thương hiệu</option>
-                    {brands.map((b) => (
-                      <option key={b.brand} value={b.brand}>
-                        {b.label} ({b.count})
-                      </option>
-                    ))}
-                  </select>
-                  {(query || brandFilter) && (
-                    <button
-                      className="btn btn--ghost"
-                      onClick={() => {
-                        setQuery("");
-                        setBrandFilter("");
-                      }}
-                    >
-                      Xóa lọc
-                    </button>
-                  )}
-                </div>
-                <GoldTable
-                  quotes={filtered}
-                  metaByCode={metaByCode}
-                  brands={brands}
-                  fetchedAt={status.last_success}
-                />
-                {filtered.length === 0 && (
-                  <div className="empty" style={{ padding: 18 }}>
-                    Không có sản phẩm khớp “{query || brandFilter}”.
-                  </div>
-                )}
-              </section>
+              <PremiumPanel />
             </div>
 
             <aside className="dash-side">
@@ -234,8 +189,17 @@ export default function Home() {
                   <span className="meta">{news.length} tin</span>
                 </div>
                 <div className="panel__body">
-                  {news.length === 0 ? (
-                    <div className="empty">Đang tải tin…</div>
+                  {newsLoading ? (
+                    <div className="skeleton-news-lines" aria-busy="true" aria-label="Đang tải tin">
+                      {[0, 1, 2, 3].map((i) => (
+                        <div key={i} className="news-line">
+                          <span className="skeleton skeleton-line" style={{ width: "92%", height: 14 }} />
+                          <span className="skeleton skeleton-line" style={{ width: "42%", height: 11, marginTop: 6 }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : news.length === 0 ? (
+                    <div className="empty">Chưa có tin mới.</div>
                   ) : (
                     news.map((n) => {
                       const nAge = ageSeconds(n.published, now);
@@ -291,13 +255,59 @@ export default function Home() {
             </aside>
           </div>
 
-          <p className="meta footer-note">
-            Giá chỉ mang tính tham khảo. Chạy {status.polls ?? 0} lần, {status.clients ?? 0} client
-            đang kết nối.{" "}
-            <a className="footer-link" href={STOCKS_URL} title="App phân tích cổ phiếu VN">
-              Phân tích cổ phiếu →
-            </a>
-          </p>
+          <section className="panel panel--table">
+            <div className="panel__head">
+              <span className="panel__title">Bảng giá vàng</span>
+              <span className="meta">
+                {filtered.length === quoteList.length
+                  ? `${quoteList.length} loại, ${brandCount} thương hiệu`
+                  : `${filtered.length}/${quoteList.length} loại`}
+              </span>
+            </div>
+            <div className="filter-bar">
+              <input
+                type="search"
+                placeholder="Tìm sản phẩm, mã, thương hiệu…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Tìm trong bảng giá"
+              />
+              <select
+                value={brandFilter}
+                onChange={(e) => setBrandFilter(e.target.value)}
+                aria-label="Lọc theo thương hiệu"
+              >
+                <option value="">Tất cả thương hiệu</option>
+                {brands.map((b) => (
+                  <option key={b.brand} value={b.brand}>
+                    {b.label} ({b.count})
+                  </option>
+                ))}
+              </select>
+              {(query || brandFilter) && (
+                <button
+                  className="btn btn--ghost"
+                  onClick={() => {
+                    setQuery("");
+                    setBrandFilter("");
+                  }}
+                >
+                  Xóa lọc
+                </button>
+              )}
+            </div>
+            <GoldTable
+              quotes={filtered}
+              metaByCode={metaByCode}
+              brands={brands}
+              fetchedAt={status.last_success}
+            />
+            {filtered.length === 0 && (
+              <div className="empty" style={{ padding: 18 }}>
+                Không có sản phẩm khớp “{query || brandFilter}”.
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>

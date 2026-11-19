@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import { ColorType, createChart, CrosshairMode, LineStyle } from "lightweight-charts";
 import type { AutoscaleInfo, IChartApi, ISeriesApi } from "lightweight-charts";
 import { useTheme } from "../lib/useTheme";
@@ -122,7 +123,10 @@ export default function ChartView({
     }
 
     const ro = new ResizeObserver(() => {
-      chart.applyOptions({ width: el.clientWidth });
+      chart.applyOptions({
+        width: el.clientWidth,
+        height: el.clientHeight || height,
+      });
       // Đổi bề rộng (xoay máy/zoom) phải fit lại, nếu không chỉ thấy vài ngày cuối.
       chart.timeScale().fitContent();
     });
@@ -182,5 +186,11 @@ export default function ChartView({
     }
   }, [points, secondary, fitKey]);
 
-  return <div ref={boxRef} className="chart-box" style={{ height }} />;
+  return (
+    <div
+      ref={boxRef}
+      className="chart-box"
+      style={{ "--chart-h": `${height}px` } as CSSProperties}
+    />
+  );
 }

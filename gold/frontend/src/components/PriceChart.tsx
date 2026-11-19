@@ -96,21 +96,66 @@ export default function PriceChart({
     };
   }, [points]);
 
+  const featuredSymbols = useMemo(() => symbols.filter((s) => s.featured), [symbols]);
+  const groupedSymbols = useMemo(() => {
+    const map = new Map<string, typeof symbols>();
+    for (const s of symbols) {
+      const list = map.get(s.brand) ?? [];
+      list.push(s);
+      map.set(s.brand, list);
+    }
+    return Array.from(map.entries());
+  }, [symbols]);
+
   const pct = quote ? changePct(quote.buy, quote.change_buy) : 0;
 
   return (
     <div>
-      <div className="range-tabs range-tabs--chips">
-        {(compact ? symbols.filter((s) => s.featured) : symbols).map((s) => (
-          <button
-            key={s.code}
-            data-active={active === s.alias || active === s.code}
-            onClick={() => pick(s.alias)}
-          >
-            {s.name}
-          </button>
-        ))}
-      </div>
+      {compact ? (
+        <div className="range-tabs range-tabs--chips" style={{ marginBottom: 12 }}>
+          {featuredSymbols.map((s) => (
+            <button
+              key={s.code}
+              data-active={active === s.alias || active === s.code}
+              onClick={() => pick(s.alias)}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="symbol-picker">
+          <div className="symbol-picker__bar">
+            <select
+              className="symbol-picker__select"
+              value={meta?.alias ?? active}
+              onChange={(e) => pick(e.target.value)}
+              aria-label="Chọn loại vàng trên biểu đồ"
+            >
+              {groupedSymbols.map(([brand, items]) => (
+                <optgroup key={brand} label={brand}>
+                  {items.map((s) => (
+                    <option key={s.code} value={s.alias}>
+                      {s.name} ({s.code})
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <div className="range-tabs range-tabs--chips">
+              {featuredSymbols.map((s) => (
+                <button
+                  key={s.code}
+                  data-active={active === s.alias || active === s.code}
+                  onClick={() => pick(s.alias)}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="row row--between" style={{ marginBottom: 10, gap: 12, flexWrap: "wrap" }}>
         <div className="row">

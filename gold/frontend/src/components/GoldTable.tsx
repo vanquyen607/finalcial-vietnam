@@ -25,7 +25,6 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
       <table className="gold-table">
         <thead>
           <tr>
-            <th>Thương hiệu</th>
             <th>Loại vàng</th>
             <th className="num">Mua vào</th>
             <th className="num">Bán ra</th>
@@ -38,7 +37,7 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
           {groups.map((g) => (
             <Fragment key={g.brand}>
               <tr className="gold-table__group">
-                <td colSpan={7}>
+                <td colSpan={6}>
                   <span className="gold-table__brand">{g.label}</span>
                   <span className="gold-table__count">{g.items.length} loại</span>
                 </td>
@@ -62,8 +61,7 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
                       }
                     }}
                   >
-                    <td className="gt-brand">{g.label}</td>
-                    <td>
+                    <td className="gt-col-name">
                       <span className="gt-name">{meta?.product || q.name}</span>
                       <span className="gt-code">
                         {q.code} / {q.per || "lượng"}
@@ -71,6 +69,9 @@ export default function GoldTable({ quotes, metaByCode, brands, fetchedAt }: Pro
                     </td>
                     <td className="num bid">
                       <LivePrice value={q.buy} unit={q.unit} />
+                      <span className={`gt-inline-chg ${t}`}>
+                        {q.change_buy ? fmtPct(pct) : fmtPct(0)}
+                      </span>
                     </td>
                     <td className="num ask">
                       {q.sell > 0 ? <LivePrice value={q.sell} unit={q.unit} /> : "—"}

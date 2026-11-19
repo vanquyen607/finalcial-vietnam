@@ -10,6 +10,30 @@ interface NewsItem {
   image: string;
 }
 
+function NewsMedia({ src, source }: { src: string; source: string }) {
+  const [broken, setBroken] = useState(false);
+
+  if (!src || broken) {
+    return (
+      <div className="news-card__media">
+        <div className="news-card__placeholder">{source || "TIN VÀNG"}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="news-card__media">
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        referrerPolicy="no-referrer"
+        onError={() => setBroken(true)}
+      />
+    </div>
+  );
+}
+
 export default function News() {
   const [items, setItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,53 +72,51 @@ export default function News() {
       </div>
 
       {loading ? (
-        <div className="empty">Đang tải tin tức…</div>
+        <div className="news-grid" aria-busy="true" aria-label="Đang tải tin tức">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="news-card news-card--skeleton" aria-hidden="true">
+              <div className="news-card__media skeleton" />
+              <div className="news-card__body">
+                <div>
+                  <span className="skeleton skeleton-line" style={{ width: "95%", height: 15 }} />
+                  <span className="skeleton skeleton-line" style={{ width: "74%", height: 15, marginTop: 7 }} />
+                </div>
+                <div className="news-card__meta">
+                  <span className="skeleton skeleton-line" style={{ width: 68, height: 11 }} />
+                  <span className="skeleton skeleton-line" style={{ width: 54, height: 11 }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : error ? (
         <div className="empty">{error}</div>
       ) : !items.length ? (
         <div className="empty">Chưa có tin vàng mới.</div>
       ) : (
-        <section className="panel">
-          <div className="panel__body" style={{ display: "grid", gap: 4 }}>
-            {items.map((n) => {
-              const age = n.published ? ageSeconds(n.published, now) : null;
-              return (
-                <a
-                  key={n.link}
-                  href={n.link}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="row"
-                  style={{ gap: 14, padding: "10px 4px", textDecoration: "none", color: "inherit" }}
-                >
-                  {n.image ? (
-                    <img
-                      src={n.image}
-                      alt=""
-                      loading="lazy"
-                      style={{
-                        width: 132,
-                        height: 76,
-                        objectFit: "cover",
-                        borderRadius: 8,
-                        flexShrink: 0,
-                      }}
-                    />
-                  ) : null}
-                  <span style={{ minWidth: 0 }}>
-                    <span style={{ display: "block", fontWeight: 600, lineHeight: 1.45 }}>
-                      {n.title}
-                    </span>
-                    <span className="meta">
-                      {n.source}
-                      {age !== null ? ` · ${fmtAgo(age).toUpperCase()}` : ""}
-                    </span>
-                  </span>
-                </a>
-              );
-            })}
-          </div>
-        </section>
+        <div className="news-grid">
+          {items.map((n) => {
+            const age = n.published ? ageSeconds(n.published, now) : null;
+            return (
+              <a
+                key={n.link}
+                href={n.link}
+                target="_blank"
+                rel="noreferrer"
+                className="news-card"
+              >
+                <NewsMedia src={n.image} source={n.source} />
+                <div className="news-card__body">
+                  <h2 className="news-card__title">{n.title}</h2>
+                  <div className="news-card__meta meta">
+                    <span>{n.source}</span>
+                    {age !== null && <span>{fmtAgo(age).toUpperCase()}</span>}
+                  </div>
+                </div>
+              </a>
+            );
+          })}
+        </div>
       )}
     </div>
   );

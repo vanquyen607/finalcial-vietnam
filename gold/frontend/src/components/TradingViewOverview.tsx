@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { CSSProperties } from "react";
 import { useTheme } from "../lib/useTheme";
 
 interface Props {
@@ -85,7 +86,7 @@ export default function TradingViewOverview({ symbol, watchlist = [], height = 5
   return (
     <div>
       <div className="card" style={{ padding: 6 }}>
-        <div ref={hostRef} style={{ height, width: "100%" }} />
+        <div ref={hostRef} className="tv-box" style={{ "--tv-h": `${height}px` } as CSSProperties} />
       </div>
       <p className="meta" style={{ marginTop: 12 }}>
         BIỂU ĐỒ TRADINGVIEW NÂNG CAO · RSI + MACD · DANH SÁCH THEO DÕI: PAX GOLD, TVC GOLD ·
