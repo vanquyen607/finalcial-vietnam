@@ -1,0 +1,76 @@
+"""Tin co phieu theo ma - CafeF API cong khai."""
+import json
+import time
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+import requests
+
+from backend.sentiment import analyze_news_item
+
+_VN = ZoneInfo("Asia/Ho_Chi_Minh")
+
+ROOT = Path(__file__).resolve().parent.parent
+NEWS_DIR = ROOT / "data" / "news"
+NEWS_DIR.mkdir(parents=True, exist_ok=True)
+
+TTL = 3600
+UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"}
+
+
+def _ms(s: str) -> str:
+    try:
+        ms = int(s.replace("/Date(", "").replace(")/", ""))
+        return datetime.fromtimestamp(ms / 1000, _VN).strftime("%d/%m/%Y")
+    except Exception:
+        return ""
+
+
+def get_news(sym: str, refresh: bool = False) -> dict:
+    sym = sym.upper().strip()
+    # validate truoc khi dat vao ten file/URL — chan path traversal (..\) va query injection
+    if not sym.isalpha() or not 2 <= len(sym) <= 6:
+        return {"status": "error", "message": "Mã không hợp lệ"}
+    path = NEWS_DIR / f"{sym}.json"
+    if not refresh and path.exists():
+        try:
+            obj = json.loads(path.read_text(encoding="utf-8"))
+            if time.time() - obj.get("fetched_at", 0) < TTL:
+                items = [analyze_news_item(it) for it in obj.get("items", [])]
+                return {"status": "ready", "items": items, "cached": True}
+        except Exception:
+            pass
+    try:
+        url = f"https://cafef.vn/du-lieu/Ajax/PageNew/News.ashx?symbol={sym.lower()}&NewsType=0"
+        r = requests.get(url, headers=UA, timeout=15)
+        r.raise_for_status()
+        payload = r.json()
+        items = []
+        for it in (payload.get("Data") or [])[:15]:
+            link = (it.get("LinkDetail") or "").split("?")[0]
+            if link.startswith("/"):
+                link = "https://cafef.vn" + link
+            if not link.startswith(("http://", "https://")):
+                continue            # chan javascript:/data: link
+            items.append({
+                "title": (it.get("Title") or "").strip(),
+                "sub": (it.get("SubTitle") or "").strip(),
+                "date": _ms(it.get("DeployDate") or ""),
+                "url": link,
+            })
+        items = [i for i in items if i["title"]]
+        obj = {"fetched_at": time.time(), "items": items}
+        path.write_text(json.dumps(obj, ensure_ascii=False), encoding="utf-8")
+        tagged = [analyze_news_item(it) for it in items]
+        return {"status": "ready", "items": tagged}
+    except Exception as e:
+        if path.exists():
+            try:
+                obj = json.loads(path.read_text(encoding="utf-8"))
+                items = [analyze_news_item(it) for it in obj.get("items", [])]
+                return {"status": "ready", "items": items, "stale": True}
+            except Exception:
+                pass
+        return {"status": "error", "message": str(e)}

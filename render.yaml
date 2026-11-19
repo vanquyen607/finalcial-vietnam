@@ -18,21 +18,18 @@ services:
       - key: DATABASE_URL
         sync: false   # Neon pooler URL — da set tu truoc trong Render Dashboard
 
-  # App gia vang Aurum Terminal (frontend build + backend SPA tren cung service)
+  # App gia vang Aurum Terminal (Node/TypeScript: server.ts + frontend Vite o repo root)
   - type: web
     name: aurum-gold
-    runtime: python
+    runtime: node
     plan: free
-    rootDir: gold
-    buildCommand: pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build
-    startCommand: cd backend && GOLD_HOST=0.0.0.0 GOLD_PORT=$PORT python run.py
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     healthCheckPath: /api/health
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
+      - key: NODE_VERSION
+        value: "24"
       - key: TZ
         value: Asia/Ho_Chi_Minh
       - key: GOLD_API_TOKEN
         sync: false   # dat trong Render Dashboard; de trong = API ghi mo (khong nen)
-      - key: DATABASE_URL
-        sync: false   # Neon pooler URL (tuy chon; de trong = SQLite ephemeral)
