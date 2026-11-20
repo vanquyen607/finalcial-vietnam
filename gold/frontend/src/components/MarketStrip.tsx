@@ -8,8 +8,14 @@ import { useExtras } from "../lib/useExtras";
 export default function MarketStrip() {
   const { data } = useExtras();
 
-  if (!data || (!data.silver && !data.silver_domestic && !data.fx && !data.fuel)) return null;
+  if (
+    !data ||
+    (!data.silver && !data.silver_domestic && !data.fx && !data.fuel && !data.indices && !data.crypto)
+  )
+    return null;
   const { silver, silver_domestic: silverVn, fx, fuel } = data;
+  const vni = data.indices?.items.find((i) => i.code === "VNINDEX");
+  const btc = data.crypto?.items.find((c) => c.code === "BTC");
   const domestic = silverVn?.items ?? [];
   const headlineSilver =
     domestic.find((i) => i.brand === "DOJI" && i.sell) ?? domestic.find((i) => i.sell);
@@ -68,6 +74,32 @@ export default function MarketStrip() {
             </div>
             <p className="meta extras__note">
               {headlineFuel.name} (Vùng 1) · {fuel.items.length} mặt hàng
+            </p>
+          </div>
+        </Link>
+      )}
+
+      {vni && (
+        <Link to="/market" className="panel extras__card extras__card--link">
+          <div className="panel__head">
+            <span className="panel__title">Thị trường · VN-Index</span>
+            <span className="meta">XEM TỔNG HỢP →</span>
+          </div>
+          <div className="panel__body">
+            <div className="extras__big">
+              <strong>
+                {vni.close.toLocaleString("vi-VN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </strong>
+              <span className="meta">điểm</span>
+              <span className={`chip chip--${tone(vni.change)}`}>{fmtPct(vni.change_pct)}</span>
+            </div>
+            <p className="meta extras__note">
+              {btc
+                ? `BTC ${fmtPrice(btc.usd, "USD")} $ · Chứng khoán, crypto, dầu thô, DXY`
+                : "Chứng khoán, crypto, dầu thô, DXY"}
             </p>
           </div>
         </Link>

@@ -52,6 +52,7 @@ const DESKTOP_LINKS: { to: string; label: string; end: boolean }[] = [
   { to: "/silver", label: "Bạc", end: false },
   { to: "/fuel", label: "Xăng dầu", end: false },
   { to: "/fx", label: "Ngoại tệ", end: false },
+  { to: "/market", label: "Thị trường", end: false },
   { to: "/chart", label: "Biểu đồ", end: false },
   { to: "/news", label: "Tin tức", end: false },
   { to: "/alerts", label: "Cảnh báo", end: false },

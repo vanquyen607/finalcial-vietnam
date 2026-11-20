@@ -5,6 +5,7 @@ const TABS = [
   { to: "/silver", label: "Bạc", end: false },
   { to: "/fuel", label: "Xăng dầu", end: false },
   { to: "/fx", label: "Ngoại tệ", end: false },
+  { to: "/market", label: "Thị trường", end: false },
 ];
 
 export default function MarketTabs() {

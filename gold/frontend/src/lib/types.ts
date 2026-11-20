@@ -114,12 +114,51 @@ export interface SilverDomesticItem {
   source: string;
 }
 
+export interface IndexItem {
+  code: string;
+  name: string;
+  close: number;
+  change: number;
+  change_pct: number;
+  volume: number | null;
+  ts: number;
+}
+
+export interface CryptoItem {
+  code: string;
+  name: string;
+  usd: number;
+  vnd: number | null;
+  change_24h: number;
+}
+
+export interface OilItem {
+  code: string;
+  name: string;
+  price: number;
+  change_abs: number;
+  change_pct: number;
+}
+
+export interface GlobalItem {
+  code: string;
+  name: string;
+  value: number;
+  change_abs: number;
+  change_pct: number;
+  unit: string;
+}
+
 export interface ExtrasPayload {
   ts: number;
   silver: SilverInfo | null;
   silver_domestic: { ts: number; stale: boolean; source: string; items: SilverDomesticItem[] } | null;
   fx: { ts: number; stale: boolean; source: string; items: FxItem[] } | null;
   fuel: { ts: number; stale: boolean; source: string; items: FuelItem[] } | null;
+  indices: { ts: number; stale: boolean; source: string; items: IndexItem[] } | null;
+  crypto: { ts: number; stale: boolean; source: string; items: CryptoItem[] } | null;
+  oil: { ts: number; stale: boolean; source: string; items: OilItem[] } | null;
+  global: { ts: number; stale: boolean; source: string; items: GlobalItem[] } | null;
 }
 
 /** Một khung thời gian của đồng hồ sức mua/bán (TradingView Recommend). */

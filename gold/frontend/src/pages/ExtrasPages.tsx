@@ -528,3 +528,267 @@ export function FxPage() {
     </div>
   );
 }
+
+const IDX_NUM = new Intl.NumberFormat("vi-VN", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function fmtSignedNum(v: number): string {
+  const s = IDX_NUM.format(Math.abs(v));
+  if (v > 0) return `+${s}`;
+  if (v < 0) return `-${s}`;
+  return "0";
+}
+
+function fmtVol(v: number | null): string {
+  if (v == null || !Number.isFinite(v)) return "—";
+  if (v >= 1e6) return `${(v / 1e6).toLocaleString("vi-VN", { maximumFractionDigits: 1 })} triệu`;
+  return v.toLocaleString("vi-VN");
+}
+
+export function MarketPage() {
+  const { data, loading, error, refresh } = useExtras();
+  const now = useNow(5000);
+
+  const indices = data?.indices ?? null;
+  const crypto = data?.crypto ?? null;
+  const oil = data?.oil ?? null;
+  const globalIdx = data?.global ?? null;
+
+  const newestTs = Math.max(
+    indices?.ts ?? 0,
+    crypto?.ts ?? 0,
+    oil?.ts ?? 0,
+    globalIdx?.ts ?? 0,
+  );
+  const age = ageSeconds(newestTs > 0 ? newestTs : null, now);
+  const hasAny = Boolean(indices || crypto || oil || globalIdx);
+  const vni = indices?.items.find((i) => i.code === "VNINDEX");
+  const btc = crypto?.items.find((c) => c.code === "BTC");
+  const brent = oil?.items.find((o) => o.code === "BRENT");
+  const dxy = globalIdx?.items.find((g) => g.code === "DXY");
+
+  return (
+    <div className="page">
+      <MarketTabs />
+
+      <div className="hero">
+        <div>
+          <h1 className="hero__title">Thị trường tổng hợp</h1>
+          <p className="hero__sub">
+            Chỉ số chứng khoán Việt Nam, tiền số, dầu thô thế giới và các chỉ số toàn cầu tác động tới giá vàng.
+          </p>
+        </div>
+        <div className="hero__actions">
+          {age !== null && <span className="meta">Cập nhật {fmtAgo(age)}</span>}
+          <button className="btn btn--ghost" onClick={() => void refresh()}>
+            Làm mới
+          </button>
+        </div>
+      </div>
+
+      {loading && !data ? (
+        <>
+          <HeroStatsSkeleton />
+          <TablePanelSkeleton rows={6} />
+        </>
+      ) : error && !data ? (
+        <div className="empty">{error}</div>
+      ) : !hasAny ? (
+        <div className="empty">Chưa có dữ liệu thị trường.</div>
+      ) : (
+        <>
+          <div className="hero-stats">
+            <div className="hero-stat hero-stat--primary">
+              <div className="hero-stat__head">
+                <span className="hero-stat__label">VN-Index</span>
+                <strong>{vni ? IDX_NUM.format(vni.close) : "—"}</strong>
+              </div>
+              {vni && (
+                <span className={`chip chip--${tone(vni.change)}`}>
+                  {fmtSignedNum(vni.change)} ({fmtPct(vni.change_pct)})
+                </span>
+              )}
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Bitcoin</span>
+              <strong>{btc ? `${fmtPrice(btc.usd, "USD")} $` : "—"}</strong>
+              {btc && (
+                <span className={`chip chip--${tone(btc.change_24h)}`}>{fmtPct(btc.change_24h)} / 24h</span>
+              )}
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Dầu Brent</span>
+              <strong>{brent ? `${fmtPrice(brent.price, "USD")} $` : "—"}</strong>
+              <span className="hero-stat__hint">USD / thùng</span>
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Chỉ số USD (DXY)</span>
+              <strong>{dxy ? IDX_NUM.format(dxy.value) : "—"}</strong>
+              {dxy && (
+                <span className={`chip chip--${tone(dxy.change_abs)}`}>
+                  {fmtSignedNum(dxy.change_abs)} ({fmtPct(dxy.change_pct)})
+                </span>
+              )}
+            </div>
+          </div>
+
+          {indices && (
+            <section className="panel panel--table">
+              <div className="panel__head">
+                <span className="panel__title">Chứng khoán Việt Nam · {indices.source}</span>
+                <span className="meta">PHIÊN GẦN NHẤT</span>
+              </div>
+              <div className="gold-table-wrap">
+                <table className="gold-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th className="num">Điểm</th>
+                      <th className="num">Thay đổi</th>
+                      <th className="num gt-change">%</th>
+                      <th className="num gt-spread">Khối lượng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {indices.items.map((ix) => {
+                      const t = tone(ix.change);
+                      return (
+                        <tr key={ix.code}>
+                          <td className="gt-col-name">
+                            <span className="gt-name">{ix.name}</span>
+                          </td>
+                          <td className="num bid">{IDX_NUM.format(ix.close)}</td>
+                          <td className={`num ${t}`}>{fmtSignedNum(ix.change)}</td>
+                          <td className={`num ${t} gt-change`}>{fmtPct(ix.change_pct)}</td>
+                          <td className="num muted gt-spread">{fmtVol(ix.volume)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {crypto && (
+            <section className="panel panel--table">
+              <div className="panel__head">
+                <span className="panel__title">Tiền số · {crypto.source}</span>
+                <span className="meta">BIẾN ĐỘNG 24H</span>
+              </div>
+              <div className="gold-table-wrap">
+                <table className="gold-table">
+                  <thead>
+                    <tr>
+                      <th>Đồng</th>
+                      <th className="num">Giá USD</th>
+                      <th className="num">Giá VND</th>
+                      <th className="num gt-change">24h</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {crypto.items.map((c) => {
+                      const t = tone(c.change_24h);
+                      return (
+                        <tr key={c.code}>
+                          <td className="gt-col-name">
+                            <span className="gt-name">
+                              {c.name} · {c.code}
+                            </span>
+                          </td>
+                          <td className="num bid">{fmtPrice(c.usd, "USD")} $</td>
+                          <td className="num ask">{c.vnd != null ? fmtPrice(c.vnd, "VND") : "—"}</td>
+                          <td className={`num ${t} gt-change`}>{fmtPct(c.change_24h)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {oil && (
+            <section className="panel panel--table">
+              <div className="panel__head">
+                <span className="panel__title">Dầu thô thế giới · {oil.source}</span>
+                <span className="meta">USD / THÙNG</span>
+              </div>
+              <div className="gold-table-wrap">
+                <table className="gold-table">
+                  <thead>
+                    <tr>
+                      <th>Loại dầu</th>
+                      <th className="num">Giá</th>
+                      <th className="num">Thay đổi</th>
+                      <th className="num gt-change">%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {oil.items.map((o) => {
+                      const t = tone(o.change_abs);
+                      return (
+                        <tr key={o.code}>
+                          <td className="gt-col-name">
+                            <span className="gt-name">{o.name}</span>
+                          </td>
+                          <td className="num bid">{fmtPrice(o.price, "USD")} $</td>
+                          <td className={`num ${t}`}>{fmtSigned(o.change_abs, "USD")}</td>
+                          <td className={`num ${t} gt-change`}>{fmtPct(o.change_pct)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {globalIdx && (
+            <section className="panel panel--table">
+              <div className="panel__head">
+                <span className="panel__title">Chỉ số toàn cầu · {globalIdx.source}</span>
+                <span className="meta">TÁC ĐỘNG TỚI VÀNG</span>
+              </div>
+              <div className="gold-table-wrap">
+                <table className="gold-table">
+                  <thead>
+                    <tr>
+                      <th>Chỉ số</th>
+                      <th className="num">Giá trị</th>
+                      <th className="num">Thay đổi</th>
+                      <th className="num gt-change">%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {globalIdx.items.map((g) => {
+                      const t = tone(g.change_abs);
+                      return (
+                        <tr key={g.code}>
+                          <td className="gt-col-name">
+                            <span className="gt-name">{g.name}</span>
+                          </td>
+                          <td className="num bid">
+                            {IDX_NUM.format(g.value)}
+                            {g.unit}
+                          </td>
+                          <td className={`num ${t}`}>{fmtSignedNum(g.change_abs)}</td>
+                          <td className={`num ${t} gt-change`}>{fmtPct(g.change_pct)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
