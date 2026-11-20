@@ -149,6 +149,12 @@ export interface GlobalItem {
   unit: string;
 }
 
+export interface RatesItem {
+  code: string;
+  name: string;
+  rates: Record<string, number | null>;
+}
+
 export interface ExtrasPayload {
   ts: number;
   silver: SilverInfo | null;
@@ -159,6 +165,7 @@ export interface ExtrasPayload {
   crypto: { ts: number; stale: boolean; source: string; items: CryptoItem[] } | null;
   oil: { ts: number; stale: boolean; source: string; items: OilItem[] } | null;
   global: { ts: number; stale: boolean; source: string; items: GlobalItem[] } | null;
+  rates: { ts: number; stale: boolean; source: string; terms: string[]; items: RatesItem[] } | null;
 }
 
 /** Một khung thời gian của đồng hồ sức mua/bán (TradingView Recommend). */

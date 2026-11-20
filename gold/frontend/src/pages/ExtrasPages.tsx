@@ -555,19 +555,40 @@ export function MarketPage() {
   const crypto = data?.crypto ?? null;
   const oil = data?.oil ?? null;
   const globalIdx = data?.global ?? null;
+  const rates = data?.rates ?? null;
 
   const newestTs = Math.max(
     indices?.ts ?? 0,
     crypto?.ts ?? 0,
     oil?.ts ?? 0,
     globalIdx?.ts ?? 0,
+    rates?.ts ?? 0,
   );
   const age = ageSeconds(newestTs > 0 ? newestTs : null, now);
-  const hasAny = Boolean(indices || crypto || oil || globalIdx);
+  const hasAny = Boolean(indices || crypto || oil || globalIdx || rates);
   const vni = indices?.items.find((i) => i.code === "VNINDEX");
   const btc = crypto?.items.find((c) => c.code === "BTC");
   const brent = oil?.items.find((o) => o.code === "BRENT");
   const dxy = globalIdx?.items.find((g) => g.code === "DXY");
+
+  const rateMax = useMemo(() => {
+    const max: Record<string, number> = {};
+    for (const item of rates?.items ?? []) {
+      for (const term of rates?.terms ?? []) {
+        const v = item.rates[term];
+        if (v != null && (max[term] == null || v > max[term])) max[term] = v;
+      }
+    }
+    return max;
+  }, [rates]);
+  const best12 = useMemo(() => {
+    let best: { name: string; value: number } | null = null;
+    for (const item of rates?.items ?? []) {
+      const v = item.rates["12"];
+      if (v != null && (!best || v > best.value)) best = { name: item.name, value: v };
+    }
+    return best;
+  }, [rates]);
 
   return (
     <div className="page">
@@ -634,6 +655,12 @@ export function MarketPage() {
                   {fmtSignedNum(dxy.change_abs)} ({fmtPct(dxy.change_pct)})
                 </span>
               )}
+            </div>
+
+            <div className="hero-stat">
+              <span className="hero-stat__label">Tiết kiệm 12 tháng cao nhất</span>
+              <strong>{best12 ? `${IDX_NUM.format(best12.value)}%` : "—"}</strong>
+              <span className="hero-stat__hint">{best12 ? `${best12.name} · %/năm tại quầy` : "Lãi suất ngân hàng"}</span>
             </div>
           </div>
 
@@ -782,6 +809,47 @@ export function MarketPage() {
                         </tr>
                       );
                     })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {rates && (
+            <section className="panel panel--table">
+              <div className="panel__head">
+                <span className="panel__title">Lãi suất tiết kiệm · {rates.source}</span>
+                <span className="meta">%/NĂM · Ô ĐẬM = CAO NHẤT KỲ HẠN</span>
+              </div>
+              <div className="gold-table-wrap">
+                <table className="gold-table">
+                  <thead>
+                    <tr>
+                      <th>Ngân hàng</th>
+                      {rates.terms.map((term) => (
+                        <th key={term} className="num">
+                          {term === "KKH" ? "KKH" : `${term}T`}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rates.items.map((item) => (
+                      <tr key={item.code}>
+                        <td className="gt-col-name">
+                          <span className="gt-name">{item.name}</span>
+                        </td>
+                        {rates.terms.map((term) => {
+                          const v = item.rates[term];
+                          const isBest = v != null && rateMax[term] != null && v === rateMax[term];
+                          return (
+                            <td key={term} className={`num${isBest ? " rate-best" : ""}`}>
+                              {v != null ? IDX_NUM.format(v) : "—"}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
