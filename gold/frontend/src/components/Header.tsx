@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { fmtAgo, fmtClock } from "../lib/format";
 import { ageSeconds } from "../lib/useNow";
 import { useTheme } from "../lib/useTheme";
@@ -47,16 +47,34 @@ function TabIcon({ id }: { id: "home" | "chart" | "news" | "alerts" | "settings"
   }
 }
 
-const DESKTOP_LINKS: { to: string; label: string; end: boolean }[] = [
-  { to: "/", label: "Bảng giá", end: true },
-  { to: "/silver", label: "Bạc", end: false },
-  { to: "/fuel", label: "Xăng dầu", end: false },
-  { to: "/fx", label: "Ngoại tệ", end: false },
-  { to: "/market", label: "Thị trường", end: false },
-  { to: "/chart", label: "Biểu đồ", end: false },
-  { to: "/news", label: "Tin tức", end: false },
-  { to: "/alerts", label: "Cảnh báo", end: false },
-  { to: "/settings", label: "Cài đặt", end: false },
+type NavEntry =
+  | { kind: "link"; to: string; label: string; end: boolean }
+  | {
+      kind: "group";
+      label: string;
+      to: string;
+      children: { to: string; label: string }[];
+    };
+
+const MARKET_GROUP: NavEntry = {
+  kind: "group",
+  label: "Thị trường",
+  to: "/market",
+  children: [
+    { to: "/silver", label: "Bạc" },
+    { to: "/fuel", label: "Xăng dầu" },
+    { to: "/fx", label: "Ngoại tệ" },
+    { to: "/market", label: "Tổng hợp" },
+  ],
+};
+
+const DESKTOP_NAV: NavEntry[] = [
+  { kind: "link", to: "/", label: "Bảng giá", end: true },
+  MARKET_GROUP,
+  { kind: "link", to: "/chart", label: "Biểu đồ", end: false },
+  { kind: "link", to: "/news", label: "Tin tức", end: false },
+  { kind: "link", to: "/alerts", label: "Cảnh báo", end: false },
+  { kind: "link", to: "/settings", label: "Cài đặt", end: false },
 ];
 
 const MOBILE_LINKS: { to: string; label: string; end: boolean; icon: "home" | "chart" | "news" | "alerts" | "settings" }[] = [
@@ -68,6 +86,7 @@ const MOBILE_LINKS: { to: string; label: string; end: boolean; icon: "home" | "c
 ];
 
 export default function Header() {
+  const { pathname } = useLocation();
   const { status, connected, quoteList } = useMarket();
   const { theme, toggleTheme } = useTheme();
   const [now, setNow] = useState(() => Date.now());
@@ -129,11 +148,37 @@ export default function Header() {
 
         <nav className="navbar" aria-label="Điều hướng chính">
           <div className="navbar__inner">
-            {DESKTOP_LINKS.map((l) => (
-              <NavLink key={l.to} to={l.to} end={l.end} className="navbar__link">
-                {l.label}
-              </NavLink>
-            ))}
+            {DESKTOP_NAV.map((entry) => {
+              if (entry.kind === "link") {
+                return (
+                  <NavLink key={entry.to} to={entry.to} end={entry.end} className="navbar__link">
+                    {entry.label}
+                  </NavLink>
+                );
+              }
+              const groupActive = entry.children.some((c) => pathname === c.to);
+              return (
+                <div key={entry.label} className="navbar__group">
+                  <NavLink
+                    to={entry.to}
+                    className={`navbar__link${groupActive ? " active" : ""}`}
+                    aria-haspopup="true"
+                  >
+                    {entry.label}
+                    <span className="navbar__caret" aria-hidden="true">
+                      ▾
+                    </span>
+                  </NavLink>
+                  <div className="navbar__dropdown">
+                    {entry.children.map((c) => (
+                      <NavLink key={c.to} to={c.to} className="navbar__dropdown-link">
+                        {c.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </nav>
       </header>
