@@ -956,6 +956,186 @@ export class PrivateShopsProvider implements GoldProvider {
 // ============================================================================
 // MergedProvider
 // ============================================================================
+// ============================================================================
+// SjcProvider — giá niêm yết chính chủ SJC (PriceService.ashx)
+// Cổng dữ liệu mà website sjc.com.vn dùng để nạp bảng giá. Trả JSON hoặc
+// HTML tùy thời điểm nên parse cả hai. Giá trên bảng SJC tính theo nghìn
+// đồng/lượng — chuẩn hoá về đồng/lượng như mọi provider khác. Provider này
+// đặt CUỐI danh sách gộp: hàng nào lấy được sẽ thắng vang.today cho các mã
+// SJC; nếu SJC chặn (Cloudflare 403) thì nó tự rớt, các nguồn khác gánh.
+// ============================================================================
+const SJC_SERVICE = "https://sjc.com.vn/GoldPrice/Services/PriceService.ashx";
+
+const SJC_BUY_KEYS = ["buy", "buyprice", "buy_price", "giamua", "gia_mua", "mua", "bid"];
+const SJC_SELL_KEYS = ["sell", "sellprice", "sell_price", "giaban", "gia_ban", "ban", "ask"];
+const SJC_NAME_KEYS = ["name", "typename", "type_name", "type", "label", "title", "productname", "product"];
+const SJC_BRANCH_KEYS = ["branch", "branchname", "city", "area", "region", "location"];
+
+// Chuẩn hoá 1 giá SJC về đồng/lượng theo độ lớn của số thô.
+function sjcToVnd(v: number): number {
+  if (v >= 1e7) return v; // đã là đồng/lượng
+  if (v >= 1e6) return v * 10; // đồng/chỉ -> đồng/lượng
+  if (v >= 1e4) return v * 1000; // nghìn đồng/lượng -> đồng/lượng
+  return v;
+}
+
+// Tên loại vàng trên bảng SJC -> các mã nội bộ dùng chung 1 giá niêm yết.
+function sjcCodesFor(rawName: string): string[] {
+  const name = rawName.toLowerCase();
+  if (!name.includes("sjc")) return [];
+  const isRing = name.includes("nhẫn") || name.includes("nhan");
+  if (isRing) {
+    if (name.includes("0.5") || name.includes("0,5")) return ["SJC_NHAN_05"];
+    return ["SJ9999", "SJC_NHAN_1"];
+  }
+  if (name.includes("1l") || name.includes("1 lượng") || name.includes("1 luong")) {
+    return ["SJL1L10", "VNGSJC"];
+  }
+  if (name.includes("5 chỉ") || name.includes("5 chi")) return ["SJC_5CHI"];
+  if (name.includes("chỉ") || name.includes("chi")) return ["SJC_1CHI"];
+  return [];
+}
+
+interface SjcRow {
+  name: string;
+  buy: number;
+  sell: number;
+  isHcm: boolean;
+}
+
+// Gom mọi object có khoá mua/bán trong payload JSON (đi đệ quy toàn cây).
+function sjcRowsFromJson(payload: unknown): SjcRow[] {
+  const rows: SjcRow[] = [];
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (!node || typeof node !== "object") return;
+    const obj = node as Record<string, unknown>;
+    const lower = new Map<string, unknown>();
+    for (const [k, v] of Object.entries(obj)) lower.set(k.toLowerCase(), v);
+    const pick = (keys: string[]): unknown => {
+      for (const k of keys) if (lower.has(k)) return lower.get(k);
+      return undefined;
+    };
+    const buy = num(pick(SJC_BUY_KEYS)) ?? vnNum(String(pick(SJC_BUY_KEYS) ?? ""));
+    const sell = num(pick(SJC_SELL_KEYS)) ?? vnNum(String(pick(SJC_SELL_KEYS) ?? ""));
+    if (buy !== null && sell !== null && buy > 0 && sell > 0) {
+      const name = String(pick(SJC_NAME_KEYS) ?? "");
+      const branch = String(pick(SJC_BRANCH_KEYS) ?? "");
+      const full = `${branch} ${name}`.trim();
+      rows.push({
+        name: full || name,
+        buy: sjcToVnd(buy),
+        sell: sjcToVnd(sell),
+        isHcm: /hồ chí minh|ho chi minh|hcm/i.test(full),
+      });
+    }
+    Object.values(obj).forEach(walk);
+  };
+  walk(payload);
+  return rows;
+}
+
+// Dự phòng: parse bảng HTML (ashx đôi khi trả fragment HTML thay vì JSON).
+function sjcRowsFromHtml(html: string): SjcRow[] {
+  const rows: SjcRow[] = [];
+  const $ = cheerio.load(html);
+  $("table tr").each((_, tr) => {
+    const cells = $(tr)
+      .find("td")
+      .map((__, td) => $(td).text().trim())
+      .get();
+    if (cells.length < 3) return;
+    const name = cells[0];
+    const nums = cells.slice(1).map((c) => vnNum(c)).filter((n): n is number => n !== null && n > 0);
+    if (nums.length < 2) return;
+    rows.push({
+      name,
+      buy: sjcToVnd(nums[0]),
+      sell: sjcToVnd(nums[1]),
+      isHcm: /hồ chí minh|ho chi minh/i.test(name),
+    });
+  });
+  return rows;
+}
+
+export class SjcProvider implements GoldProvider {
+  readonly name = "sjc";
+
+  async fetchCurrent(): Promise<ProviderQuote[]> {
+    const headers: Record<string, string> = {
+      "User-Agent": BROWSER_UA,
+      Referer: "https://sjc.com.vn/",
+      Accept: "application/json, text/javascript, */*; q=0.01",
+      "X-Requested-With": "XMLHttpRequest",
+    };
+
+    let text = "";
+    let status = 0;
+    try {
+      const got = await fetchText(SJC_SERVICE, 15000, headers);
+      status = got.status;
+      text = got.text;
+    } catch {
+      // thử POST như widget trên trang SJC vẫn làm khi GET lỗi mạng
+      const res = await fetch(SJC_SERVICE, {
+        method: "POST",
+        headers,
+        signal: AbortSignal.timeout(15000),
+      });
+      status = res.status;
+      text = await res.text();
+    }
+    if (status === 403 || status === 503) {
+      throw new Error(`SJC chặn truy cập (HTTP ${status})`);
+    }
+    if (!text) throw new Error("SJC trả rỗng");
+
+    let rows: SjcRow[] = [];
+    try {
+      rows = sjcRowsFromJson(JSON.parse(text));
+    } catch {
+      rows = [];
+    }
+    if (!rows.length) rows = sjcRowsFromHtml(text);
+    if (!rows.length) throw new Error("không parse được dữ liệu SJC");
+
+    // Mỗi loại vàng giữ 1 hàng: ưu tiên chi nhánh Hồ Chí Minh, sau đó hàng đầu tiên.
+    const byCode = new Map<string, SjcRow>();
+    for (const row of rows) {
+      const codes = sjcCodesFor(row.name);
+      if (!codes.length) continue;
+      if (row.buy < 5e7 || row.buy > 5e8 || row.sell < row.buy) continue;
+      for (const code of codes) {
+        const prev = byCode.get(code);
+        if (!prev || (row.isHcm && !prev.isHcm)) byCode.set(code, row);
+      }
+    }
+    if (!byCode.size) throw new Error("SJC không có hàng nào khớp mã nội bộ");
+
+    const now = Math.floor(Date.now() / 1000);
+    const quotes: ProviderQuote[] = [];
+    for (const [code, row] of byCode) {
+      const meta = BY_CODE[code];
+      quotes.push({
+        code,
+        name: meta?.name ?? code,
+        buy: row.buy,
+        sell: row.sell,
+        change_buy: 0,
+        change_sell: 0,
+        unit: meta?.unit ?? "VND",
+        per: meta?.per ?? "lượng",
+        source: this.name,
+        updated_at: now,
+      });
+    }
+    return quotes;
+  }
+}
+
 export class MergedProvider implements GoldProvider {
   readonly name = "mix";
   private subs: GoldProvider[];

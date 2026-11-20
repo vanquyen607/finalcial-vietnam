@@ -8,6 +8,7 @@ import {
   NgocThamProvider,
   PrivateShopsProvider,
   SimplizeProvider,
+  SjcProvider,
   VangTodayProvider,
   fetchUsdVnd,
   refreshNews,
@@ -129,6 +130,7 @@ function buildProvider(name: string): GoldProvider {
     new NgocThamProvider(),
     new SimplizeProvider(),
     new PrivateShopsProvider(),
+    new SjcProvider(),
   ]);
 }
 
