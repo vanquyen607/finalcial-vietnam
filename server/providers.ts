@@ -1542,7 +1542,16 @@ const CRYPTO_DEFS: Array<[string, string, string]> = [
   ["solana", "SOL", "Solana"],
 ];
 
-async function fetchCrypto() {
+interface CryptoItemRow {
+  code: string;
+  name: string;
+  usd: number;
+  vnd: number | null;
+  change_24h: number;
+}
+
+async function fetchCrypto(): Promise<{ source: string; items: CryptoItemRow[] } | null> {
+  // 1) CoinGecko: có sẵn giá VND + %24h (hay chặn IP datacenter — có dự phòng dưới)
   try {
     const ids = CRYPTO_DEFS.map(([id]) => id).join(",");
     const { data } = await fetchJson<
@@ -1560,12 +1569,68 @@ async function fetchCrypto() {
         usd: Number(row.usd),
         vnd: row.vnd ? Number(row.vnd) : null,
         change_24h: Number(row.usd_24h_change ?? 0),
-      };
-    }).filter(Boolean);
-    return items.length ? items : null;
+      } as CryptoItemRow;
+    }).filter((x): x is CryptoItemRow => x !== null);
+    if (items.length) return { source: "CoinGecko", items };
   } catch {
-    return null;
+    // xuống dự phòng
   }
+
+  // 2) Binance (cổng data công khai): giá USDT ~ USD, VND quy đổi theo tỷ giá app
+  try {
+    const symbols = CRYPTO_DEFS.map(([, code]) => `${code}USDT`);
+    const url = `https://data-api.binance.vision/api/v3/ticker/24hr?symbols=${encodeURIComponent(JSON.stringify(symbols))}`;
+    const { data } = await fetchJson<
+      Array<{ symbol?: string; lastPrice?: string; priceChangePercent?: string }>
+    >(url, 9000);
+    const fx = db.latestFx()?.usd_vnd ?? null;
+    const bySymbol = new Map((data ?? []).map((r) => [r.symbol, r]));
+    const items = CRYPTO_DEFS.map(([, code, name]) => {
+      const row = bySymbol.get(`${code}USDT`);
+      const usd = Number(row?.lastPrice ?? 0);
+      if (!(usd > 0)) return null;
+      return {
+        code,
+        name,
+        usd,
+        vnd: fx ? Math.round(usd * fx) : null,
+        change_24h: Number(row?.priceChangePercent ?? 0),
+      } as CryptoItemRow;
+    }).filter((x): x is CryptoItemRow => x !== null);
+    if (items.length) return { source: "Binance", items };
+  } catch {
+    // xuống dự phòng
+  }
+
+  // 3) Coinbase: sàn Mỹ, thân thiện IP datacenter Mỹ
+  try {
+    const fx = db.latestFx()?.usd_vnd ?? null;
+    const items: CryptoItemRow[] = [];
+    for (const [, code, name] of CRYPTO_DEFS) {
+      try {
+        const { data } = await fetchJson<{ open?: string; last?: string }>(
+          `https://api.exchange.coinbase.com/products/${code}-USD/stats`,
+          7000,
+        );
+        const last = Number(data?.last ?? 0);
+        const open = Number(data?.open ?? 0);
+        if (!(last > 0)) continue;
+        items.push({
+          code,
+          name,
+          usd: last,
+          vnd: fx ? Math.round(last * fx) : null,
+          change_24h: open > 0 ? ((last - open) / open) * 100 : 0,
+        });
+      } catch {
+        // bỏ qua đồng lỗi
+      }
+    }
+    if (items.length) return { source: "Coinbase", items };
+  } catch {
+    // hết dự phòng
+  }
+  return null;
 }
 
 async function fetchOil() {
@@ -1671,9 +1736,9 @@ export async function getExtras(): Promise<Record<string, unknown>> {
       source: "Entrade/DNSE",
       items,
     })),
-    cachedSection("crypto", now, fetchCrypto, (items) => ({
-      source: "CoinGecko",
-      items,
+    cachedSection("crypto", now, fetchCrypto, (d) => ({
+      source: d.source,
+      items: d.items,
     })),
     cachedSection("oil", now, fetchOil, (items) => ({
       source: "TradingView",
