@@ -1464,11 +1464,162 @@ async function fetchSilverDomestic() {
   return items.length ? items : null;
 }
 
+// ============================================================================
+// Thị trường mở rộng: chỉ số CK VN, crypto, dầu thô, chỉ số toàn cầu
+// ============================================================================
+async function tvQuote(
+  symbol: string,
+): Promise<{ close: number; change_abs: number; change: number } | null> {
+  try {
+    const url = `https://scanner.tradingview.com/symbol?symbol=${encodeURIComponent(symbol)}&fields=close,change_abs,change`;
+    const { data } = await fetchJson<{ close?: number; change_abs?: number; change?: number }>(url, 7000);
+    const close = Number(data?.close ?? 0);
+    if (!(close > 0)) return null;
+    return {
+      close,
+      change_abs: Number(data?.change_abs ?? 0),
+      change: Number(data?.change ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+const INDEX_DEFS: Array<[string, string]> = [
+  ["VNINDEX", "VN-Index"],
+  ["VN30", "VN30"],
+  ["HNX", "HNX-Index"],
+  ["HNX30", "HNX30"],
+];
+
+async function fetchIndices() {
+  const now = Math.floor(Date.now() / 1000);
+  const from = now - 20 * 86400;
+  const items: Array<{
+    code: string;
+    name: string;
+    close: number;
+    change: number;
+    change_pct: number;
+    volume: number | null;
+    ts: number;
+  }> = [];
+  await Promise.all(
+    INDEX_DEFS.map(async ([symbol, name]) => {
+      try {
+        const url = `https://services.entrade.com.vn/chart-api/v2/ohlcs/index?from=${from}&to=${now}&symbol=${symbol}&resolution=1D`;
+        const { data } = await fetchJson<{ t?: number[]; c?: number[]; v?: number[] }>(url, 9000, {
+          "User-Agent": BROWSER_UA,
+        });
+        const t = data?.t ?? [];
+        const c = data?.c ?? [];
+        if (!t.length || !c.length) return;
+        const i = c.length - 1;
+        const close = c[i];
+        const prev = i > 0 ? c[i - 1] : close;
+        const change = close - prev;
+        items.push({
+          code: symbol,
+          name,
+          close,
+          change,
+          change_pct: prev > 0 ? (change / prev) * 100 : 0,
+          volume: data?.v?.[i] ?? null,
+          ts: t[i] ?? now,
+        });
+      } catch {
+        // bỏ qua chỉ số lỗi, giữ các chỉ số còn lại
+      }
+    }),
+  );
+  items.sort((a, b) => INDEX_DEFS.findIndex(([s]) => s === a.code) - INDEX_DEFS.findIndex(([s]) => s === b.code));
+  return items.length ? items : null;
+}
+
+const CRYPTO_DEFS: Array<[string, string, string]> = [
+  ["bitcoin", "BTC", "Bitcoin"],
+  ["ethereum", "ETH", "Ethereum"],
+  ["solana", "SOL", "Solana"],
+];
+
+async function fetchCrypto() {
+  try {
+    const ids = CRYPTO_DEFS.map(([id]) => id).join(",");
+    const { data } = await fetchJson<
+      Record<string, { usd?: number; vnd?: number; usd_24h_change?: number }>
+    >(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd,vnd&include_24hr_change=true`,
+      9000,
+    );
+    const items = CRYPTO_DEFS.map(([id, code, name]) => {
+      const row = data?.[id];
+      if (!row?.usd) return null;
+      return {
+        code,
+        name,
+        usd: Number(row.usd),
+        vnd: row.vnd ? Number(row.vnd) : null,
+        change_24h: Number(row.usd_24h_change ?? 0),
+      };
+    }).filter(Boolean);
+    return items.length ? items : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchOil() {
+  const defs: Array<[string, string, string]> = [
+    ["BRENT", "Dầu Brent", "NYMEX:BZ1!"],
+    ["WTI", "Dầu WTI", "NYMEX:CL1!"],
+  ];
+  const items: Array<{
+    code: string;
+    name: string;
+    price: number;
+    change_abs: number;
+    change_pct: number;
+  }> = [];
+  for (const [code, name, symbol] of defs) {
+    const q = await tvQuote(symbol);
+    if (q) {
+      items.push({ code, name, price: q.close, change_abs: q.change_abs, change_pct: q.change });
+    }
+  }
+  return items.length ? items : null;
+}
+
+async function fetchGlobal() {
+  const defs: Array<[string, string, string, string]> = [
+    ["DXY", "Chỉ số USD (DXY)", "TVC:DXY", ""],
+    ["US10Y", "Lợi suất Mỹ 10 năm", "TVC:US10Y", "%"],
+  ];
+  const items: Array<{
+    code: string;
+    name: string;
+    value: number;
+    change_abs: number;
+    change_pct: number;
+    unit: string;
+  }> = [];
+  for (const [code, name, symbol, unit] of defs) {
+    const q = await tvQuote(symbol);
+    if (q) {
+      items.push({ code, name, value: q.close, change_abs: q.change_abs, change_pct: q.change, unit });
+    }
+  }
+  return items.length ? items : null;
+}
+
 const EXTRAS_TTL: Record<string, number> = {
   silver: 120,
   silver_domestic: 600,
   fx: 1800,
   fuel: 3600,
+  indices: 300,
+  crypto: 120,
+  oil: 180,
+  global: 180,
 };
 const extrasCache: Record<string, { ts: number; data: unknown }> = {};
 
@@ -1515,7 +1666,35 @@ export async function getExtras(): Promise<Record<string, unknown>> {
       items,
     })),
   ]);
-  return { ts: now, silver, silver_domestic: silverDomestic, fx, fuel };
+  const [indices, crypto, oil, globalIdx] = await Promise.all([
+    cachedSection("indices", now, fetchIndices, (items) => ({
+      source: "Entrade/DNSE",
+      items,
+    })),
+    cachedSection("crypto", now, fetchCrypto, (items) => ({
+      source: "CoinGecko",
+      items,
+    })),
+    cachedSection("oil", now, fetchOil, (items) => ({
+      source: "TradingView",
+      items,
+    })),
+    cachedSection("global", now, fetchGlobal, (items) => ({
+      source: "TradingView",
+      items,
+    })),
+  ]);
+  return {
+    ts: now,
+    silver,
+    silver_domestic: silverDomestic,
+    fx,
+    fuel,
+    indices,
+    crypto,
+    oil,
+    global: globalIdx,
+  };
 }
 
 // ============================================================================

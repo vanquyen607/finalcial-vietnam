@@ -31,6 +31,7 @@ export default function Footer() {
               <Link to="/silver">Giá bạc</Link>
               <Link to="/fuel">Giá xăng dầu</Link>
               <Link to="/fx">Tỷ giá ngoại tệ</Link>
+              <Link to="/market">Thị trường tổng hợp</Link>
             </nav>
           </div>
 
