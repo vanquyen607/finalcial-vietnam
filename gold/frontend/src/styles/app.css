@@ -105,6 +105,10 @@ textarea {
   overflow: visible;
   scrollbar-width: none;
 }
+.rate-best {
+  font-weight: 700;
+  color: var(--accent);
+}
 .navbar__group {
   position: relative;
   display: inline-flex;

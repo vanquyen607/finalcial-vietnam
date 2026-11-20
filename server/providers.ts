@@ -1676,6 +1676,48 @@ async function fetchGlobal() {
   return items.length ? items : null;
 }
 
+const RATE_TERMS = ["KKH", "1", "3", "6", "9", "12", "18", "24", "36"] as const;
+
+async function fetchRates() {
+  try {
+    const { status, text } = await fetchText("https://webgia.tv/lai-suat", 12000, {
+      "User-Agent": BROWSER_UA,
+    });
+    if (status >= 400) return null;
+    const $ = cheerio.load(text);
+    const parseRate = (cell: string | undefined): number | null => {
+      if (!cell) return null;
+      const m = cell.match(/(\d+)[.,](\d+)/);
+      if (!m) return null;
+      const n = Number(`${m[1]}.${m[2]}`);
+      return Number.isFinite(n) ? n : null;
+    };
+    const items: Array<{
+      code: string;
+      name: string;
+      rates: Record<string, number | null>;
+    }> = [];
+    $("table tr").each((_, tr) => {
+      const $tr = $(tr);
+      const code = $tr.find("th .wg-name__text a").first().text().trim();
+      if (!code) return;
+      const sub = $tr.find("th .sub").first().text().trim();
+      const cells = $tr
+        .find("td")
+        .map((__, td) => $(td).text())
+        .get();
+      const rates: Record<string, number | null> = {};
+      RATE_TERMS.forEach((term, i) => {
+        rates[term] = parseRate(cells[i]);
+      });
+      items.push({ code, name: sub || code, rates });
+    });
+    return items.length ? items : null;
+  } catch {
+    return null;
+  }
+}
+
 const EXTRAS_TTL: Record<string, number> = {
   silver: 120,
   silver_domestic: 600,
@@ -1685,6 +1727,7 @@ const EXTRAS_TTL: Record<string, number> = {
   crypto: 120,
   oil: 180,
   global: 180,
+  rates: 3600,
 };
 const extrasCache: Record<string, { ts: number; data: unknown }> = {};
 
@@ -1749,6 +1792,11 @@ export async function getExtras(): Promise<Record<string, unknown>> {
       items,
     })),
   ]);
+  const rates = await cachedSection("rates", now, fetchRates, (items) => ({
+    source: "WebGia · tại quầy",
+    terms: [...RATE_TERMS],
+    items,
+  }));
   return {
     ts: now,
     silver,
@@ -1759,6 +1807,7 @@ export async function getExtras(): Promise<Record<string, unknown>> {
     crypto,
     oil,
     global: globalIdx,
+    rates,
   };
 }
 
