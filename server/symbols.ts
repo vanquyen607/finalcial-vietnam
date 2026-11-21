@@ -127,6 +127,10 @@ export const GOLD_TYPES: GoldType[] = [
   { code: "KTH_TS416", name: "Kim Thành H trang sức 10K (416)", brand: "Kim Thành H", product: "Trang sức 10K (416)", unit: "VND", per: "lượng", category: "other", featured: false, alias: "kim-thanh-416" },
   { code: "KNP_RING9999", name: "Kim Ngân Phúc nhẫn ép vỉ 9999", brand: "Kim Ngân Phúc", product: "Nhẫn ép vỉ 9999", unit: "VND", per: "lượng", category: "other", featured: false, alias: "kim-ngan-phuc-nhan" },
   { code: "KNP_TS24K", name: "Kim Ngân Phúc trang sức 24K", brand: "Kim Ngân Phúc", product: "Trang sức 24K", unit: "VND", per: "lượng", category: "other", featured: false, alias: "kim-ngan-phuc-ts-24k" },
+  { code: "KP_RING9999", name: "Kim Phát nhẫn tròn 99.99", brand: "Kim Phát", product: "Nhẫn tròn 99.99", unit: "VND", per: "lượng", category: "other", featured: false, alias: "kim-phat-nhan" },
+  { code: "KP_TS985", name: "Kim Phát nữ trang 985", brand: "Kim Phát", product: "Nữ trang 985", unit: "VND", per: "lượng", category: "other", featured: false, alias: "kim-phat-ts-985" },
+  { code: "KP_TS750", name: "Kim Phát nữ trang 750", brand: "Kim Phát", product: "Nữ trang 750", unit: "VND", per: "lượng", category: "other", featured: false, alias: "kim-phat-ts-750" },
+  { code: "KP_TS610", name: "Kim Phát nữ trang 610", brand: "Kim Phát", product: "Nữ trang 610", unit: "VND", per: "lượng", category: "other", featured: false, alias: "kim-phat-ts-610" },
 ];
 
 export const BY_CODE: Record<string, GoldType> = Object.fromEntries(

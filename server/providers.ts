@@ -785,11 +785,23 @@ function parseHuyThanh(html: string): Array<[string, number, number]> {
 
 function parseKimTin(html: string): Array<[string, number, number]> {
   const $ = cheerio.load(html);
-  const panel = $("#gold-area-panel-HN").length
-    ? $("#gold-area-panel-HN").first()
-    : $(".gold-area-panel").first();
-  if (!panel.length) return [];
-  const table = panel.find("table").first();
+  // Site đổi cấu trúc 11/2026: panel giá theo khu vực giờ là bản "mobile"
+  // (#mobile-gold-area-panel-HN / .mobile-gold-area-panel). Giữ cả selector cũ
+  // và thêm phương án quét mọi bảng trên trang để lần đổi cấu trúc sau không
+  // bị mất giá (sự cố 21/11/2026: selector cũ không khớp → 5 mã KT bị lấp giá mẫu).
+  const panel = $("#mobile-gold-area-panel-HN").length
+    ? $("#mobile-gold-area-panel-HN").first()
+    : $("#gold-area-panel-HN").length
+      ? $("#gold-area-panel-HN").first()
+      : $(".mobile-gold-area-panel").length
+        ? $(".mobile-gold-area-panel").first()
+        : $(".gold-area-panel").first();
+  let table = panel.find("table").first();
+  if (!table.length) {
+    table = $("table")
+      .filter((_, t) => $(t).text().toUpperCase().includes("VÀNG MIẾNG SJC"))
+      .first();
+  }
   if (!table.length) return [];
   const out: Array<[string, number, number]> = [];
   const seen = new Set<string>();
@@ -872,6 +884,44 @@ function parseKimNganPhuc(html: string): Array<[string, number, number]> {
   return out;
 }
 
+function parseKimPhat(html: string): Array<[string, number, number]> {
+  // kimphat.evosoft.vn: bảng "VÀNG TRONG NƯỚC" là table đầu tiên của trang;
+  // giá niêm yết theo CHỈ (đầy đủ đồng, vd "11,500,000") → nhân 10 ra giá lượng.
+  // Ô giá chứa cả dòng thay đổi (+80,000 (0.7%)) nên phải lấy đúng div.price,
+  // không dùng tableRows/parseShopPrice trên toàn ô.
+  const items: Array<[string, string]> = [
+    ["nhẫn tròn 99.99", "KP_RING9999"],
+    ["nữ trang 985", "KP_TS985"],
+    ["nữ trang 750", "KP_TS750"],
+    ["nữ trang 610", "KP_TS610"],
+  ];
+  const $ = cheerio.load(html);
+  const out: Array<[string, number, number]> = [];
+  const seen = new Set<string>();
+  $("table")
+    .first()
+    .find("tr")
+    .each((_, tr) => {
+      const name = $(tr)
+        .find(".column-type")
+        .first()
+        .text()
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase()
+        .normalize("NFC"); // trang dùng lẫn dấu tổ hợp (NFD) cho "Nữ" — chuẩn hoá kẻo trượt khớp
+      const match = items.find(([needle]) => name.includes(needle));
+      if (!match || seen.has(match[1])) return;
+      const prices = $(tr).find(".column-price .price");
+      if (prices.length < 2) return;
+      const buy = parseShopPrice(prices.eq(0).text(), 10);
+      if (buy === null) return;
+      out.push([match[1], buy, parseShopPrice(prices.eq(1).text(), 10) ?? 0]);
+      seen.add(match[1]);
+    });
+  return out;
+}
+
 interface ShopSpec {
   key: string;
   url: string;
@@ -889,6 +939,7 @@ const SHOPS: ShopSpec[] = [
   },
   { key: "kimthanh", url: "https://kimthanhh.com/gia-vang", parse: parseKimThanh },
   { key: "kimnganphuc", url: "https://kimnganphuc.vn/gia-vang", parse: parseKimNganPhuc },
+  { key: "kimphat", url: "https://kimphat.evosoft.vn/", parse: parseKimPhat },
 ];
 
 export class PrivateShopsProvider implements GoldProvider {
