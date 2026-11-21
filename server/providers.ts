@@ -785,11 +785,23 @@ function parseHuyThanh(html: string): Array<[string, number, number]> {
 
 function parseKimTin(html: string): Array<[string, number, number]> {
   const $ = cheerio.load(html);
-  const panel = $("#gold-area-panel-HN").length
-    ? $("#gold-area-panel-HN").first()
-    : $(".gold-area-panel").first();
-  if (!panel.length) return [];
-  const table = panel.find("table").first();
+  // Site đổi cấu trúc 11/2026: panel giá theo khu vực giờ là bản "mobile"
+  // (#mobile-gold-area-panel-HN / .mobile-gold-area-panel). Giữ cả selector cũ
+  // và thêm phương án quét mọi bảng trên trang để lần đổi cấu trúc sau không
+  // bị mất giá (sự cố 21/11/2026: selector cũ không khớp → 5 mã KT bị lấp giá mẫu).
+  const panel = $("#mobile-gold-area-panel-HN").length
+    ? $("#mobile-gold-area-panel-HN").first()
+    : $("#gold-area-panel-HN").length
+      ? $("#gold-area-panel-HN").first()
+      : $(".mobile-gold-area-panel").length
+        ? $(".mobile-gold-area-panel").first()
+        : $(".gold-area-panel").first();
+  let table = panel.find("table").first();
+  if (!table.length) {
+    table = $("table")
+      .filter((_, t) => $(t).text().toUpperCase().includes("VÀNG MIẾNG SJC"))
+      .first();
+  }
   if (!table.length) return [];
   const out: Array<[string, number, number]> = [];
   const seen = new Set<string>();

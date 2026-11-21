@@ -275,6 +275,17 @@ class Poller {
 
     const nextSnapshot: Record<string, QuoteRow> = { ...prev };
     for (const r of rows) nextSnapshot[r.code] = r;
+    if (!isMock) {
+      // Gỡ các mã chỉ còn dữ liệu mẫu (mock seed) mà không provider thật nào
+      // trả về — thà thiếu mã còn hơn hiện giá giả như giá thật (sự cố Kim Tín
+      // 11/2026: web nguồn đổi cấu trúc, 5 mã KT hiện giá mẫu ~140tr nhiều ngày).
+      const realCodes = new Set(rows.map((r) => r.code));
+      for (const [code, row] of Object.entries(nextSnapshot)) {
+        if (row.source === "mock" && !realCodes.has(code)) {
+          delete nextSnapshot[code];
+        }
+      }
+    }
     this.latest = nextSnapshot;
 
     if (!isMock) {
