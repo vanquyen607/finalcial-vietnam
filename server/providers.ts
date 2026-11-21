@@ -884,6 +884,44 @@ function parseKimNganPhuc(html: string): Array<[string, number, number]> {
   return out;
 }
 
+function parseKimPhat(html: string): Array<[string, number, number]> {
+  // kimphat.evosoft.vn: bảng "VÀNG TRONG NƯỚC" là table đầu tiên của trang;
+  // giá niêm yết theo CHỈ (đầy đủ đồng, vd "11,500,000") → nhân 10 ra giá lượng.
+  // Ô giá chứa cả dòng thay đổi (+80,000 (0.7%)) nên phải lấy đúng div.price,
+  // không dùng tableRows/parseShopPrice trên toàn ô.
+  const items: Array<[string, string]> = [
+    ["nhẫn tròn 99.99", "KP_RING9999"],
+    ["nữ trang 985", "KP_TS985"],
+    ["nữ trang 750", "KP_TS750"],
+    ["nữ trang 610", "KP_TS610"],
+  ];
+  const $ = cheerio.load(html);
+  const out: Array<[string, number, number]> = [];
+  const seen = new Set<string>();
+  $("table")
+    .first()
+    .find("tr")
+    .each((_, tr) => {
+      const name = $(tr)
+        .find(".column-type")
+        .first()
+        .text()
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase()
+        .normalize("NFC"); // trang dùng lẫn dấu tổ hợp (NFD) cho "Nữ" — chuẩn hoá kẻo trượt khớp
+      const match = items.find(([needle]) => name.includes(needle));
+      if (!match || seen.has(match[1])) return;
+      const prices = $(tr).find(".column-price .price");
+      if (prices.length < 2) return;
+      const buy = parseShopPrice(prices.eq(0).text(), 10);
+      if (buy === null) return;
+      out.push([match[1], buy, parseShopPrice(prices.eq(1).text(), 10) ?? 0]);
+      seen.add(match[1]);
+    });
+  return out;
+}
+
 interface ShopSpec {
   key: string;
   url: string;
@@ -901,6 +939,7 @@ const SHOPS: ShopSpec[] = [
   },
   { key: "kimthanh", url: "https://kimthanhh.com/gia-vang", parse: parseKimThanh },
   { key: "kimnganphuc", url: "https://kimnganphuc.vn/gia-vang", parse: parseKimNganPhuc },
+  { key: "kimphat", url: "https://kimphat.evosoft.vn/", parse: parseKimPhat },
 ];
 
 export class PrivateShopsProvider implements GoldProvider {
